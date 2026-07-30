@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # The Express Backend API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sol_handmade_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://sol_user:sol_password@postgres:5432/sol_handmades?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_PRIVATE_KEY=your_rs256_private_key_here
+      - JWT_PUBLIC_KEY=your_rs256_public_key_here
+      - REFRESH_TOKEN_SECRET=your_refresh_secret
+      - STRIPE_SECRET_KEY=sk_test_mock
+      - STRIPE_WEBHOOK_SECRET=whsec_mock
+      - STRIPE_CONNECT_CLIENT_ID=ca_mock
+      - CLOUDFLARE_R2_ENDPOINT=http://minio:9000
+      - CLOUDFLARE_R2_ACCESS_KEY=minioadmin
+      - CLOUDFLARE_R2_SECRET_KEY=minioadmin
+      - CLOUDFLARE_R2_BUCKET=sol-handmades-bucket
+      - RESEND_API_KEY=re_mock
+      - AFRICAS_TALKING_API_KEY=at_key_mock
+      - AFRICAS_TALKING_USERNAME=at_user_mock
+      - GOOGLE_CLIENT_ID=google_mock
+      - GOOGLE_CLIENT_SECRET=google_secret_mock
+      - APPLE_CLIENT_ID=apple_mock
+      - WEBPUSH_PUBLIC_KEY=webpush_pub_mock
+      - WEBPUSH_PRIVATE_KEY=webpush_priv_mock
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  # The BullMQ asynchronous queue worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sol_handmade_worker
+    restart: always
+    command: ["node", "dist/worker.cjs"]
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://sol_user:sol_password@postgres:5432/sol_handmades?schema=public
+      - REDIS_URL=redis://redis:6379
+      - STRIPE_SECRET_KEY=sk_test_mock
+      - RESEND_API_KEY=re_mock
+      - AFRICAS_TALKING_API_KEY=at_key_mock
+      - AFRICAS_TALKING_USERNAME=at_user_mock
+      - CLOUDFLARE_R2_ENDPOINT=http://minio:9000
+      - CLOUDFLARE_R2_ACCESS_KEY=minioadmin
+      - CLOUDFLARE_R2_SECRET_KEY=minioadmin
+      - CLOUDFLARE_R2_BUCKET=sol-handmades-bucket
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  # PostgreSQL database container
+  postgres:
+    image: postgres:16-alpine
+    container_name: sol_handmade_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=sol_user
+      - POSTGRES_PASSWORD=sol_password
+      - POSTGRES_DB=sol_handmades
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Redis instance for sessions, rate limiting, and BullMQ queues
+  redis:
+    image: redis:7-alpine
+    container_name: sol_handmade_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  # MinIO as local Cloudflare R2 / S3-compatible substitute for dev
+  minio:
+    image: minio/minio:latest
+    container_name: sol_handmade_minio
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

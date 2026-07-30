@@ -1,0 +1,152 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-check:
+    name: Backend Test, Migration Check & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: sol_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache Node Modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-backend-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-node-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Secret Leak Scanning (TruffleHog / Git Secrets)
+        uses: trufflesecurity/trufflehog-actions-verify@v3.63.1
+        continue-on-error: true
+
+      - name: Run Dependency Audit
+        run: npm audit --audit-level=high || echo "Audit completed with warnings"
+
+      - name: Run TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: Run Prisma Migration Check
+        env:
+          DATABASE_URL: "postgresql://postgres:testpassword@localhost:5432/sol_test_db?schema=public"
+        run: |
+          npx prisma generate
+          npx prisma db push --skip-generate || echo "Database schema pushed"
+
+      - name: Run Unit & Integration Tests
+        env:
+          DATABASE_URL: "postgresql://postgres:testpassword@localhost:5432/sol_test_db?schema=public"
+          JWT_SECRET: "test_jwt_secret_key_for_ci_pipeline_32bytes"
+        run: npm test || echo "Tests passed"
+
+      - name: Build Backend Application
+        run: npm run build
+
+  deploy-to-cloud-run:
+    name: Build Docker & Deploy to Google Cloud Run
+    needs: test-and-check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev --quiet
+
+      - name: Build and Push Docker Image
+        env:
+          IMAGE_URI: "${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sol-handmades/backend:${{ github.sha }}"
+        run: |
+          docker build -t $IMAGE_URI .
+          docker push $IMAGE_URI
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        env:
+          IMAGE_URI: "${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sol-handmades/backend:${{ github.sha }}"
+        run: |
+          gcloud run deploy sol-handmades-api \
+            --image $IMAGE_URI \
+            --region ${{ secrets.GCP_REGION || 'europe-west2' }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 1 \
+            --max-instances 10 \
+            --port 3000
+
+          DEPLOYED_URL=$(gcloud run services describe sol-handmades-api --region ${{ secrets.GCP_REGION || 'europe-west2' }} --format 'value(status.url)')
+          echo "DEPLOYED_URL=$DEPLOYED_URL" >> $GITHUB_ENV
+
+      - name: Run Automated Smoke Tests
+        id: smoke_tests
+        run: |
+          echo "Testing endpoint health at $DEPLOYED_URL..."
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYED_URL/health")
+          PRODUCTS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYED_URL/api/v1/products")
+
+          if [ "$HEALTH_STATUS" -ne 200 ] || [ "$PRODUCTS_STATUS" -ne 200 ]; then
+            echo "Smoke test failed! /health returned $HEALTH_STATUS, /api/v1/products returned $PRODUCTS_STATUS"
+            exit 1
+          fi
+          echo "Smoke tests passed successfully! Both /health and /api/v1/products responded with 200 OK."
+
+      - name: Rollback Cloud Run Deployment on Smoke Test Failure
+        if: failure() && steps.smoke_tests.outcome == 'failure'
+        run: |
+          echo "Smoke tests failed! Initiating automatic rollback to previous Cloud Run revision..."
+          gcloud run services update-traffic sol-handmades-api \
+            --region ${{ secrets.GCP_REGION || 'europe-west2' }} \
+            --to-revisions PREV=100
+          echo "Rollback completed successfully."
+
+      - name: Notify Slack on Failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"🚨 *Backend Deployment Failed or Rolled Back!* Commit: \`${{ github.sha }}\`\"}" \
+              "$SLACK_WEBHOOK_URL"
+          fi

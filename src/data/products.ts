@@ -1,0 +1,521 @@
+import { Product, FarmSeller, BatchTraceabilityRecord, WholesaleStandingOrder, MortalityClaim } from '../types';
+
+export const INITIAL_FARMS: FarmSeller[] = [
+  {
+    id: 'farm-1',
+    name: 'Sunnyside Hatchery & Bio-Farm',
+    slug: 'sunnyside-hatchery',
+    location: 'Naivasha Basin, Rift Valley',
+    region: 'Central Rift',
+    establishedYear: 2012,
+    biosecurityLevel: 'Tier-1 Bio-Isolated Facility',
+    certifications: ['Halal Certified', 'KEBS Quality Mark', 'DVS Avian Health Clearance', 'ISO 22000'],
+    kebsLicenseNo: 'KEBS/PV-88392/2025',
+    dvsCertNo: 'DVS-NAI-9921',
+    rating: 4.9,
+    reviewsCount: 312,
+    description: 'Premier hatchery specializing in disease-screened day-old chicks, vaccinated point-of-lay pullets, and organic free-range poultry stock.',
+    heroImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=1200&q=80',
+    avatarImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=200&q=80',
+    specialties: ['Sexed Day-Old Chicks', 'Vaccinated Pullets', 'Fertile Hatching Eggs'],
+    deliveryZones: ['Nairobi Metro', 'Rift Valley', 'Central Kenya', 'Western Zone']
+  },
+  {
+    id: 'farm-2',
+    name: 'Kuku Kings Fresh Meats',
+    slug: 'kuku-kings',
+    location: 'Limuru Highlands, Kiambu',
+    region: 'Central',
+    establishedYear: 2016,
+    biosecurityLevel: 'HACCP Certified Processing',
+    certifications: ['Halal Certified', 'DVS Slaughter License', 'KEBS Fresh Standard'],
+    kebsLicenseNo: 'KEBS/MEAT-44102',
+    dvsCertNo: 'DVS-KMB-3309',
+    rating: 4.8,
+    reviewsCount: 450,
+    description: 'High-altitude cold-chain dressed chicken processing farm delivering blast-frozen cuts and fresh whole dressed birds directly to HORECA & households.',
+    heroImage: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?auto=format&fit=crop&w=1200&q=80',
+    avatarImage: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?auto=format&fit=crop&w=200&q=80',
+    specialties: ['Whole Dressed Birds', 'Boneless Breast Cuts', 'Marinated Skewers'],
+    deliveryZones: ['Nairobi Metro', 'Kiambu', 'Machakos', 'Nakuru']
+  },
+  {
+    id: 'farm-3',
+    name: 'Crested Avian Heritage Sanctuary',
+    slug: 'crested-avian',
+    location: 'Eldoret Highlands, Uasin Gishu',
+    region: 'North Rift',
+    establishedYear: 2018,
+    biosecurityLevel: 'Avian Influenza Free Zone',
+    certifications: ['KEBS Heritage Breed Cert', 'DVS Organic Passed'],
+    kebsLicenseNo: 'KEBS/BREED-1029',
+    dvsCertNo: 'DVS-ELD-8812',
+    rating: 4.95,
+    reviewsCount: 188,
+    description: 'Breeding purebred Kuroiler, Light Sussex, and Improved Kienyeji dual-purpose stock with maximum disease resistance and foraging vigor.',
+    heroImage: 'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=1200&q=80',
+    avatarImage: 'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=200&q=80',
+    specialties: ['Heritage Breeds', 'Kienyeji Breeding Pairs', 'Fertile Heritage Eggs'],
+    deliveryZones: ['Eldoret', 'Kitale', 'Kisumu', 'Nairobi Express']
+  }
+];
+
+export const INITIAL_PRODUCTS: Product[] = [
+  // 1. LIVE BIRDS
+  {
+    id: 'prod-chick-cobb500',
+    name: 'Cobb 500 Broiler Day-Old Chicks (Vaccinated)',
+    description: 'High-growth commercial broiler chicks vaccinated against Marek’s Disease, Newcastle (NCD), and Infectious Bronchitis (IB). Guaranteed 98%+ survival rate.',
+    price: 135,
+    wholesalePrice: 115,
+    wholesaleMinQty: 100,
+    rating: 4.9,
+    reviewsCount: 142,
+    category: 'live-birds',
+    subCategory: 'day-old-chicks',
+    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Sunnyside Hatchery & Bio-Farm',
+    sellerId: 'farm-1',
+    sellerBadge: 'KEBS & DVS Certified Hatchery',
+    stock: 2500,
+    tags: ['Day-Old Chicks', 'Vaccinated', 'Cobb 500', 'Fast Growth'],
+    badge: 'NCD & IB Vaccinated',
+    fulfillmentType: 'live-climate',
+    liveData: {
+      breed: 'Cobb 500 Commercial Broiler',
+      liveCategory: 'chick',
+      ageWeeks: 0,
+      weightRangeKg: { min: 0.04, max: 0.048 },
+      sex: 'unsexed',
+      vaccinationRecord: [
+        { vaccine: "Marek's HVT Injection", dateAdministered: '2026-07-29' },
+        { vaccine: 'Newcastle NCD + IB Spray', dateAdministered: '2026-07-29' }
+      ],
+      sourceFarmId: 'farm-1',
+      batchId: 'BATCH-2026-CHX9',
+      minOrderQty: 50,
+      mortalityPolicy: 'replace',
+      pricePerBird: 135,
+      transportZoneAvailability: ['Nairobi Metro', 'Rift Valley', 'Central Kenya']
+    }
+  },
+  {
+    id: 'prod-layer-pullet',
+    name: 'ISA Brown Point-of-Lay Pullets (18 Weeks)',
+    description: 'Fully vaccinated ISA Brown pullets at 18 weeks of age, ready to commence laying within 10-14 days. Exceptional egg production rate up to 96% peak.',
+    price: 850,
+    wholesalePrice: 760,
+    wholesaleMinQty: 25,
+    rating: 4.95,
+    reviewsCount: 88,
+    category: 'live-birds',
+    subCategory: 'layers',
+    image: 'https://images.unsplash.com/photo-1612170153139-6f881ff067e0?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Sunnyside Hatchery & Bio-Farm',
+    sellerId: 'farm-1',
+    sellerBadge: 'KEBS & DVS Certified Hatchery',
+    stock: 450,
+    tags: ['Point of Lay', 'ISA Brown', 'Egg Layer', '18-Weeks'],
+    badge: 'Point of Lay Ready',
+    fulfillmentType: 'live-climate',
+    liveData: {
+      breed: 'ISA Brown Layer',
+      liveCategory: 'layer',
+      ageWeeks: 18,
+      weightRangeKg: { min: 1.45, max: 1.65 },
+      sex: 'female',
+      vaccinationRecord: [
+        { vaccine: 'Full 16-Week Layer Shield (NCD/IB/Gumboro/Fowl Pox)', dateAdministered: '2026-07-10' }
+      ],
+      sourceFarmId: 'farm-1',
+      batchId: 'BATCH-2026-POL4',
+      minOrderQty: 10,
+      mortalityPolicy: 'replace',
+      pricePerBird: 850,
+      transportZoneAvailability: ['Nairobi Metro', 'Rift Valley', 'Central Kenya', 'Western Zone']
+    }
+  },
+  {
+    id: 'prod-kuroiler-rooster',
+    name: 'Kuroiler Breeding Roosters (Active Studs, 24 Weeks)',
+    description: 'Robust Kuroiler breeding roosters renowned for aggressive fertility, heavy body weight (3.5kg+), and disease tolerance for outdoor free-range flocks.',
+    price: 2200,
+    wholesalePrice: 1950,
+    wholesaleMinQty: 5,
+    rating: 4.85,
+    reviewsCount: 34,
+    category: 'live-birds',
+    subCategory: 'breeding-stock',
+    image: 'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Crested Avian Heritage Sanctuary',
+    sellerId: 'farm-3',
+    sellerBadge: 'Heritage Certified Farm',
+    stock: 60,
+    tags: ['Rooster', 'Kuroiler', 'Breeding Stock', 'Free-Range'],
+    badge: 'Pedigree Stud',
+    fulfillmentType: 'live-climate',
+    liveData: {
+      breed: 'Pure Kuroiler Dual-Purpose',
+      liveCategory: 'breeding',
+      ageWeeks: 24,
+      weightRangeKg: { min: 3.2, max: 3.8 },
+      sex: 'male',
+      vaccinationRecord: [
+        { vaccine: 'Full Heritage Avian Shield', dateAdministered: '2026-06-15' }
+      ],
+      sourceFarmId: 'farm-3',
+      batchId: 'BATCH-2026-ROOS',
+      minOrderQty: 2,
+      mortalityPolicy: 'credit',
+      pricePerBird: 2200,
+      transportZoneAvailability: ['Eldoret', 'Kitale', 'Kisumu', 'Nairobi Express']
+    }
+  },
+
+  // 2. FRESH & WHOLE POULTRY
+  {
+    id: 'prod-whole-dressed-chicken',
+    name: 'Whole Dressed Farm-Fresh Chicken (1.4kg - 1.6kg)',
+    description: 'Chilled, whole dressed broiler chicken, air-chilled for tender juicy flavor. Weight tolerance ±10% pre-authorized; exact price calculated upon packing.',
+    price: 680,
+    wholesalePrice: 580,
+    wholesaleMinQty: 20,
+    rating: 4.92,
+    reviewsCount: 210,
+    category: 'fresh-poultry',
+    subCategory: 'whole-dressed',
+    image: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Kuku Kings Fresh Meats',
+    sellerId: 'farm-2',
+    sellerBadge: 'HACCP & Halal Certified',
+    stock: 800,
+    tags: ['Whole Chicken', 'Air-Chilled', 'Fresh', 'Halal'],
+    badge: 'Halal Certified',
+    fulfillmentType: 'chilled-express',
+    freshData: {
+      cutType: 'Whole Bird Dressed',
+      boneStatus: 'bone-in',
+      skinStatus: 'skin-on',
+      weightEstKg: 1.5,
+      weightTolerancePercent: 10,
+      pricePerKg: 450,
+      slaughterDate: '2026-07-30 (04:00 AM)',
+      packDate: '2026-07-30',
+      bestBeforeDate: '2026-08-04',
+      halalCertified: true,
+      certificationDocs: ['DVS-SL-8841', 'KEBS-HALAL-992'],
+      batchId: 'BATCH-2026-RAW2',
+      sourceFarmId: 'farm-2',
+      storageTemp: 'chilled'
+    }
+  },
+  {
+    id: 'prod-boneless-breast-skinless',
+    name: 'Prime Boneless Skinless Chicken Breast (1kg Pack)',
+    description: 'Hand-trimmed 100% pure breast fillets. High-protein, zero added water, flash-chilled to maintain optimal cell structure and tenderness.',
+    price: 890,
+    wholesalePrice: 780,
+    wholesaleMinQty: 10,
+    rating: 4.96,
+    reviewsCount: 175,
+    category: 'fresh-poultry',
+    subCategory: 'cuts',
+    image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Kuku Kings Fresh Meats',
+    sellerId: 'farm-2',
+    sellerBadge: 'HACCP & Halal Certified',
+    stock: 500,
+    tags: ['Chicken Breast', 'Boneless', 'Skinless', 'High Protein'],
+    badge: '100% Trimmed',
+    fulfillmentType: 'chilled-express',
+    freshData: {
+      cutType: 'Breast Fillet',
+      boneStatus: 'boneless',
+      skinStatus: 'skinless',
+      weightEstKg: 1.0,
+      weightTolerancePercent: 5,
+      pricePerKg: 890,
+      slaughterDate: '2026-07-30 (04:00 AM)',
+      packDate: '2026-07-30',
+      bestBeforeDate: '2026-08-05',
+      halalCertified: true,
+      certificationDocs: ['DVS-SL-8841'],
+      batchId: 'BATCH-2026-BST1',
+      sourceFarmId: 'farm-2',
+      storageTemp: 'chilled'
+    }
+  },
+
+  // 3. PROCESSED & VALUE-ADDED
+  {
+    id: 'prod-peri-peri-marinated-wings',
+    name: 'Flame-Crafted Swahili Peri-Peri Marinated Wings (800g)',
+    description: 'Fresh chicken wings soaked in traditional bird-eye chili, garlic, lemon, and wild herbs. Ready to roast, grill, or air-fry in 15 minutes.',
+    price: 650,
+    wholesalePrice: 560,
+    wholesaleMinQty: 15,
+    rating: 4.88,
+    reviewsCount: 94,
+    category: 'processed',
+    subCategory: 'marinated',
+    image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Kuku Kings Fresh Meats',
+    sellerId: 'farm-2',
+    sellerBadge: 'HACCP & Halal Certified',
+    stock: 320,
+    tags: ['Marinated Wings', 'Peri Peri', 'Ready to Grill', 'Spicy'],
+    badge: 'Chef’s Signature Marinade',
+    fulfillmentType: 'frozen-deep',
+    processedData: {
+      fixedWeightG: 800,
+      ingredientsList: ['Chicken Wings', 'Swahili Peri-Peri Chili Blend', 'Garlic', 'Lemon Juice', 'Cold-Pressed Sunflower Oil'],
+      allergens: ['Garlic', 'Chili'],
+      priceFixed: 650,
+      bestBeforeDate: '2026-10-15',
+      storageTemp: 'frozen',
+      batchId: 'BATCH-2026-WNGS'
+    }
+  },
+  {
+    id: 'prod-artisanal-chicken-sausages',
+    name: 'Artisanal Farmhouse Chicken Sausages (500g Pack)',
+    description: 'Coarsely ground premium chicken meat seasoned with sage, sea salt, and cracked black pepper in natural Collagen casings. Zero fillers or nitrate preservatives.',
+    price: 490,
+    wholesalePrice: 410,
+    wholesaleMinQty: 20,
+    rating: 4.89,
+    reviewsCount: 118,
+    category: 'processed',
+    subCategory: 'sausages',
+    image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Kuku Kings Fresh Meats',
+    sellerId: 'farm-2',
+    sellerBadge: 'HACCP & Halal Certified',
+    stock: 400,
+    tags: ['Chicken Sausages', 'Artisanal', 'No Nitrates', 'Breakfast'],
+    badge: '100% Pure Chicken Meat',
+    fulfillmentType: 'chilled-express',
+    processedData: {
+      fixedWeightG: 500,
+      ingredientsList: ['Fresh Chicken Meat (85%)', 'Chicken Fat', 'Herb Spice Blend', 'Sea Salt'],
+      allergens: [],
+      priceFixed: 490,
+      bestBeforeDate: '2026-08-20',
+      storageTemp: 'chilled',
+      batchId: 'BATCH-2026-SAUS'
+    }
+  },
+
+  // 4. EGGS
+  {
+    id: 'prod-fertile-hatching-eggs-kuroiler',
+    name: 'Fertile Kuroiler Hatching Eggs (Tray of 30)',
+    description: 'Selected high-fertility eggs (90%+ fertility rate verified) collected daily from bio-secure breeding flocks. Includes live lay-date countdown badge for maximum hatch viability.',
+    price: 1200,
+    wholesalePrice: 1050,
+    wholesaleMinQty: 10,
+    rating: 4.97,
+    reviewsCount: 164,
+    category: 'eggs',
+    subCategory: 'fertile-eggs',
+    image: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Sunnyside Hatchery & Bio-Farm',
+    sellerId: 'farm-1',
+    sellerBadge: 'KEBS & DVS Certified Hatchery',
+    stock: 120,
+    tags: ['Fertile Eggs', 'Hatching', 'Kuroiler', '30 Tray'],
+    badge: 'High Viability Guaranteed',
+    fulfillmentType: 'chilled-express',
+    eggData: {
+      eggType: 'fertile',
+      gradeSize: 'large',
+      countPerPack: 30,
+      layDate: '2026-07-28',
+      daysSinceLaid: 2,
+      fertilityWindowDays: 7,
+      hatchViabilityPercent: 92,
+      price: 1200
+    }
+  },
+  {
+    id: 'prod-jumbo-golden-table-eggs',
+    name: 'Golden Yolk Organic Table Eggs (Tray of 30 Jumbo)',
+    description: 'Rich amber-yolk free-range eggs produced by grass-fed hens. Certified salmonella-free, packed in sturdy reinforced eco-trays.',
+    price: 520,
+    wholesalePrice: 440,
+    wholesaleMinQty: 25,
+    rating: 4.93,
+    reviewsCount: 310,
+    category: 'eggs',
+    subCategory: 'table-eggs',
+    image: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Sunnyside Hatchery & Bio-Farm',
+    sellerId: 'farm-1',
+    sellerBadge: 'KEBS & DVS Certified Hatchery',
+    stock: 650,
+    tags: ['Table Eggs', 'Jumbo', 'Free-Range', 'Golden Yolk'],
+    badge: 'Golden Yolk Free-Range',
+    fulfillmentType: 'dry-ambient',
+    eggData: {
+      eggType: 'table',
+      gradeSize: 'jumbo',
+      countPerPack: 30,
+      layDate: '2026-07-29',
+      daysSinceLaid: 1,
+      price: 520
+    }
+  },
+
+  // 5. FARM SUPPLIES
+  {
+    id: 'prod-chick-starter-mash-50kg',
+    name: 'Pro-Grow High-Protein Chick Starter Mash (22% Crude Protein - 50kg)',
+    description: 'Nutrient-rich starter mash formulated with essential amino acids, probiotics, and coccidiostat to boost early immune systems and bone growth in weeks 0-4.',
+    price: 3850,
+    wholesalePrice: 3450,
+    wholesaleMinQty: 10,
+    rating: 4.88,
+    reviewsCount: 89,
+    category: 'farm-supplies',
+    subCategory: 'feed',
+    image: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Sunnyside Hatchery & Bio-Farm',
+    sellerId: 'farm-1',
+    sellerBadge: 'KEBS Feed Standard Approved',
+    stock: 150,
+    tags: ['Poultry Feed', 'Chick Starter', '22% Protein', '50kg Bag'],
+    badge: 'KEBS Feed Certified',
+    fulfillmentType: 'dry-ambient',
+    supplyData: {
+      supplyCategory: 'feed',
+      unit: '50kg Bag',
+      priceFixed: 3850,
+      stockQty: 150,
+      requiresPrescription: false
+    }
+  },
+  {
+    id: 'prod-automatic-incubator-500-eggs',
+    name: 'Bio-Sphere Pro 560 Automatic Egg Incubator & Hatcher',
+    description: 'Fully automatic temperature, humidity, and egg-turning climate chamber with dual-power solar/AC auto-failover and digital egg candling LED arrays.',
+    price: 48500,
+    wholesalePrice: 43000,
+    wholesaleMinQty: 2,
+    rating: 4.98,
+    reviewsCount: 42,
+    category: 'farm-supplies',
+    subCategory: 'equipment',
+    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
+    sellerName: 'Sunnyside Hatchery & Bio-Farm',
+    sellerId: 'farm-1',
+    sellerBadge: 'Authorized Equipment Dist.',
+    stock: 18,
+    tags: ['Incubator', 'Automatic Hatcher', '560 Eggs', 'Solar Ready'],
+    badge: '1-Year Farm Warranty',
+    fulfillmentType: 'dry-ambient',
+    supplyData: {
+      supplyCategory: 'equipment',
+      unit: 'Complete Machine',
+      priceFixed: 48500,
+      stockQty: 18,
+      requiresPrescription: false
+    }
+  }
+];
+
+export const MOCK_BATCH_TRACE_RECORDS: Record<string, BatchTraceabilityRecord> = {
+  'BATCH-2026-CHX9': {
+    batchId: 'BATCH-2026-CHX9',
+    farmName: 'Sunnyside Hatchery & Bio-Farm',
+    location: 'Naivasha Basin, Rift Valley',
+    breedOrCut: 'Cobb 500 Commercial Broiler Chicks',
+    hatchOrSlaughterDate: '2026-07-29 02:30 AM',
+    feedSupplier: 'Unga Farm Care Premium Breeder Mash',
+    vaccinationHistory: [
+      { vaccine: "Marek's HVT In-Ovo Injection", dateAdministered: '2026-07-28' },
+      { vaccine: 'Newcastle NCD LaSota + IB Primer Spray', dateAdministered: '2026-07-29' }
+    ],
+    labTestStatus: 'Pass - Certified Free of Salmonella Pullorum & Avian Influenza H5N1',
+    kebsLicenseNo: 'KEBS/PV-88392/2025',
+    dvsCertNo: 'DVS-NAI-9921',
+    veterinarySignOff: 'Dr. Kennedy Wambugu, BVM (Reg #1402)',
+    temperatureLog: 'Transport Chamber Locked at 32.5°C ±0.5°C'
+  },
+  'BATCH-2026-RAW2': {
+    batchId: 'BATCH-2026-RAW2',
+    farmName: 'Kuku Kings Fresh Meats',
+    location: 'Limuru Highlands, Kiambu',
+    breedOrCut: 'Whole Dressed Air-Chilled Broilers',
+    hatchOrSlaughterDate: '2026-07-30 04:00 AM Slaughter',
+    feedSupplier: 'Sunnyside Bio-Growth Feed',
+    vaccinationHistory: [
+      { vaccine: 'Full Broiler Pre-Slaughter Withdrawal Protocol Verified', dateAdministered: '2026-07-20' }
+    ],
+    labTestStatus: 'Pass - Zero Antibiotic Residue & Certified Halal',
+    kebsLicenseNo: 'KEBS/MEAT-44102',
+    dvsCertNo: 'DVS-KMB-3309',
+    veterinarySignOff: 'Dr. Sarah Njeri, DVS Inspector (Reg #0988)',
+    temperatureLog: 'Post-Chilling Chamber Constant at 1.8°C'
+  },
+  'BATCH-2026-POL4': {
+    batchId: 'BATCH-2026-POL4',
+    farmName: 'Sunnyside Hatchery & Bio-Farm',
+    location: 'Naivasha Basin, Rift Valley',
+    breedOrCut: 'ISA Brown Point-of-Lay Pullets (18 Wks)',
+    hatchOrSlaughterDate: '2026-03-24 Hatch Date',
+    feedSupplier: 'Sunnyside Layer Developer Mash',
+    vaccinationHistory: [
+      { vaccine: 'NCD + IB Booster', dateAdministered: '2026-05-12' },
+      { vaccine: 'Fowl Pox Wing Web', dateAdministered: '2026-06-02' },
+      { vaccine: 'Gumboro IBD Final Boost', dateAdministered: '2026-07-10' }
+    ],
+    labTestStatus: 'Pass - Serology Confirmed High Titer Immunity',
+    kebsLicenseNo: 'KEBS/PV-88392/2025',
+    dvsCertNo: 'DVS-NAI-9921',
+    veterinarySignOff: 'Dr. Kennedy Wambugu, BVM (Reg #1402)',
+    temperatureLog: 'Ventilated Climate Transit Unit'
+  }
+};
+
+export const MOCK_WHOLESALE_ORDERS: WholesaleStandingOrder[] = [
+  {
+    id: 'WO-8821',
+    businessName: 'The Carnivore Restaurant & Grill',
+    contactPerson: 'Chef James Omondi',
+    email: 'purchasing@carnivore.co.ke',
+    frequency: 'weekly',
+    itemsSummary: '200x Whole Dressed Birds (1.5kg), 50kg Boneless Breast',
+    nextDeliveryDate: '2026-08-01',
+    monthlySpendKsh: 380000,
+    paymentTerms: 'NET-30 Invoiced',
+    status: 'active'
+  },
+  {
+    id: 'WO-9943',
+    businessName: 'Java House Central Butchery',
+    contactPerson: 'Mercy Mutua',
+    email: 'supplychain@javahouse.com',
+    frequency: 'bi-weekly',
+    itemsSummary: '100kg Marinated Peri-Peri Wings, 80 Trays Jumbo Eggs',
+    nextDeliveryDate: '2026-08-04',
+    monthlySpendKsh: 245000,
+    paymentTerms: 'NET-30 Invoiced',
+    status: 'active'
+  }
+];
+
+export const MOCK_MORTALITY_CLAIMS: MortalityClaim[] = [
+  {
+    id: 'CLM-7701',
+    orderId: 'ORD-99821',
+    batchId: 'BATCH-2026-CHX9',
+    breed: 'Cobb 500 Broiler Chicks',
+    affectedQty: 3,
+    incidentDate: '2026-07-28',
+    photoEvidenceUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=400&q=80',
+    description: '3 chicks arrived weak in corner of climate box #2 during transit.',
+    status: 'approved_credit',
+    refundAmount: 405,
+    claimDate: '2026-07-28'
+  }
+];

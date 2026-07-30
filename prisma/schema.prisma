@@ -1,0 +1,995 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// CORE MODELS
+// ==========================================
+
+model User {
+  id                        String                     @id @default(uuid())
+  email                     String                     @unique
+  passwordHash              String
+  name                      String
+  avatarEmoji               String                     @default("🧚")
+  role                      UserRole                   @default(BUYER)
+  lastSeenChangelogVersion  String                     @default("0.0.0")
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  deletedAt                 DateTime?
+
+  // Relations
+  keeperProfile             KeeperProfile?
+  sessions                  Session[]
+  refreshTokens             RefreshToken[]
+  oauthAccounts             OAuthAccount[]
+  orders                    Order[]                    @relation("BuyerOrders")
+  disputes                  Dispute[]                  @relation("BuyerDisputes")
+  disputeMessages           DisputeMessage[]
+  reviews                   Review[]
+  questions                 ProductQuestion[]
+  helpfulQuestions          QuestionHelpful[]
+  wishlists                 Wishlist[]
+  backInStockSubs           BackInStockSubscription[]
+  savedSearches             SavedSearch[]
+  addresses                 Address[]
+  savedPaymentMethods       SavedPaymentMethod[]
+  referralCode              ReferralCode?
+  referralsMade             Referral[]                 @relation("Referrer")
+  referralJoined            Referral?                  @relation("ReferredUser")
+  gdprRequests              GDPRRequest[]
+  consentRecords            ConsentRecord[]
+  couponRedemptions         CouponRedemption[]
+  notifications             Notification[]
+  pushSubscriptions         PushSubscription[]
+  notificationPreferences   NotificationPreference[]
+  sentThreads               MessageThread[]            @relation("BuyerThreads")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  BUYER
+  KEEPER
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OAuthAccount {
+  id           String   @id @default(uuid())
+  userId       String
+  provider     String   // "google" | "apple"
+  providerId   String   @unique
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// KEEPER MODELS
+// ==========================================
+
+model KeeperProfile {
+  id                    String            @id @default(uuid())
+  userId                String            @unique
+  shopSlug              String            @unique
+  shopName              String
+  bio                   String?
+  stripeAccountId       String?
+  shopStatus            ShopStatus        @default(DRAFT)
+  loreMode              LoreMode          @default(WOODLAND)
+  awayMode              Boolean           @default(false)
+  returnDate            DateTime?
+  awayMessage           String?
+  announcementText      String?
+  announcementExpiry    DateTime?
+  accentColour          String            @default("#FAF5EC")
+  sectionOrder          Json?             // List of section names
+  featuredListingId     String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  followers             KeeperFollower[]
+  products              Product[]
+  payouts               Payout[]
+  disputes              Dispute[]         @relation("KeeperDisputes")
+  answers               ProductAnswer[]
+  stories               KeeperStory[]
+  messageTemplates      MessageTemplate[]
+  receivedThreads       MessageThread[]   @relation("KeeperThreads")
+}
+
+enum ShopStatus {
+  DRAFT
+  PENDING_PAYOUT
+  LAUNCHED
+}
+
+enum LoreMode {
+  WOODLAND
+  SOLAR
+}
+
+model KeeperFollower {
+  id             String        @id @default(uuid())
+  keeperId       String
+  userId         String
+  createdAt      DateTime      @default(now())
+
+  keeper         KeeperProfile @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+
+  @@unique([keeperId, userId])
+}
+
+// ==========================================
+// PRODUCT MODELS
+// ==========================================
+
+model Product {
+  id                 String               @id @default(uuid())
+  keeperId           String
+  title              String
+  description        String
+  originStory        String?
+  loreTag            String?
+  price              Int                  // stored in minor units (cents / KES cents)
+  currency           String               @default("KES")
+  stockQuantity      Int                  @default(5)
+  lowStockThreshold  Int                  @default(2)
+  category           ProductCategory
+  intention          ProductIntention
+  productType        ProductType          @default(PHYSICAL)
+  images             Json                 // Array of image URLs
+  isActive           Boolean              @default(true)
+  isEventFeatured    Boolean              @default(false)
+  visibilityScore    Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deletedAt          DateTime?
+
+  // Relations
+  keeper             KeeperProfile        @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  tags               ProductTag[]
+  digitalFiles       DigitalFile[]
+  variants           ProductVariant[]
+  orderItems         OrderItem[]
+  reviews            Review[]
+  questions          ProductQuestion[]
+  wishlists          Wishlist[]
+  backInStockSubs    BackInStockSubscription[]
+  promotions         PromotionProduct[]
+  eventProducts      EventProduct[]
+
+  @@index([category])
+  @@index([intention])
+}
+
+enum ProductCategory {
+  WANDERING_WEARABLES
+  ENCHANTED_DECOR
+  OUTDOOR_MAGIC
+  PIXIE_POTIONS_AND_BALMS
+}
+
+enum ProductIntention {
+  COZINESS
+  PROTECTION
+  WILD_WHIMSY
+  SUNSET_WARMTH
+}
+
+enum ProductType {
+  PHYSICAL
+  DIGITAL
+}
+
+model ProductTag {
+  id        String   @id @default(uuid())
+  productId String
+  name      String
+  createdAt DateTime @default(now())
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, name])
+}
+
+model DigitalFile {
+  id            String   @id @default(uuid())
+  productId     String
+  filename      String
+  fileSize      Int
+  fileType      String
+  s3Key         String
+  downloadLimit Int      @default(5)
+  createdAt     DateTime @default(now())
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductVariant {
+  id        String      @id @default(uuid())
+  productId String
+  name      String
+  price     Int?        // Optional variant-specific price override
+  stock     Int         @default(5)
+  createdAt DateTime    @default(now())
+
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+// ==========================================
+// ORDER MODELS
+// ==========================================
+
+model Order {
+  id                     String               @id @default(uuid())
+  buyerId                String?
+  guestEmail             String?
+  guestToken             String?
+  status                 OrderStatus          @default(PENDING)
+  isGift                 Boolean              @default(false)
+  giftMessage            String?
+  buyerNote              String?
+  subtotal               Int                  // minor units
+  platformFee            Int                  // minor units
+  transactionFee         Int                  // minor units
+  discountAmount         Int                  @default(0)
+  couponCode             String?
+  total                  Int                  // minor units
+  currency               String               @default("KES")
+  stripePaymentIntentId  String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  // Relations
+  buyer                  User?                @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: SetNull)
+  items                  OrderItem[]
+  statusHistory          OrderStatusHistory[]
+  transactions           Transaction[]
+  giftLinks              GiftLink[]
+  disputes               Dispute[]
+  reviews                Review[]
+  couponRedemptions      CouponRedemption[]
+  messageThreads         MessageThread[]
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+model OrderItem {
+  id               String          @id @default(uuid())
+  orderId          String
+  productId        String
+  variantId        String?
+  quantity         Int             @default(1)
+  priceAtPurchase  Int             // minor units
+
+  order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant          ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  timestamp DateTime    @default(now())
+
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// GIFT MODELS
+// ==========================================
+
+model GiftLink {
+  id                   String               @id @default(uuid())
+  orderId              String
+  token                String               @unique
+  recipientEmail       String
+  recipientPhone       String?
+  senderName           String
+  personalMessage      String?
+  wrappingStyle        String               @default("OAK_LEAF")
+  scentType            String               @default("AMBERWOOD")
+  scheduledSendAt      DateTime?
+  claimedAt            DateTime?
+  expiresAt            DateTime
+  deliveryAddress      Json?
+  status               GiftStatus           @default(SEALED)
+  createdAt            DateTime             @default(now())
+
+  order                Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  downloads            GiftLinkDownload[]
+}
+
+enum GiftStatus {
+  SEALED
+  CLAIMED
+  EXPIRED
+  REFUNDED
+}
+
+model GiftLinkDownload {
+  id         String   @id @default(uuid())
+  giftLinkId String
+  ipAddress  String?
+  downloadedAt DateTime @default(now())
+
+  giftLink   GiftLink @relation(fields: [giftLinkId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// PAYMENT MODELS
+// ==========================================
+
+model Payout {
+  id               String       @id @default(uuid())
+  keeperId         String
+  amount           Int          // minor units
+  currency         String       @default("KES")
+  stripeTransferId String?
+  status           PayoutStatus @default(PENDING)
+  periodStart      DateTime
+  periodEnd        DateTime
+  createdAt        DateTime     @default(now())
+
+  keeper           KeeperProfile @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model Transaction {
+  id             String          @id @default(uuid())
+  orderId        String
+  type           TransactionType
+  amount         Int             // minor units
+  platformFee    Int             // minor units
+  netAmount      Int             // minor units
+  stripeChargeId String?
+  createdAt      DateTime        @default(now())
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+enum TransactionType {
+  CHARGE
+  REFUND
+  PARTIAL_REFUND
+}
+
+// ==========================================
+// PROMOTION MODELS
+// ==========================================
+
+model Promotion {
+  id                String             @id @default(uuid())
+  name              String
+  type              PromotionType
+  discountType      DiscountType
+  discountValue     Int                // percentage (e.g. 15 for 15%) or fixed value in minor units
+  minimumOrderValue Int                @default(0)
+  usageLimit        Int?
+  usageCount        Int                @default(0)
+  onePerCustomer    Boolean            @default(true)
+  firstTimeOnly     Boolean            @default(false)
+  startsAt          DateTime
+  endsAt            DateTime
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+
+  products          PromotionProduct[]
+  redemptions       CouponRedemption[]
+}
+
+enum PromotionType {
+  SALE
+  COUPON
+  BUNDLE
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model PromotionProduct {
+  id          String    @id @default(uuid())
+  promotionId String
+  productId   String
+
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, productId])
+}
+
+model CouponRedemption {
+  id          String   @id @default(uuid())
+  couponCode  String
+  userId      String
+  orderId     String
+  redeemedAt  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  promotion   Promotion @relation(fields: [couponCode], references: [id], onDelete: Cascade) // couponCode connects to Promotion ID in this relationship
+}
+
+// ==========================================
+// DISPUTE MODELS
+// ==========================================
+
+model Dispute {
+  id             String         @id @default(uuid())
+  orderId        String
+  buyerId        String
+  keeperId       String
+  reason         DisputeReason
+  description    String
+  photos         Json           // List of photo URLs
+  desiredOutcome DesiredOutcome
+  status         DisputeStatus  @default(OPEN)
+  adminNote      String?
+  resolutionNote String?
+  resolutionType ResolutionType?
+  refundAmount   Int?           // minor units
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  buyer          User           @relation("BuyerDisputes", fields: [buyerId], references: [id], onDelete: Cascade)
+  keeper         KeeperProfile  @relation("KeeperDisputes", fields: [keeperId], references: [id], onDelete: Cascade)
+  messages       DisputeMessage[]
+  evidence       DisputeEvidence[]
+}
+
+enum DisputeReason {
+  NOT_ARRIVED
+  DAMAGED
+  NOT_AS_DESCRIBED
+  INCORRECT_MAGICAL_AURA
+}
+
+enum DesiredOutcome {
+  FULL_REFUND
+  PARTIAL_REFUND
+  REPLACEMENT
+}
+
+enum DisputeStatus {
+  OPEN
+  RESPONDED
+  ESCALATED
+  RESOLVED
+}
+
+enum ResolutionType {
+  FULL_REFUND
+  PARTIAL_REFUND
+  DISMISSED
+}
+
+model DisputeMessage {
+  id          String     @id @default(uuid())
+  disputeId   String
+  senderId    String
+  senderRole  SenderRole
+  content     String
+  attachments Json       // List of attachment URLs
+  createdAt   DateTime   @default(now())
+
+  dispute     Dispute    @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender      User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+enum SenderRole {
+  BUYER
+  KEEPER
+  ADMIN
+  STAFF
+}
+
+model DisputeEvidence {
+  id          String   @id @default(uuid())
+  disputeId   String
+  uploadedBy  String   // userId
+  fileUrl     String
+  description String?
+  createdAt   DateTime @default(now())
+
+  dispute     Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// REVIEW MODELS
+// ==========================================
+
+model Review {
+  id             String         @id @default(uuid())
+  orderId        String
+  buyerId        String
+  productId      String
+  rating         Int            // 1 to 5
+  comment        String
+  photos         Json           // List of photo URLs
+  caption        String?
+  recommendation Recommendation @default(YES)
+  keeperReply    String?
+  keeperRepliedAt DateTime?
+  isVerified     Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  buyer          User           @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, productId, buyerId])
+}
+
+enum Recommendation {
+  YES
+  NO
+}
+
+// ==========================================
+// Q&A MODELS
+// ==========================================
+
+model ProductQuestion {
+  id          String         @id @default(uuid())
+  productId   String
+  askerId     String
+  askerName   String
+  isAnonymous Boolean        @default(false)
+  questionText String
+  status      QAStatus       @default(PENDING)
+  createdAt   DateTime       @default(now())
+
+  product     Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  asker       User           @relation(fields: [askerId], references: [id], onDelete: Cascade)
+  answers     ProductAnswer[]
+  helpfuls    QuestionHelpful[]
+}
+
+enum QAStatus {
+  PENDING
+  ANSWERED
+  FLAGGED
+}
+
+model ProductAnswer {
+  id          String          @id @default(uuid())
+  questionId  String
+  keeperId    String
+  answerText  String
+  publishedAt DateTime        @default(now())
+
+  question    ProductQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  keeper      KeeperProfile   @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+}
+
+model QuestionHelpful {
+  id          String          @id @default(uuid())
+  questionId  String
+  userId      String
+  createdAt   DateTime        @default(now())
+
+  question    ProductQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId])
+}
+
+// ==========================================
+// CONTENT MODELS
+// ==========================================
+
+model FieldNote {
+  id               String            @id @default(uuid())
+  title            String
+  slug             String            @unique
+  category         BlogCategory
+  excerpt          String
+  body             String
+  authorId         String
+  featuredImageUrl String?
+  readTimeMinutes  Int               @default(3)
+  publishedAt      DateTime?
+  isPublished      Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+enum BlogCategory {
+  TALES
+  RECIPES
+  SPELLS
+  KEEPER_NEWS
+}
+
+model KeeperStory {
+  id                String        @id @default(uuid())
+  keeperId          String
+  sections          Json          // Long form body structure
+  pullQuote         String?
+  featuredListingId String?
+  publishedAt       DateTime?
+  createdAt         DateTime      @default(now())
+
+  keeper            KeeperProfile @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+}
+
+model ChangelogEntry {
+  id           String     @id @default(uuid())
+  title        String
+  description  String
+  version      String
+  audience     Json       // Array of target audiences (e.g. ["BUYER", "KEEPER"])
+  changeType   ChangeType
+  learnMoreUrl String?
+  publishedAt  DateTime?
+  isDraft      Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+}
+
+enum ChangeType {
+  FEATURE
+  IMPROVEMENT
+  FIX
+  LORE
+}
+
+// ==========================================
+// NOTIFICATION MODELS
+// ==========================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  actionUrl String?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  GIFT_CLAIMED
+  DISPUTE_UPDATE
+  NEW_MESSAGE
+  PROMOTION
+  STOCK_ALERT
+  GENERAL
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  keys      Json     // contains p256dh and auth keys
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationPreference {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  inApp     Boolean          @default(true)
+  email     Boolean          @default(true)
+  push      Boolean          @default(false)
+  sms       Boolean          @default(false)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+// ==========================================
+// MESSAGING MODELS
+// ==========================================
+
+model MessageThread {
+  id        String         @id @default(uuid())
+  buyerId   String
+  keeperId  String
+  orderId   String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  buyer     User           @relation("BuyerThreads", fields: [buyerId], references: [id], onDelete: Cascade)
+  keeper    KeeperProfile  @relation("KeeperThreads", fields: [keeperId], references: [id], onDelete: Cascade)
+  order     Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  messages  Message[]
+}
+
+model Message {
+  id        String        @id @default(uuid())
+  threadId  String
+  senderId  String
+  content   String
+  isRead    Boolean       @default(false)
+  readAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+}
+
+model MessageTemplate {
+  id        String        @id @default(uuid())
+  keeperId  String
+  label     String
+  content   String
+  createdAt DateTime      @default(now())
+
+  keeper    KeeperProfile @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// OTHER MODELS
+// ==========================================
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model BackInStockSubscription {
+  id         String   @id @default(uuid())
+  userId     String?
+  productId  String
+  email      String
+  isNotified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, email])
+}
+
+model SavedSearch {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  query     String
+  filters   Json
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  userId     String
+  fullName   String
+  line1      String
+  line2      String?
+  city       String
+  postalCode String
+  country    String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedPaymentMethod {
+  id                   String   @id @default(uuid())
+  userId               String
+  stripePaymentMethodId String   @unique
+  last4                String
+  brand                String
+  expMonth             Int
+  expYear              Int
+  isDefault            Boolean  @default(false)
+  createdAt            DateTime @default(now())
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ReferralCode {
+  id         String     @id @default(uuid())
+  userId     String     @unique
+  code       String     @unique
+  rewardType RewardType @default(PERCENTAGE)
+  createdAt  DateTime   @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum RewardType {
+  PERCENTAGE
+  FIXED_COINS
+}
+
+model Referral {
+  id             String         @id @default(uuid())
+  referrerId     String
+  referredUserId String         @unique
+  status         ReferralStatus @default(PENDING)
+  rewardAmount   Int            // minor units
+  createdAt      DateTime       @default(now())
+
+  referrer       User           @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUser   User           @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: Cascade)
+}
+
+enum ReferralStatus {
+  PENDING
+  REWARDED
+  CANCELLED
+}
+
+model GDPRRequest {
+  id          String          @id @default(uuid())
+  userId      String
+  type        GDPRRequestType
+  status      GDPRStatus      @default(PENDING)
+  requestedAt DateTime        @default(now())
+  processedAt DateTime?
+  downloadUrl String?
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum GDPRRequestType {
+  ACCESS
+  ERASURE
+  PORTABILITY
+  OBJECT
+}
+
+enum GDPRStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  DENIED
+}
+
+model ConsentRecord {
+  id          String      @id @default(uuid())
+  userId      String
+  consentType ConsentType
+  version     String      @default("1.0")
+  isGranted   Boolean     @default(true)
+  grantedAt   DateTime    @default(now())
+  revokedAt   DateTime?
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ConsentType {
+  COOKIES
+  MARKETING
+  LORE_TRACKING
+  GDPR_PROFILING
+}
+
+model PlatformIncident {
+  id               String         @id @default(uuid())
+  title            String
+  affectedServices Json           // List of service names (e.g., ["Search", "Payments"])
+  status           IncidentStatus @default(INVESTIGATING)
+  startedAt        DateTime       @default(now())
+  resolvedAt       DateTime?
+}
+
+enum IncidentStatus {
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+}
+
+model StatusSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id           String         @id @default(uuid())
+  name         String
+  description  String
+  season       SeasonalSeason
+  accentColour String         @default("#E97451")
+  icon         String         @default("🌞")
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+
+  products     EventProduct[]
+}
+
+enum SeasonalSeason {
+  SUMMER_SOLSTICE
+  AUTUMN_EQUINOX
+  WINTER_SOLSTICE
+  SPRING_EQUINOX
+}
+
+model EventProduct {
+  id        String   @id @default(uuid())
+  eventId   String
+  productId String
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, productId])
+}
+
+model HeartheEvent {
+  id        String           @id @default(uuid())
+  type      HearthEventType
+  message   String
+  metadata  Json
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+}
+
+enum HearthEventType {
+  LISTING_CREATED
+  KEEPER_ACTIVE
+  GIFT_CLAIMED
+  COOP_CRAFT
+}
