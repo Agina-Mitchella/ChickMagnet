@@ -152,15 +152,15 @@ export default function ProductDetail({
               </div>
             )}
 
-            {/* FRESH POULTRY SPECIFICATION WITH WEIGHT TOLERANCE */}
+            {/* FRESH POULTRY SPECIFICATION WITH WEIGHT ADJUSTMENT */}
             {product.freshData && (
               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 space-y-2 text-xs">
                 <div className="font-bold text-amber-950 flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  Weight Tolerance & Freshness Locking
+                  Scale Weight & Freshness Locking
                 </div>
                 <p className="text-[11px] text-amber-900 leading-relaxed">
-                  Whole dressed chicken weight is estimated at <strong>{product.freshData.weightEstKg} kg</strong>. Your card is pre-authorized for the price range (±{product.freshData.weightTolerancePercent}% tolerance). Final invoice is automatically adjusted to actual scale weight upon cold-chain packing!
+                  Whole dressed chicken weight is estimated at <strong>{product.freshData.weightEstKg} kg</strong>. Final invoice is automatically adjusted to actual scale weight upon cold-chain packing!
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-amber-900 pt-1 border-t border-amber-200">
                   <div>Slaughter: {product.freshData.slaughterDate}</div>
@@ -224,7 +224,7 @@ export default function ProductDetail({
           {/* Pricing & Add to Cart Footer */}
           <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
             <div>
-              <div className="text-[11px] text-slate-500 font-mono">Total Pre-Auth Amount</div>
+              <div className="text-[11px] text-slate-500 font-mono">Total Amount</div>
               <div className="flex items-baseline gap-1">
                 <span className="text-xs font-mono font-bold text-emerald-900">Ksh</span>
                 <span className="font-serif text-2xl font-black text-emerald-950">

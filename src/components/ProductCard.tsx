@@ -137,7 +137,6 @@ export default function ProductCard({
               <div className="bg-amber-50/60 p-2 rounded-lg text-[11px] space-y-0.5 border border-amber-100 font-mono">
                 <div className="flex justify-between text-amber-950">
                   <span>Weight Est: <strong>{product.freshData.weightEstKg} kg</strong></span>
-                  <span className="text-amber-800">±{product.freshData.weightTolerancePercent}% pre-auth</span>
                 </div>
                 <div className="text-[10px] text-emerald-800">
                   Slaughtered: {product.freshData.slaughterDate}

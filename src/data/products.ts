@@ -175,7 +175,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     id: 'prod-whole-dressed-chicken',
     name: 'Whole Dressed Farm-Fresh Chicken (1.4kg - 1.6kg)',
-    description: 'Chilled, whole dressed broiler chicken, air-chilled for tender juicy flavor. Weight tolerance ±10% pre-authorized; exact price calculated upon packing.',
+    description: 'Chilled, whole dressed broiler chicken, air-chilled for tender juicy flavor. Exact price calculated upon cold-chain scale packing.',
     price: 680,
     wholesalePrice: 580,
     wholesaleMinQty: 20,
