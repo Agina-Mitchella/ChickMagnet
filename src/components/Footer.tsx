@@ -81,9 +81,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               <Award className="w-4 h-4" /> 48-Hour Live Arrival Guarantee
             </span>
           </div>
-          <div className="text-slate-400 font-mono text-xs">
-            Hatchery Hotline: 1-800-CHICK-MAGNET
-          </div>
+
         </div>
       </div>
 

@@ -105,11 +105,8 @@ export default function ProductCard({
       {/* Card Body */}
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
         <div>
-          {/* Farm Sourcing & Location */}
-          <div className="flex items-center justify-between text-[11px] text-emerald-800 font-medium mb-1">
-            <span className="font-semibold text-emerald-900 truncate max-w-[180px]">
-              🏡 {product.sellerName}
-            </span>
+          {/* Rating */}
+          <div className="flex items-center justify-end text-[11px] text-emerald-800 font-medium mb-1">
             <span className="text-amber-600 font-mono">
               ★ {product.rating.toFixed(1)} ({product.reviewsCount})
             </span>

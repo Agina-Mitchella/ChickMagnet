@@ -170,78 +170,59 @@ export default function App() {
           /* MARKETPLACE SHOP VIEW */
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
             
-            {/* Clean Hero Value Banner */}
-            <div className="bg-gradient-to-br from-[#123524] via-[#0b2217] to-[#17442f] text-amber-50 rounded-3xl p-6 sm:p-10 lg:p-12 border border-emerald-800/80 shadow-2xl relative overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-                
-                {/* Left Column: Headline, Copy, CTA & Trust Badges */}
-                <div className="lg:col-span-7 space-y-5">
+            {/* Clean Hero Value Banner (Only shown in 'all' catalog category) */}
+            {selectedCategory === 'all' && (
+              <div className="bg-gradient-to-br from-[#123524] via-[#0b2217] to-[#17442f] text-amber-50 rounded-3xl p-6 sm:p-10 lg:p-12 border border-emerald-800/80 shadow-2xl relative overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
                   
-                  {/* Single Primary Headline */}
-                  <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-amber-300 tracking-tight leading-tight">
-                    Your Favorite Marketplace for Premium Poultry & Hatchery Supplies
-                  </h1>
+                  {/* Left Column: Headline, Copy, CTA & Trust Badges */}
+                  <div className="lg:col-span-7 space-y-5">
+                    
+                    {/* Single Primary Headline */}
+                    <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-amber-300 tracking-tight leading-tight">
+                      Your Favorite Marketplace for Premium Poultry & Hatchery Supplies
+                    </h1>
 
-                  {/* Subheadline: One Sentence, One Claim */}
-                  <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed max-w-xl">
-                    Source NPIP-certified day-old chicks, fresh air-chilled cuts, and high-viability hatching eggs directly from verified bio-secure farms.
-                  </p>
-
-                  {/* Single Primary CTA */}
-                  <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                    <button
-                      onClick={() => {
-                        const el = document.getElementById('catalog-section');
-                        if (el) el.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-8 py-3.5 rounded-2xl text-sm transition-all shadow-lg hover:shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span>Explore Verified Catalog</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
+                    {/* Single Primary CTA */}
+                    <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById('catalog-section');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-8 py-3.5 rounded-2xl text-sm transition-all shadow-lg hover:shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>Explore Verified Catalog</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Slim, Visually Demoted Trust Badge Row without overlapping border lines */}
-                  <div className="pt-4 border-t border-emerald-800/60 mt-4 flex flex-wrap items-center justify-start gap-x-6 gap-y-2 text-xs text-emerald-200/90 font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                      NPIP Bio-Secure Hatcheries
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
-                      Cold-Chain Express Logistics
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Activity className="w-4 h-4 text-emerald-400 shrink-0" />
-                      Batch ID Traceability
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right Column: Embedded Sticker Image */}
-                <div className="lg:col-span-5 block">
-                  <div className="relative group max-w-md mx-auto lg:max-w-none">
-                    <div className="p-2 sm:p-2.5 bg-[#0b2217]/60 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-2xl hover:border-amber-400/70 transition-all duration-300 transform sm:-rotate-1 hover:rotate-0">
-                      <div className="relative rounded-2xl overflow-hidden">
-                        <img
-                          src={heroChickenImage}
-                          alt="Verified Golden Chicks and Heritage Poultry Stock"
-                          referrerPolicy="no-referrer"
-                          className="w-full h-52 sm:h-60 lg:h-64 object-cover transform group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0b2217]/85 via-transparent to-transparent flex items-end p-3">
-                          <div className="bg-amber-400 text-emerald-950 px-3 py-1 rounded-full text-[11px] font-extrabold font-mono shadow-md flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-950 animate-pulse"></span>
-                            <span>100% NPIP Bio-Secure Verified Stock</span>
+                  {/* Right Column: Embedded Sticker Image */}
+                  <div className="lg:col-span-5 block">
+                    <div className="relative group max-w-md mx-auto lg:max-w-none">
+                      <div className="p-2 sm:p-2.5 bg-[#0b2217]/60 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-2xl hover:border-amber-400/70 transition-all duration-300 transform sm:-rotate-1 hover:rotate-0">
+                        <div className="relative rounded-2xl overflow-hidden">
+                          <img
+                            src={heroChickenImage}
+                            alt="Verified Golden Chicks and Heritage Poultry Stock"
+                            referrerPolicy="no-referrer"
+                            className="w-full h-52 sm:h-60 lg:h-64 object-cover transform group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0b2217]/85 via-transparent to-transparent flex items-end p-3">
+                            <div className="bg-amber-400 text-emerald-950 px-3 py-1 rounded-full text-[11px] font-extrabold font-mono shadow-md flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-950 animate-pulse"></span>
+                              <span>100% NPIP Bio-Secure Verified Stock</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Below-The-Fold Intent Split & Feature Trust Bar */}
             <div id="catalog-section" className="scroll-mt-6 space-y-6">
@@ -325,9 +306,6 @@ export default function App() {
                   <h2 className="font-serif font-black text-2xl text-emerald-950">
                     {selectedCategory === 'all' ? 'All Poultry & Farm Listings' : selectedCategory.toUpperCase()}
                   </h2>
-                  <p className="text-xs text-slate-500 font-mono mt-0.5">
-                    Showing {filteredProducts.length} verified listings from bio-certified hatcheries
-                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-mono">
