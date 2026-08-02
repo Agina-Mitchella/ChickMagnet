@@ -46,7 +46,7 @@ export default function Navbar({
     { id: 'all', label: 'All Catalog', icon: <ShoppingBag className="w-4 h-4" />, description: 'Browse all poultry, eggs & farm inputs' },
     { id: 'live-birds', label: 'Live Birds', icon: <Feather className="w-4 h-4" />, description: 'Day-old chicks, pullets & roosters' },
     { id: 'fresh-poultry', label: 'Fresh & Whole Poultry', icon: <Utensils className="w-4 h-4" />, description: 'Dressed whole birds & fresh cuts' },
-    { id: 'processed', label: 'Processed & Value-Added', icon: <Package className="w-4 h-4" />, description: 'Marinated wings, sausages & meals' },
+    { id: 'processed', label: 'Processed & Value-Added', icon: <Package className="w-4 h-4" />, description: 'Raw fresh cuts, sausages & farm items' },
     { id: 'eggs', label: 'Eggs', icon: <Egg className="w-4 h-4" />, description: 'Table eggs & hatching eggs' },
     { id: 'farm-supplies', label: 'Farm Supplies', icon: <Layers className="w-4 h-4" />, description: 'Feed, vaccines & incubators' }
   ];
@@ -55,7 +55,7 @@ export default function Navbar({
     <header className="sticky top-0 z-40 w-full bg-[#123524] text-amber-50 shadow-md">
       
       {/* Main Header Bar (Row 1) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Logo & Brand Name */}
         <div 
@@ -63,24 +63,24 @@ export default function Navbar({
             setActiveTab('shop');
             setSelectedCategory('all');
           }}
-          className="flex items-center gap-3 cursor-pointer group shrink-0 select-none"
+          className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 select-none"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-xl shadow-inner group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg sm:text-xl shadow-inner group-hover:scale-105 transition-transform">
             🐔
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-serif text-2xl font-black text-amber-400 tracking-tight leading-none">
+              <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
                 ChickMagnet
               </span>
             </div>
-            <p className="text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium">
+            <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium">
               Poultry & Hatchery Marketplace
             </p>
           </div>
         </div>
 
-        {/* Search Bar - Shortened placeholder & widened container so text never truncates */}
+        {/* Desktop Search Bar */}
         <div className="flex-1 max-w-xl hidden sm:block relative">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-400" />
@@ -94,7 +94,7 @@ export default function Navbar({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-400 hover:text-amber-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-400 hover:text-amber-300 p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -103,14 +103,14 @@ export default function Navbar({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
           {/* User Account Button */}
           {currentUser ? (
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 bg-[#0b2217] border border-emerald-800/80 px-3 py-1.5 rounded-xl hover:border-amber-400/60 transition-colors text-xs font-bold text-amber-300 cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 bg-[#0b2217] border border-emerald-800/80 px-2.5 sm:px-3 py-2 rounded-xl hover:border-amber-400/60 transition-colors text-xs font-bold text-amber-300 cursor-pointer min-h-[40px]"
               >
                 <span className="w-6 h-6 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-mono text-xs font-black">
                   {currentUser.name.charAt(0)}
@@ -125,7 +125,7 @@ export default function Navbar({
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
-                    className="absolute right-0 mt-2 w-64 bg-[#0b2217] border border-emerald-800 rounded-xl shadow-xl z-50 p-3 text-xs text-emerald-100"
+                    className="absolute right-0 mt-2 w-64 bg-[#0b2217] border border-emerald-800 rounded-xl shadow-xl z-50 p-3 text-xs text-emerald-100 max-w-[calc(100vw-32px)]"
                   >
                     <div className="pb-2 mb-2 border-b border-emerald-800">
                       <div className="font-bold text-amber-300">{currentUser.name}</div>
@@ -140,20 +140,19 @@ export default function Navbar({
                         setActiveTab('profile');
                         setProfileOpen(false);
                       }}
-                      className="w-full text-left py-1.5 px-2 hover:bg-emerald-900/40 rounded flex items-center gap-2 font-medium cursor-pointer"
+                      className="w-full text-left py-2 px-2 hover:bg-emerald-900/40 rounded flex items-center gap-2 font-medium cursor-pointer"
                     >
                       <UserIcon className="w-3.5 h-3.5 text-amber-400" />
                       <span>My Account & Orders</span>
                     </button>
                     
-                    {/* Conditional: Only show Wholesale Portal to logged-in wholesale/commercial accounts */}
                     {(currentUser.buyerType === 'wholesale' || buyerType === 'wholesale') && (
                       <button
                         onClick={() => {
                           onOpenWholesale();
                           setProfileOpen(false);
                         }}
-                        className="w-full text-left py-1.5 px-2 hover:bg-emerald-900/40 rounded flex items-center gap-2 font-medium cursor-pointer"
+                        className="w-full text-left py-2 px-2 hover:bg-emerald-900/40 rounded flex items-center gap-2 font-medium cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5 text-amber-400" />
                         <span>Wholesale Standing Orders</span>
@@ -166,7 +165,7 @@ export default function Navbar({
                           setProfileOpen(false);
                           onSignOut();
                         }}
-                        className="w-full text-left py-1.5 px-2 text-rose-300 hover:bg-rose-950/40 rounded font-medium cursor-pointer"
+                        className="w-full text-left py-2 px-2 text-rose-300 hover:bg-rose-950/40 rounded font-medium cursor-pointer"
                       >
                         Sign Out
                       </button>
@@ -178,7 +177,7 @@ export default function Navbar({
           ) : (
             <button
               onClick={() => onOpenAuth('signin')}
-              className="flex items-center gap-1.5 bg-[#0b2217] border border-emerald-800/80 px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-300 hover:border-amber-400/80 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#0b2217] border border-emerald-800/80 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:border-amber-400/80 transition-all cursor-pointer min-h-[40px]"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Sign In</span>
@@ -188,9 +187,9 @@ export default function Navbar({
           {/* Cart Button */}
           <button
             onClick={onOpenCart}
-            className="relative flex items-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-transform hover:scale-102 cursor-pointer"
+            className="relative flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 px-3.5 sm:px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-transform hover:scale-102 cursor-pointer min-h-[40px]"
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingBag className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Cart</span>
             {cartCount > 0 && (
               <span className="bg-emerald-950 text-amber-300 text-[11px] font-mono px-1.5 py-0.5 rounded-full font-black">
@@ -198,6 +197,28 @@ export default function Navbar({
               </span>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Mobile Search Bar Row (Dedicated for small screens) */}
+      <div className="block sm:hidden px-4 pb-3">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search Kenbro, Kienyeji, fresh cuts..."
+            className="w-full pl-9 pr-8 py-2 bg-[#0b2217] border border-emerald-800/80 rounded-xl text-xs text-amber-50 placeholder-emerald-400/70 focus:outline-none focus:border-amber-400"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-emerald-400 hover:text-amber-300 p-1"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

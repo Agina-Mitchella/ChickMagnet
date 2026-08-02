@@ -124,14 +124,10 @@ export default function ProductCard({
           <div className="mt-2 text-xs text-slate-600 space-y-1">
             {/* Live Birds Specs */}
             {product.liveData && (
-              <div className="bg-emerald-50 p-2 rounded-lg text-[11px] space-y-0.5 border border-emerald-100 font-mono">
-                <div className="flex justify-between text-emerald-900">
-                  <span>Breed: <strong>{product.liveData.breed}</strong></span>
-                  <span className="uppercase text-amber-700 font-bold">{product.liveData.sex}</span>
-                </div>
-                <div className="flex justify-between text-emerald-700 text-[10px]">
-                  <span>Min Order: {product.liveData.minOrderQty} units</span>
-                  <span>Policy: {product.liveData.mortalityPolicy}</span>
+              <div className="bg-emerald-50 p-2.5 rounded-lg text-[11px] border border-emerald-100 font-mono">
+                <div className="flex justify-between items-center text-emerald-950">
+                  <span>Breed: <strong className="font-sans font-bold">{product.liveData.breed}</strong></span>
+                  <span>Sex: <strong className="uppercase text-amber-800 font-bold">{product.liveData.sex}</strong></span>
                 </div>
               </div>
             )}

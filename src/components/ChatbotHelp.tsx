@@ -150,7 +150,7 @@ export default function ChatbotHelp({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
       
       {/* Floating Toggle Icon Button */}
       <AnimatePresence>
@@ -161,13 +161,13 @@ export default function ChatbotHelp({
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
             id="chatbot-help-button"
-            className="group relative bg-[#123524] hover:bg-[#0b2217] text-amber-300 p-4 rounded-full shadow-2xl border-2 border-amber-400/80 flex items-center justify-center transition-all duration-300 hover:scale-105 cursor-pointer"
+            className="group relative bg-[#123524] hover:bg-[#0b2217] text-amber-300 p-3.5 sm:p-4 rounded-full shadow-2xl border-2 border-amber-400/80 flex items-center justify-center transition-all duration-300 hover:scale-105 cursor-pointer"
             aria-label="Open ChickMagnet Help & Chatbot"
           >
             <div className="relative">
-              <Bot className="w-6 h-6 text-amber-400 group-hover:rotate-12 transition-transform" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#123524] animate-ping" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#123524]" />
+              <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 group-hover:rotate-12 transition-transform" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#123524] animate-ping" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#123524]" />
             </div>
             <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 group-hover:ml-2 font-mono font-bold text-xs text-amber-300">
               ChickMagnet Support
@@ -183,7 +183,7 @@ export default function ChatbotHelp({
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="bg-[#123524] text-amber-50 rounded-3xl w-[92vw] sm:w-[380px] h-[520px] shadow-2xl border-2 border-amber-400/60 flex flex-col overflow-hidden text-xs"
+            className="bg-[#123524] text-amber-50 rounded-3xl w-[calc(100vw-32px)] sm:w-[380px] h-[480px] sm:h-[520px] max-h-[82vh] shadow-2xl border-2 border-amber-400/60 flex flex-col overflow-hidden text-xs"
           >
             {/* Header */}
             <div className="bg-[#0b2217] p-4 border-b border-emerald-800 flex items-center justify-between">

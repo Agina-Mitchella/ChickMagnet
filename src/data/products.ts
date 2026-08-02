@@ -36,7 +36,7 @@ export const INITIAL_FARMS: FarmSeller[] = [
     description: 'ChickMagnet cold-chain dressed chicken processing division delivering blast-frozen cuts and fresh whole dressed birds directly to HORECA & households.',
     heroImage: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?auto=format&fit=crop&w=1200&q=80',
     avatarImage: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?auto=format&fit=crop&w=200&q=80',
-    specialties: ['Whole Dressed Birds', 'Boneless Breast Cuts', 'Marinated Skewers'],
+    specialties: ['Whole Dressed Birds', 'Boneless Breast Cuts', 'Fresh Raw Cuts'],
     deliveryZones: ['Nairobi Metro', 'Kiambu', 'Machakos', 'Nakuru']
   },
   {
@@ -52,10 +52,10 @@ export const INITIAL_FARMS: FarmSeller[] = [
     dvsCertNo: 'DVS-ELD-8812',
     rating: 4.95,
     reviewsCount: 188,
-    description: 'ChickMagnet heritage breeding facility for purebred Kuroiler, Light Sussex, and Improved Kienyeji dual-purpose stock.',
+    description: 'ChickMagnet heritage breeding facility for purebred Kenbro and Improved Kienyeji dual-purpose stock.',
     heroImage: 'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=1200&q=80',
     avatarImage: 'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=200&q=80',
-    specialties: ['Heritage Breeds', 'Kienyeji Breeding Pairs', 'Fertile Heritage Eggs'],
+    specialties: ['Kenbro & Kienyeji Breeds', 'Kienyeji Breeding Pairs', 'Fertile Hatching Eggs'],
     deliveryZones: ['Eldoret', 'Kitale', 'Kisumu', 'Nairobi Express']
   }
 ];
@@ -64,8 +64,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   // 1. LIVE BIRDS
   {
     id: 'prod-chick-cobb500',
-    name: 'Cobb 500 Broiler Day-Old Chicks (Vaccinated)',
-    description: 'High-growth commercial broiler chicks vaccinated against Marek’s Disease, Newcastle (NCD), and Infectious Bronchitis (IB). Guaranteed 98%+ survival rate.',
+    name: 'Kenbro Day-Old Chicks (Vaccinated)',
+    description: 'High-viability Kenbro day-old chicks vaccinated against Marek’s Disease, Newcastle (NCD), and Infectious Bronchitis (IB). Guaranteed 98%+ survival rate.',
     price: 135,
     wholesalePrice: 115,
     wholesaleMinQty: 100,
@@ -78,11 +78,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     sellerId: 'farm-1',
     sellerBadge: 'ChickMagnet Certified Hatchery',
     stock: 2500,
-    tags: ['Day-Old Chicks', 'Vaccinated', 'Cobb 500', 'Fast Growth'],
+    tags: ['Day-Old Chicks', 'Vaccinated', 'Kenbro', 'Dual Purpose'],
     badge: 'NCD & IB Vaccinated',
     fulfillmentType: 'live-climate',
     liveData: {
-      breed: 'Cobb 500 Commercial Broiler',
+      breed: 'Kenbro',
       liveCategory: 'chick',
       ageWeeks: 0,
       weightRangeKg: { min: 0.04, max: 0.048 },
@@ -101,8 +101,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-layer-pullet',
-    name: 'ISA Brown Point-of-Lay Pullets (18 Weeks)',
-    description: 'Fully vaccinated ISA Brown pullets at 18 weeks of age, ready to commence laying within 10-14 days. Exceptional egg production rate up to 96% peak.',
+    name: 'Kienyeji Point-of-Lay Pullets (18 Weeks)',
+    description: 'Fully vaccinated Kienyeji pullets at 18 weeks of age, ready to commence laying within 10-14 days. Exceptional egg production and outdoor hardiness.',
     price: 850,
     wholesalePrice: 760,
     wholesaleMinQty: 25,
@@ -115,11 +115,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     sellerId: 'farm-1',
     sellerBadge: 'ChickMagnet Certified Hatchery',
     stock: 450,
-    tags: ['Point of Lay', 'ISA Brown', 'Egg Layer', '18-Weeks'],
+    tags: ['Point of Lay', 'Kienyeji', 'Egg Layer', '18-Weeks'],
     badge: 'Point of Lay Ready',
     fulfillmentType: 'live-climate',
     liveData: {
-      breed: 'ISA Brown Layer',
+      breed: 'Kienyeji',
       liveCategory: 'layer',
       ageWeeks: 18,
       weightRangeKg: { min: 1.45, max: 1.65 },
@@ -137,8 +137,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-kuroiler-rooster',
-    name: 'Kuroiler Breeding Roosters (Active Studs, 24 Weeks)',
-    description: 'Robust Kuroiler breeding roosters renowned for aggressive fertility, heavy body weight (3.5kg+), and disease tolerance for outdoor free-range flocks.',
+    name: 'Kienyeji Breeding Roosters (Active Studs, 24 Weeks)',
+    description: 'Robust Kienyeji breeding roosters renowned for fertility, heavy body weight (3.5kg+), and disease tolerance for outdoor free-range flocks.',
     price: 2200,
     wholesalePrice: 1950,
     wholesaleMinQty: 5,
@@ -151,11 +151,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     sellerId: 'farm-3',
     sellerBadge: 'ChickMagnet Certified Heritage',
     stock: 60,
-    tags: ['Rooster', 'Kuroiler', 'Breeding Stock', 'Free-Range'],
+    tags: ['Rooster', 'Kienyeji', 'Breeding Stock', 'Free-Range'],
     badge: 'Pedigree Stud',
     fulfillmentType: 'live-climate',
     liveData: {
-      breed: 'Pure Kuroiler Dual-Purpose',
+      breed: 'Kienyeji',
       liveCategory: 'breeding',
       ageWeeks: 24,
       weightRangeKg: { min: 3.2, max: 3.8 },
@@ -171,7 +171,6 @@ export const INITIAL_PRODUCTS: Product[] = [
       transportZoneAvailability: ['Eldoret', 'Kitale', 'Kisumu', 'Nairobi Express']
     }
   },
-
   // 2. FRESH & WHOLE POULTRY
   {
     id: 'prod-whole-dressed-chicken',
@@ -245,41 +244,48 @@ export const INITIAL_PRODUCTS: Product[] = [
       storageTemp: 'chilled'
     }
   },
-
-  // 3. PROCESSED & VALUE-ADDED
   {
-    id: 'prod-peri-peri-marinated-wings',
-    name: 'Flame-Crafted Swahili Peri-Peri Marinated Wings (800g)',
-    description: 'Fresh chicken wings soaked in traditional bird-eye chili, garlic, lemon, and wild herbs. Ready to roast, grill, or air-fry in 15 minutes.',
+    id: 'prod-raw-chicken-wings',
+    name: 'Fresh Raw Chicken Wings (1kg Pack)',
+    description: 'Freshly cut, air-chilled raw chicken wings. 100% fresh raw un-cooked poultry ready for custom preparation or butchery distribution.',
     price: 650,
     wholesalePrice: 560,
     wholesaleMinQty: 15,
     rating: 4.88,
     reviewsCount: 94,
-    category: 'processed',
-    subCategory: 'marinated',
+    category: 'fresh-poultry',
+    subCategory: 'cuts',
     image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&w=800&q=80',
     sellerName: 'ChickMagnet',
     sellerId: 'farm-2',
-    sellerBadge: 'ChickMagnet Kitchens',
+    sellerBadge: 'ChickMagnet Fresh Division',
     stock: 320,
-    tags: ['Marinated Wings', 'Peri Peri', 'Ready to Grill', 'Spicy'],
-    badge: 'Chef’s Signature Marinade',
-    fulfillmentType: 'frozen-deep',
-    processedData: {
-      fixedWeightG: 800,
-      ingredientsList: ['Chicken Wings', 'Swahili Peri-Peri Chili Blend', 'Garlic', 'Lemon Juice', 'Cold-Pressed Sunflower Oil'],
-      allergens: ['Garlic', 'Chili'],
-      priceFixed: 650,
-      bestBeforeDate: '2026-10-15',
-      storageTemp: 'frozen',
-      batchId: 'BATCH-2026-WNGS'
+    tags: ['Raw Wings', 'Fresh Cuts', 'Air-Chilled', 'Halal'],
+    badge: '100% Raw Fresh',
+    fulfillmentType: 'chilled-express',
+    freshData: {
+      cutType: 'Wings',
+      boneStatus: 'bone-in',
+      skinStatus: 'skin-on',
+      weightEstKg: 1.0,
+      weightTolerancePercent: 5,
+      pricePerKg: 650,
+      slaughterDate: '2026-07-30 (04:00 AM)',
+      packDate: '2026-07-30',
+      bestBeforeDate: '2026-08-05',
+      halalCertified: true,
+      certificationDocs: ['DVS-SL-8841'],
+      batchId: 'BATCH-2026-WNGS',
+      sourceFarmId: 'farm-2',
+      storageTemp: 'chilled'
     }
   },
+
+  // 3. PROCESSED & VALUE-ADDED
   {
     id: 'prod-artisanal-chicken-sausages',
-    name: 'Artisanal Farmhouse Chicken Sausages (500g Pack)',
-    description: 'Coarsely ground premium chicken meat seasoned with sage, sea salt, and cracked black pepper in natural Collagen casings. Zero fillers or nitrate preservatives.',
+    name: 'Raw Uncooked Farmhouse Chicken Sausages (500g Pack)',
+    description: 'Coarsely ground fresh raw chicken meat seasoned with sage, sea salt, and cracked black pepper in natural Collagen casings. 100% raw un-cooked farm sausage.',
     price: 490,
     wholesalePrice: 410,
     wholesaleMinQty: 20,
@@ -292,12 +298,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     sellerId: 'farm-2',
     sellerBadge: 'ChickMagnet Kitchens',
     stock: 400,
-    tags: ['Chicken Sausages', 'Artisanal', 'No Nitrates', 'Breakfast'],
-    badge: '100% Pure Chicken Meat',
+    tags: ['Raw Sausages', 'Fresh Chicken', 'No Nitrates', 'Uncooked'],
+    badge: '100% Raw Chicken Meat',
     fulfillmentType: 'chilled-express',
     processedData: {
       fixedWeightG: 500,
-      ingredientsList: ['Fresh Chicken Meat (85%)', 'Chicken Fat', 'Herb Spice Blend', 'Sea Salt'],
+      ingredientsList: ['Fresh Raw Chicken Meat (85%)', 'Raw Chicken Fat', 'Herb Spice Blend', 'Sea Salt'],
       allergens: [],
       priceFixed: 490,
       bestBeforeDate: '2026-08-20',
@@ -309,8 +315,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   // 4. EGGS
   {
     id: 'prod-fertile-hatching-eggs-kuroiler',
-    name: 'Fertile Kuroiler Hatching Eggs (Tray of 30)',
-    description: 'Selected high-fertility eggs (90%+ fertility rate verified) collected daily from bio-secure breeding flocks. Includes live lay-date countdown badge for maximum hatch viability.',
+    name: 'Fertile Kienyeji Hatching Eggs (Tray of 30)',
+    description: 'Selected high-fertility Kienyeji eggs (90%+ fertility rate verified) collected daily from bio-secure breeding flocks. Includes live lay-date countdown badge for maximum hatch viability.',
     price: 1200,
     wholesalePrice: 1050,
     wholesaleMinQty: 10,
@@ -323,7 +329,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     sellerId: 'farm-1',
     sellerBadge: 'ChickMagnet Certified Hatchery',
     stock: 120,
-    tags: ['Fertile Eggs', 'Hatching', 'Kuroiler', '30 Tray'],
+    tags: ['Fertile Eggs', 'Hatching', 'Kienyeji', '30 Tray'],
     badge: 'High Viability Guaranteed',
     fulfillmentType: 'chilled-express',
     eggData: {
@@ -428,7 +434,7 @@ export const MOCK_BATCH_TRACE_RECORDS: Record<string, BatchTraceabilityRecord> =
     batchId: 'BATCH-2026-CHX9',
     farmName: 'ChickMagnet Hatchery & Bio-Farm',
     location: 'Naivasha Basin, Rift Valley',
-    breedOrCut: 'Cobb 500 Commercial Broiler Chicks',
+    breedOrCut: 'Kenbro Day-Old Chicks',
     hatchOrSlaughterDate: '2026-07-29 02:30 AM',
     feedSupplier: 'ChickMagnet Premium Breeder Mash',
     vaccinationHistory: [
@@ -461,7 +467,7 @@ export const MOCK_BATCH_TRACE_RECORDS: Record<string, BatchTraceabilityRecord> =
     batchId: 'BATCH-2026-POL4',
     farmName: 'ChickMagnet Hatchery & Bio-Farm',
     location: 'Naivasha Basin, Rift Valley',
-    breedOrCut: 'ISA Brown Point-of-Lay Pullets (18 Wks)',
+    breedOrCut: 'Kienyeji Point-of-Lay Pullets (18 Wks)',
     hatchOrSlaughterDate: '2026-03-24 Hatch Date',
     feedSupplier: 'ChickMagnet Layer Developer Mash',
     vaccinationHistory: [
@@ -496,7 +502,7 @@ export const MOCK_WHOLESALE_ORDERS: WholesaleStandingOrder[] = [
     contactPerson: 'Mercy Mutua',
     email: 'supplychain@javahouse.com',
     frequency: 'bi-weekly',
-    itemsSummary: '100kg Marinated Peri-Peri Wings, 80 Trays Jumbo Eggs',
+    itemsSummary: '100kg Fresh Raw Wings, 80 Trays Jumbo Eggs',
     nextDeliveryDate: '2026-08-04',
     monthlySpendKsh: 245000,
     paymentTerms: 'NET-30 Invoiced',
@@ -509,7 +515,7 @@ export const MOCK_MORTALITY_CLAIMS: MortalityClaim[] = [
     id: 'CLM-7701',
     orderId: 'ORD-99821',
     batchId: 'BATCH-2026-CHX9',
-    breed: 'Cobb 500 Broiler Chicks',
+    breed: 'Kenbro Day-Old Chicks',
     affectedQty: 3,
     incidentDate: '2026-07-28',
     photoEvidenceUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=400&q=80',

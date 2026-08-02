@@ -19,7 +19,7 @@ export default function WholesalePortal({
   const [businessName, setBusinessName] = useState('Safari Park Hotel & Casino');
   const [contactPerson, setContactPerson] = useState('Executive Chef Antonio');
   const [frequency, setFrequency] = useState<'weekly' | 'bi-weekly' | 'monthly'>('weekly');
-  const [itemsSummary, setItemsSummary] = useState('300x Dressed Chicken (1.5kg), 100kg Marinated Wings');
+  const [itemsSummary, setItemsSummary] = useState('300x Dressed Chicken (1.5kg), 100kg Fresh Raw Wings');
 
   if (!isOpen) return null;
 
@@ -42,8 +42,8 @@ export default function WholesalePortal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#123524] text-amber-50 rounded-3xl max-w-4xl w-full border border-emerald-800 shadow-2xl relative p-6 sm:p-8 space-y-6">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-[#123524] text-amber-50 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-emerald-800 shadow-2xl relative p-5 sm:p-8 space-y-6">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-emerald-800 pb-4">

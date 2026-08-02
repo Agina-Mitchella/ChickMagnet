@@ -256,7 +256,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white border border-slate-200 w-full max-w-md rounded-3xl p-6 shadow-2xl relative z-10 my-auto"
+        className="bg-white border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-auto text-emerald-950"
       >
         <button 
           onClick={handleClose}

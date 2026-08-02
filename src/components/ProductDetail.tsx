@@ -134,28 +134,19 @@ export default function ProductDetail({
 
             {/* LIVE BIRDS SPECIFICATION */}
             {product.liveData && (
-              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 space-y-2 text-xs">
-                <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 space-y-3 text-xs font-mono">
+                <div className="font-bold text-emerald-950 flex items-center gap-1.5 text-sm">
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  Live Poultry Health & Vaccination Protocol
+                  Breed & Sex Specifications
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-slate-700 font-mono text-[11px]">
-                  <div>Breed: <strong className="text-emerald-950">{product.liveData.breed}</strong></div>
-                  <div>Age: <strong className="text-emerald-950">{product.liveData.ageWeeks} weeks</strong></div>
-                  <div>Min Order: <strong className="text-amber-700">{product.liveData.minOrderQty} birds</strong></div>
-                  <div>Mortality Claim: <strong className="text-emerald-950">{product.liveData.mortalityPolicy}</strong></div>
-                </div>
-
-                {/* Vaccination History */}
-                <div className="pt-2 border-t border-emerald-200">
-                  <div className="font-bold text-[11px] text-emerald-900 mb-1">Vaccinations Administered:</div>
-                  <div className="space-y-1">
-                    {product.liveData.vaccinationRecord.map((vac, idx) => (
-                      <div key={idx} className="flex justify-between text-[11px] bg-white p-1.5 rounded border border-emerald-200/60 font-mono">
-                        <span className="text-emerald-950 font-bold">✓ {vac.vaccine}</span>
-                        <span className="text-slate-500">{vac.dateAdministered}</span>
-                      </div>
-                    ))}
+                <div className="grid grid-cols-2 gap-3 text-slate-800 text-xs font-mono">
+                  <div className="bg-white p-3 rounded-xl border border-emerald-200/80">
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Breed</span>
+                    <strong className="text-emerald-950 text-sm font-sans font-bold">{product.liveData.breed}</strong>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-emerald-200/80">
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Sex</span>
+                    <strong className="text-amber-800 text-sm uppercase font-sans font-bold">{product.liveData.sex}</strong>
                   </div>
                 </div>
               </div>

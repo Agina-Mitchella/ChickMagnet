@@ -20,10 +20,8 @@ export type SubCategory =
   | 'bone-in-boneless'
   | 'giblets-offal'
   // Processed
-  | 'marinated'
-  | 'breaded'
+  | 'raw-cuts'
   | 'sausages'
-  | 'frozen-meals'
   // Eggs
   | 'table-eggs'
   | 'fertile-eggs'

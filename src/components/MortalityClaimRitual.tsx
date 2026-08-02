@@ -20,7 +20,7 @@ export default function MortalityClaimRitual({
   // Claim Form State
   const [orderId, setOrderId] = useState('ORD-2026-CHX88');
   const [batchId, setBatchId] = useState('BATCH-2026-CHX9');
-  const [breed, setBreed] = useState('Cobb 500 Broiler Chicks');
+  const [breed, setBreed] = useState('Kenbro Day-Old Chicks');
   const [affectedQty, setAffectedQty] = useState(2);
   const [description, setDescription] = useState('2 day-old chicks were found unviable upon box opening at transit drop-off.');
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
@@ -43,7 +43,7 @@ export default function MortalityClaimRitual({
       id: 'INV-2026-8742',
       orderId: 'ORD-2026-CHX42',
       date: '2026-07-22',
-      item: 'Marinated Jumbo Chicken Wings (5kg Bucket)',
+      item: 'Fresh Raw Chicken Wings (5kg Bucket)',
       estimatedWeightKg: 5.0,
       estimatedPrice: 3800,
       actualScaleWeightKg: 5.12,
@@ -76,8 +76,8 @@ export default function MortalityClaimRitual({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#123524] text-amber-50 rounded-3xl max-w-3xl w-full border border-emerald-800 shadow-2xl relative p-6 sm:p-8 space-y-6">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-[#123524] text-amber-50 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-emerald-800 shadow-2xl relative p-5 sm:p-8 space-y-6">
         
         {/* Header & Post-Delivery Flow Navigation */}
         <div className="flex items-center justify-between border-b border-emerald-800 pb-4">

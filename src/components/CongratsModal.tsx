@@ -26,8 +26,8 @@ export default function CongratsModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#123524] text-amber-50 rounded-3xl max-w-2xl w-full border border-emerald-800 shadow-2xl relative p-6 sm:p-8 space-y-6">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-[#123524] text-amber-50 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-emerald-800 shadow-2xl relative p-5 sm:p-8 space-y-6">
         
         {/* Success Header */}
         <div className="text-center space-y-2">
