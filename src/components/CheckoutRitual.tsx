@@ -109,10 +109,10 @@ export default function CheckoutRitual({
   const groupKeys = Array.from(new Set(cartItems.map(i => i.fulfillmentGroup))) as FulfillmentType[];
 
   const [deliverySlots, setDeliverySlots] = useState<Record<FulfillmentType, string>>({
-    'live-climate': 'Tue Morning (06:00 AM - 09:00 AM Climate Vehicle)',
+    'live-climate': 'Tue Morning (06:00 AM - 09:00 AM Express Transport)',
     'chilled-express': 'Today Evening (04:00 PM - 07:00 PM Chilled Van)',
-    'frozen-deep': 'Tomorrow Afternoon (01:00 PM - 04:00 PM Sub-Zero Express)',
-    'dry-ambient': 'Standard Delivery (24-48 Hours Parcel)'
+    'frozen-deep': 'Mon Afternoon (01:00 PM - 04:00 PM Sub-Zero)',
+    'dry-ambient': 'Standard Parcel Delivery (24-48 Hours)'
   });
 
   const subtotal = cartItems.reduce((acc, item) => {
@@ -144,6 +144,11 @@ export default function CheckoutRitual({
   };
 
   const handleCompleteOrder = (methodUsed: string) => {
+    const orderDeliverySlots: Record<string, string> = {};
+    groupKeys.forEach(group => {
+      orderDeliverySlots[group] = deliverySlots[group] || 'Standard Dispatch Slot';
+    });
+
     const orderSummary = {
       orderId: `CHX-${Math.floor(100000 + Math.random() * 900000)}`,
       date: new Date().toISOString(),
@@ -154,7 +159,7 @@ export default function CheckoutRitual({
       address,
       buyerType: accountTypePath === 'wholesale_net30' ? 'wholesale' : 'retail',
       items: cartItems,
-      deliverySlots,
+      deliverySlots: orderDeliverySlots,
       subtotal,
       logisticsTotal,
       grandTotal,
@@ -311,7 +316,7 @@ export default function CheckoutRitual({
 
               {groupKeys.map(group => {
                 const groupTitle = group === 'live-climate' 
-                  ? '🐥 Live Bird Climate Transit' 
+                  ? '🐥 Live Bird Express Transport' 
                   : group === 'chilled-express' 
                   ? '❄️ Chilled Cold-Chain Van (0-4°C)' 
                   : group === 'frozen-deep'
@@ -319,8 +324,8 @@ export default function CheckoutRitual({
                   : '📦 Dry Farm Supplies';
 
                 const groupOptions = group === 'live-climate' ? [
-                  'Tue Morning (06:00 AM - 09:00 AM Climate Transit)',
-                  'Thu Morning (06:00 AM - 09:00 AM Climate Transit)',
+                  'Tue Morning (06:00 AM - 09:00 AM Express Transport)',
+                  'Thu Morning (06:00 AM - 09:00 AM Express Transport)',
                   'Sat Morning (06:00 AM - 09:00 AM Early Dispatch)'
                 ] : group === 'chilled-express' ? [
                   'Today Evening (04:00 PM - 07:00 PM Chilled Van)',

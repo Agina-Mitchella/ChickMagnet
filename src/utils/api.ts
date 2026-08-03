@@ -22,10 +22,18 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 export const api = {
   // Auth & Profiles
   auth: {
-    async register(name: string, email: string, avatarEmoji?: string, role?: string): Promise<{ user: User; walletBalance: number }> {
+    async register(
+      nameOrPayload: string | { name: string; email: string; avatarEmoji?: string; role?: string; buyerType?: string },
+      email?: string,
+      avatarEmoji?: string,
+      role?: string
+    ): Promise<{ user: User; walletBalance: number }> {
+      const body = typeof nameOrPayload === 'string'
+        ? { name: nameOrPayload, email, avatarEmoji, role }
+        : nameOrPayload;
       return fetchJson<{ user: User; walletBalance: number }>(`/api/auth/register`, {
         method: 'POST',
-        body: JSON.stringify({ name, email, avatarEmoji, role }),
+        body: JSON.stringify(body),
       });
     },
     async login(email: string): Promise<{ user: User; walletBalance: number }> {

@@ -51,7 +51,7 @@ export default function CartDrawer({
 
   const groupMeta: Record<FulfillmentType, { title: string; icon: string; bg: string; border: string; desc: string }> = {
     'live-climate': {
-      title: 'Live Bird Climate Transit',
+      title: 'Live Bird Express Transport',
       icon: '🐥',
       bg: 'bg-[#123524] text-amber-300',
       border: 'border-emerald-800',

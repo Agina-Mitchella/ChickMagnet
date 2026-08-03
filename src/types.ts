@@ -187,7 +187,7 @@ export interface MortalityClaim {
   incidentDate: string;
   photoEvidenceUrl: string;
   description: string;
-  status: 'pending_review' | 'approved_credit' | 'approved_replacement';
+  status: 'pending_review' | 'approved_credit' | 'approved_replacement' | 'rejected';
   refundAmount?: number;
   claimDate: string;
 }

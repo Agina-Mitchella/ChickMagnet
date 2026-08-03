@@ -53,7 +53,7 @@ export default function ChatbotHelp({
     {
       id: 'transit',
       label: '🐥 Live Chick Transit',
-      query: 'How does live day-old chick climate transit work?',
+      query: 'How does live day-old chick express transport work?',
       reply: 'Day-old chicks travel in climate-stabilized, temperature-monitored vehicles equipped with ventilation crates. Dispatch runs every Tuesday, Thursday, and Saturday. Minimum order is 10 chicks per breed to ensure body heat preservation during transit.'
     },
     {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, ShieldCheck, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Package, Egg, Layers, HelpCircle, FileText, Activity } from 'lucide-react';
+import { ShoppingBag, Search, ShieldCheck, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Package, Egg, Layers, HelpCircle, FileText, Activity, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, BuyerType, MainCategory } from '../types';
 
@@ -20,6 +20,7 @@ interface NavbarProps {
   onOpenTraceability: () => void;
   onOpenWholesale: () => void;
   onOpenClaims: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export default function Navbar({
@@ -38,7 +39,8 @@ export default function Navbar({
   setSearchQuery,
   onOpenTraceability,
   onOpenWholesale,
-  onOpenClaims
+  onOpenClaims,
+  onOpenAdmin
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -148,6 +150,19 @@ export default function Navbar({
                       <span>My Account & Orders</span>
                     </button>
                     
+                    {onOpenAdmin && (
+                      <button
+                        onClick={() => {
+                          onOpenAdmin();
+                          setProfileOpen(false);
+                        }}
+                        className="w-full text-left py-2 px-2 hover:bg-amber-500/20 text-amber-300 font-bold rounded flex items-center gap-2 cursor-pointer"
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Admin Dashboard Control</span>
+                      </button>
+                    )}
+
                     {(currentUser.buyerType === 'wholesale' || buyerType === 'wholesale') && (
                       <button
                         onClick={() => {
@@ -183,6 +198,17 @@ export default function Navbar({
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Sign In</span>
+            </button>
+          )}
+
+          {/* Admin Dashboard Quick Button */}
+          {onOpenAdmin && (
+            <button
+              onClick={onOpenAdmin}
+              className="flex items-center gap-1.5 bg-[#0b2217] hover:bg-emerald-900/60 border border-amber-500/50 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px]"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Admin</span>
             </button>
           )}
 

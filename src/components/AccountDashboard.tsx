@@ -5,6 +5,7 @@ import { BuyerType } from '../types';
 interface AccountDashboardProps {
   currentUser?: { name: string; email: string; buyerType?: BuyerType } | null;
   buyerType: BuyerType;
+  userOrders?: any[];
   onOpenTraceability: (batchId?: string) => void;
   onOpenWholesale: () => void;
   onOpenClaims: () => void;
@@ -14,6 +15,7 @@ interface AccountDashboardProps {
 export default function AccountDashboard({
   currentUser,
   buyerType,
+  userOrders = [],
   onOpenTraceability,
   onOpenWholesale,
   onOpenClaims,
@@ -222,12 +224,12 @@ export default function AccountDashboard({
         {/* Tab 1: Orders & Tracking */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
-            {sampleOrders.map(order => (
+            {[...userOrders, ...sampleOrders].map(order => (
               <div 
                 key={order.id} 
                 className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
               >
-                <div className="space-y-1.5 flex-1">
+                <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-bold text-xs text-emerald-950">{order.id}</span>
                     <span className="text-xs text-emerald-800 font-mono">• {order.date}</span>
@@ -236,10 +238,31 @@ export default function AccountDashboard({
                     </span>
                   </div>
                   <div className="font-medium text-sm text-emerald-950">{order.items}</div>
-                  <div className="text-xs text-emerald-800 flex items-center gap-3 flex-wrap">
+                  
+                  <div className="text-xs text-emerald-800 flex flex-wrap items-center gap-3 bg-white/70 p-2.5 rounded-xl border border-emerald-200/80">
                     <span>Fulfillment: <strong className="text-emerald-950">{order.fulfillment}</strong></span>
-                    <span>ETA: <strong className="text-emerald-950">{order.eta}</strong></span>
+                    <span className="text-emerald-300">•</span>
+                    <span className="flex items-center gap-1 font-mono">
+                      <span>Assigned Delivery Window:</span>
+                      <strong className="text-amber-950 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded text-[11px]">
+                        {order.eta}
+                      </strong>
+                    </span>
                   </div>
+
+                  {order.deliverySlots && Object.keys(order.deliverySlots).length > 1 && (
+                    <div className="text-[11px] font-mono space-y-1 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/80">
+                      <div className="font-bold text-amber-950">Dispatched Vehicle Slots:</div>
+                      {Object.entries(order.deliverySlots).map(([grp, slot]: any) => (
+                        <div key={grp} className="flex justify-between text-emerald-900">
+                          <span className="uppercase font-bold text-[10px]">
+                            {grp === 'live-climate' ? '🐥 Live Transport' : grp === 'chilled-express' ? '❄️ Chilled Van' : grp === 'frozen-deep' ? '🧊 Deep Freeze' : '📦 Dry Goods'}:
+                          </span>
+                          <span className="font-bold text-amber-900">{slot}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">

@@ -479,7 +479,7 @@ export const MOCK_BATCH_TRACE_RECORDS: Record<string, BatchTraceabilityRecord> =
     kebsLicenseNo: 'KEBS/PV-88392/2025',
     dvsCertNo: 'DVS-NAI-9921',
     veterinarySignOff: 'Dr. Kennedy Wambugu, BVM (Reg #1402)',
-    temperatureLog: 'Ventilated Climate Transit Unit'
+    temperatureLog: 'Ventilated Express Transport Unit'
   }
 };
 

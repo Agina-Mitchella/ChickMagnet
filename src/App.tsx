@@ -16,6 +16,7 @@ import AuthModal from './components/AuthModal';
 import ChatbotHelp from './components/ChatbotHelp';
 import Footer from './components/Footer';
 import AccountDashboard from './components/AccountDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import heroChickenImage from './assets/images/hero_poultry_chicks_1785408878635.jpg';
 import { ShieldCheck, Activity, Truck, Sparkles, HelpCircle, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -27,6 +28,15 @@ export default function App() {
   
   // Selected product modal
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // Products State
+  const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('chickmagnet_products');
+    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+  });
+
+  // Admin Dashboard Mode
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
 
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -101,14 +111,56 @@ export default function App() {
     setIsTraceabilityOpen(true);
   };
 
+  const [userOrders, setUserOrders] = useState<any[]>(() => {
+    const saved = localStorage.getItem('chickmagnet_user_orders');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const handleOrderCompleted = (summary: any) => {
     setCompletedOrderSummary(summary);
     setCartItems([]);
     setIsCheckoutOpen(false);
+
+    const firstSlot = summary.deliverySlots ? (Object.values(summary.deliverySlots)[0] as string) : 'Scheduled Dispatch Slot';
+    const newOrderRecord = {
+      id: summary.orderId,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      items: summary.items.map((i: any) => `${i.quantity}x ${i.product.name}`).join(', '),
+      status: 'Confirmed & Scheduled',
+      statusColor: 'bg-emerald-500/20 text-emerald-800 border-emerald-500/40',
+      total: summary.grandTotal,
+      batchId: summary.batchIds?.[0] || 'BATCH-2026-CHX9',
+      fulfillment: summary.items?.[0]?.fulfillmentGroup === 'live-climate' ? 'Live Express Transport' : 'Express Delivery',
+      eta: firstSlot,
+      deliverySlots: summary.deliverySlots
+    };
+
+    const updated = [newOrderRecord, ...userOrders];
+    setUserOrders(updated);
+    localStorage.setItem('chickmagnet_user_orders', JSON.stringify(updated));
+  };
+
+  // Product CRUD Handlers
+  const handleUpdateProduct = (updatedProduct: Product) => {
+    const updated = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+    setProducts(updated);
+    localStorage.setItem('chickmagnet_products', JSON.stringify(updated));
+  };
+
+  const handleAddProduct = (newProduct: Product) => {
+    const updated = [newProduct, ...products];
+    setProducts(updated);
+    localStorage.setItem('chickmagnet_products', JSON.stringify(updated));
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    const updated = products.filter(p => p.id !== productId);
+    setProducts(updated);
+    localStorage.setItem('chickmagnet_products', JSON.stringify(updated));
   };
 
   // Filter Products
-  const filteredProducts = INITIAL_PRODUCTS.filter(p => {
+  const filteredProducts = products.filter(p => {
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -124,6 +176,22 @@ export default function App() {
 
     return matchesCategory && matchesSearch && matchesBuyerType;
   });
+
+  // If Admin Dashboard mode is active, render full-screen Admin View
+  if (isAdminOpen) {
+    return (
+      <AdminDashboard
+        products={products}
+        onUpdateProduct={handleUpdateProduct}
+        onAddProduct={handleAddProduct}
+        onDeleteProduct={handleDeleteProduct}
+        userOrders={userOrders}
+        onOpenStorefrontPreview={() => setIsAdminOpen(false)}
+        currentUser={currentUser}
+        onCloseAdmin={() => setIsAdminOpen(false)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-emerald-950 font-sans flex flex-col justify-between selection:bg-amber-400 selection:text-emerald-950">
@@ -152,6 +220,7 @@ export default function App() {
         onOpenTraceability={() => setIsTraceabilityOpen(true)}
         onOpenWholesale={() => setIsWholesaleOpen(true)}
         onOpenClaims={() => setIsClaimsOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
       {/* Main Content View */}
@@ -171,6 +240,7 @@ export default function App() {
           <AccountDashboard
             currentUser={currentUser}
             buyerType={buyerType}
+            userOrders={userOrders}
             onOpenTraceability={(batchId) => {
               handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
             }}
@@ -242,7 +312,6 @@ export default function App() {
               {/* Intent Split Selector */}
               <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">Select Buyer Intent:</span>
                   <div className="bg-slate-100 p-1 rounded-xl flex w-full sm:w-auto">
                     <button
                       onClick={() => setBuyerType('retail')}
@@ -279,39 +348,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Below-Fold Unified Feature Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
-                  <div className="p-2 bg-emerald-100/80 rounded-xl text-emerald-800 shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-emerald-950">Vaccinated & Health Certified</h4>
-                    <p className="text-xs text-slate-600 mt-0.5">Marek's & ND vaccination records linked directly to verified hatchery batch IDs.</p>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
-                  <div className="p-2 bg-emerald-100/80 rounded-xl text-emerald-800 shrink-0">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-emerald-950">0-4°C Cold-Chain & Live Transit</h4>
-                    <p className="text-xs text-slate-600 mt-0.5">Climate-controlled vehicles for live chick transport and air-chilled fresh poultry.</p>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
-                  <div className="p-2 bg-emerald-100/80 rounded-xl text-emerald-800 shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-emerald-950">Net-30 & Weight Invoicing</h4>
-                    <p className="text-xs text-slate-600 mt-0.5">Commercial buyer terms with weight tolerance adjustments and bulk crate pricing.</p>
-                  </div>
-                </div>
-              </div>
-
               {/* Catalog Header & Count */}
               <div className="flex items-center justify-between border-b border-slate-200 pb-4 pt-2">
                 <div>
@@ -321,7 +357,6 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-mono">
-                  <span className="text-slate-500 hidden sm:inline">Active Mode:</span>
                   <span className="bg-amber-500 text-emerald-950 px-2.5 py-1 rounded-lg font-bold uppercase">
                     {buyerType}
                   </span>

@@ -69,14 +69,17 @@ export default function CongratsModal({
           )}
 
           {/* Logistics Delivery Windows per Fulfillment Group */}
-          <div className="space-y-1 py-1">
-            <div className="text-emerald-400 font-bold uppercase text-[10px]">Assigned Fulfillment Delivery Windows:</div>
+          <div className="space-y-1.5 py-1">
+            <div className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              Assigned Delivery Window (From Selected Dispatch Slot):
+            </div>
             {Object.entries(orderSummary.deliverySlots || {}).map(([grp, slot]: any) => (
-              <div key={grp} className="bg-[#123524] p-2.5 rounded-xl border border-emerald-800 flex flex-col sm:flex-row justify-between sm:items-center text-[11px] gap-1">
-                <span className="text-amber-300 font-bold uppercase">
-                  {grp === 'live-climate' ? '🐥 Live Climate Transit' : grp === 'chilled-express' ? '❄️ Chilled Van (0-4°C)' : grp === 'frozen-deep' ? '🧊 Sub-Zero Frozen' : '📦 Dry Goods'}
+              <div key={grp} className="bg-[#123524] p-2.5 rounded-xl border border-emerald-800 flex flex-col sm:flex-row justify-between sm:items-center text-[11px] gap-1.5">
+                <span className="text-amber-300 font-bold uppercase shrink-0">
+                  {grp === 'live-climate' ? '🐥 Live Express Transport' : grp === 'chilled-express' ? '❄️ Chilled Van (0-4°C)' : grp === 'frozen-deep' ? '🧊 Sub-Zero Frozen' : '📦 Dry Goods'}
                 </span>
-                <span className="text-emerald-200">{slot}</span>
+                <span className="text-amber-200 font-mono font-bold bg-[#0b2217] px-2.5 py-1 rounded-lg border border-emerald-700/60 shadow-xs">{slot}</span>
               </div>
             ))}
           </div>

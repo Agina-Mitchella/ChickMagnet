@@ -54,7 +54,7 @@ export default function AboutLore() {
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-lg">
             🐥
           </div>
-          <h3 className="font-serif font-bold text-base text-emerald-950">Live Climate Transit</h3>
+          <h3 className="font-serif font-bold text-base text-emerald-950">Live Bird Transport</h3>
           <p className="text-xs text-emerald-800 leading-relaxed">
             Ventilated, temperature-stabilized vehicles designed specifically for day-old chicks and point-of-lay pullets, reducing transit stress and mortality.
           </p>
