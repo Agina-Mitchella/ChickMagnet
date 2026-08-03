@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Truck, Award, ArrowUp, ChevronRight, Phone, Mail, User, MapPin } from 'lucide-react';
+import { ArrowUp, ChevronRight, Phone, Mail, User, MapPin } from 'lucide-react';
 
 interface FooterProps {
   onNavigate?: (tab: string, sectionId?: string) => void;
@@ -17,23 +17,6 @@ export default function Footer({ onNavigate, onOpenSupport }: FooterProps) {
 
   return (
     <footer className="w-full bg-[#0b2217] text-emerald-100 font-sans border-t border-emerald-900">
-      {/* Top Banner */}
-      <div className="bg-[#123524] border-b border-emerald-800/60 py-3 px-6">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4 text-xs font-medium">
-          <div className="flex flex-wrap items-center gap-6">
-            <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
-              <ShieldCheck className="w-4 h-4 text-amber-400" /> 100% KEBS & DVS Certified Clean
-            </span>
-            <span className="flex items-center gap-1.5 text-emerald-300 font-semibold">
-              <Truck className="w-4 h-4 text-emerald-400" /> Temperature-Controlled Live Express
-            </span>
-            <span className="flex items-center gap-1.5 text-emerald-200 font-semibold">
-              <Award className="w-4 h-4 text-amber-400" /> 48-Hour Live Arrival Guarantee
-            </span>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12">
         
         {/* Contact Us Card */}
