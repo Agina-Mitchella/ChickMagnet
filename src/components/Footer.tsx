@@ -1,188 +1,130 @@
-import React, { useState } from 'react';
-import { Feather, ShieldCheck, Truck, Award, ChevronDown, ArrowUp } from 'lucide-react';
+import React from 'react';
+import { ShieldCheck, Truck, Award, ArrowUp, ChevronRight, Phone, Mail, User, MapPin } from 'lucide-react';
 
 interface FooterProps {
-  onNavigate?: (tab: any) => void;
+  onNavigate?: (tab: string, sectionId?: string) => void;
+  onOpenSupport?: () => void;
 }
 
-export default function Footer({ onNavigate }: FooterProps) {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-  const [openColumns, setOpenColumns] = useState<Record<number, boolean>>({});
-
-  const toggleColumn = (idx: number) => {
-    setOpenColumns(prev => ({ ...prev, [idx]: !prev[idx] }));
-  };
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setEmail('');
-    }
-  };
-
-  const navColumns = [
-    {
-      title: 'Poultry Catalog',
-      links: [
-        { label: 'Live Chicks & Pullets', tab: 'shop' },
-        { label: 'Hatching Eggs', tab: 'shop' },
-        { label: 'Rare Breed Turkeys', tab: 'shop' },
-        { label: 'Waterfowl & Ducks', tab: 'shop' },
-        { label: 'Fresh & Processed Poultry', tab: 'shop' },
-      ]
-    },
-    {
-      title: 'Quality & Assurance',
-      links: [
-        { label: 'Live Arrival Guarantee', tab: 'about' },
-        { label: 'NPIP Certification', tab: 'about' },
-        { label: 'Biosecurity Standards', tab: 'about' },
-        { label: 'Climate-Controlled Transit', tab: 'about' },
-        { label: 'Batch Traceability Portal', tab: 'batch-traceability', isTool: true },
-      ]
-    },
-    {
-      title: 'Hatchery Info',
-      links: [
-        { label: 'About ChickMagnet', tab: 'about' },
-        { label: 'Certified Partner Farms', tab: 'about' },
-        { label: 'Breeder Resources', tab: 'about' },
-        { label: 'Shipping Schedule', tab: 'about' },
-        { label: 'Customer Reviews', tab: 'about' },
-      ]
-    },
-    {
-      title: 'Support & Accounts',
-      links: [
-        { label: 'Wholesale Orders & Net-30', tab: 'wholesale', isTool: true },
-        { label: 'Mortality & Loss Claims', tab: 'mortality-claim', isTool: true },
-        { label: 'Hatchability Calculator', tab: 'about', isTool: true },
-        { label: 'Order Tracking', tab: 'cart', isTool: true },
-        { label: 'FAQs & Support Team', tab: 'about' },
-      ]
-    }
+export default function Footer({ onNavigate, onOpenSupport }: FooterProps) {
+  const companyLinks = [
+    { label: 'About ChickMagnet', action: () => onNavigate?.('about', 'about') },
+    { label: 'Contact & Support Team', action: () => onOpenSupport ? onOpenSupport() : onNavigate?.('about', 'faqs') },
+    { label: 'Frequently Asked Questions (FAQs)', action: () => onNavigate?.('about', 'faqs') },
+    { label: 'Shop All Catalog', action: () => onNavigate?.('shop') },
+    { label: 'Quality & Guarantees', action: () => onNavigate?.('about', 'quality-guarantees') },
   ];
 
   return (
-    <footer className="w-full bg-[#0F172A] text-slate-300 font-sans border-t border-slate-800">
+    <footer className="w-full bg-[#0b2217] text-emerald-100 font-sans border-t border-emerald-900">
       {/* Top Banner */}
-      <div className="bg-[#1E293B] border-b border-slate-800 py-3 px-6">
+      <div className="bg-[#123524] border-b border-emerald-800/60 py-3 px-6">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4 text-xs font-medium">
           <div className="flex flex-wrap items-center gap-6">
-            <span className="flex items-center gap-1.5 text-amber-400 font-semibold">
-              <ShieldCheck className="w-4 h-4" /> 100% NPIP Certified Clean
+            <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
+              <ShieldCheck className="w-4 h-4 text-amber-400" /> 100% KEBS & DVS Certified Clean
             </span>
-            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-              <Truck className="w-4 h-4" /> Temperature-Controlled Live Express
+            <span className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+              <Truck className="w-4 h-4 text-emerald-400" /> Temperature-Controlled Live Express
             </span>
-            <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
-              <Award className="w-4 h-4" /> 48-Hour Live Arrival Guarantee
+            <span className="flex items-center gap-1.5 text-emerald-200 font-semibold">
+              <Award className="w-4 h-4 text-amber-400" /> 48-Hour Live Arrival Guarantee
             </span>
           </div>
-
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12">
-        {/* Newsletter section */}
-        <div className="bg-[#1E293B] border border-slate-800 rounded-2xl p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
+        
+        {/* Contact Us Card */}
+        <div className="bg-[#123524] border border-emerald-800 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="space-y-2 text-center lg:text-left">
-            <h3 className="text-xl font-bold text-white flex items-center justify-center lg:justify-start gap-2">
-              <Feather className="w-5 h-5 text-amber-400" /> Subscribe to ChickMagnet
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/10 text-amber-300 border border-amber-400/30 rounded-full text-xs font-mono font-bold">
+              <Phone className="w-3.5 h-3.5 text-amber-400" /> Direct Contact & Support
+            </span>
+            <h3 className="text-xl sm:text-2xl font-bold text-amber-300 font-serif">
+              Contact Us
             </h3>
-            <p className="text-sm text-slate-400 max-w-xl">
-              Get notified when rare breed batches hatch, receive seasonal care guides, and unlock subscriber discounts on bulk orders.
+            <p className="text-xs text-emerald-200/90 max-w-lg">
+              Have inquiries about day-old chick availability, custom incubator setups, or commercial wholesale orders in Kisii? Get in touch with us directly.
             </p>
           </div>
 
-          <div className="w-full lg:max-w-md">
-            {subscribed ? (
-              <div className="bg-emerald-950/60 border border-emerald-700/50 rounded-xl p-4 text-center text-emerald-300 text-sm font-medium">
-                ✓ Thank you for subscribing! You will receive our next hatch dispatch.
+          <div className="w-full lg:w-auto bg-[#0b2217] border border-emerald-700/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-xs shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-400 text-emerald-950 font-bold flex items-center justify-center shrink-0 shadow-xs">
+                <User className="w-5 h-5 text-emerald-950" />
               </div>
-            ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-2">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                />
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm transition-colors shrink-0 cursor-pointer"
-                >
-                  Subscribe
-                </button>
-              </form>
-            )}
+              <div>
+                <div className="font-bold text-sm text-amber-300">Steve Logarn Ositu</div>
+                <div className="text-emerald-300/80 font-mono text-[11px] flex items-center gap-1 mt-0.5">
+                  <MapPin className="w-3 h-3 text-amber-400" /> Kisii, Kenya
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px sm:h-10 w-full sm:w-px bg-emerald-800 my-1 sm:my-0" />
+
+            <div className="space-y-2 font-mono text-xs w-full sm:w-auto">
+              <a 
+                href="tel:254700356023" 
+                className="flex items-center gap-2 text-emerald-100 hover:text-amber-300 transition-colors bg-emerald-950/60 hover:bg-emerald-900/80 px-3 py-1.5 rounded-lg border border-emerald-800/80"
+              >
+                <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="font-bold text-amber-300">254700356023</span>
+              </a>
+              <a 
+                href="mailto:manyaos7@gmail.com" 
+                className="flex items-center gap-2 text-emerald-100 hover:text-amber-300 transition-colors bg-emerald-950/60 hover:bg-emerald-900/80 px-3 py-1.5 rounded-lg border border-emerald-800/80"
+              >
+                <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>manyaos7@gmail.com</span>
+              </a>
+            </div>
           </div>
         </div>
 
-        {/* Navigation Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {navColumns.map((col, idx) => (
-            <div key={idx} className="flex flex-col">
-              <button
-                onClick={() => toggleColumn(idx)}
-                className="flex items-center justify-between w-full text-left sm:cursor-default focus:outline-none pb-2 sm:pb-0"
-              >
-                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                  {col.title}
-                </h4>
-                <ChevronDown className={`w-4 h-4 text-slate-400 sm:hidden transition-transform ${openColumns[idx] ? 'rotate-180' : ''}`} />
-              </button>
-
-              <ul className={`flex flex-col gap-2.5 mt-3 ${openColumns[idx] ? 'block' : 'hidden sm:flex'}`}>
-                {col.links.map((link, lIdx) => (
-                  <li key={lIdx}>
-                    <button
-                      onClick={() => {
-                        if (onNavigate) onNavigate(link.tab);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="text-sm text-slate-400 hover:text-white transition-colors text-left inline-flex items-center gap-2 group cursor-pointer"
-                    >
-                      <span>{link.label}</span>
-                      {link.isTool && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-amber-400/10 text-amber-300 border border-amber-400/30 rounded group-hover:bg-amber-400/20 transition-colors">
-                          Tool
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        {/* Navigation Links */}
+        <div className="max-w-4xl">
+          <div className="flex flex-col space-y-3">
+            <h4 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider border-b border-emerald-800 pb-2">
+              Company & Hatchery
+            </h4>
+            <ul className="flex flex-wrap gap-x-8 gap-y-3">
+              {companyLinks.map((item, idx) => (
+                <li key={idx}>
+                  <button
+                    onClick={() => {
+                      item.action();
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-sm text-emerald-100 hover:text-amber-300 transition-colors text-left inline-flex items-center gap-2 group cursor-pointer font-medium"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-emerald-500 group-hover:text-amber-400 transition-transform group-hover:translate-x-0.5" />
+                    <span>{item.label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-slate-800 bg-[#0B1120] py-6 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-amber-400 text-base">ChickMagnet</span>
-            <span>© {new Date().getFullYear()} ChickMagnet Hatchery Inc. All rights reserved.</span>
+      <div className="border-t border-emerald-900 bg-[#071710] py-6 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-emerald-300/70">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+            <span className="font-serif font-black text-amber-400 text-base">ChickMagnet</span>
+            <span>© {new Date().getFullYear()} ChickMagnet Hatchery Ltd (Kisii, Kenya). All rights reserved.</span>
           </div>
 
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-300 rounded-full text-xs font-medium transition-colors cursor-pointer border border-slate-700"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#123524] hover:bg-[#1a4a33] text-amber-300 hover:text-amber-200 rounded-full text-xs font-bold transition-colors cursor-pointer border border-emerald-800"
           >
             <ArrowUp className="w-3.5 h-3.5" />
             <span>Back to top</span>
           </button>
-
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-slate-400">
-            <span>NPIP Permit #47-9201</span>
-            <span>USPS Live Animal Transit Approved</span>
-            <span>USDA Inspected</span>
-          </div>
         </div>
       </div>
     </footer>

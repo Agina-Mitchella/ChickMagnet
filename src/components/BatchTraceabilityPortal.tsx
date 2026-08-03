@@ -112,7 +112,7 @@ export default function BatchTraceabilityPortal({
               <div className="space-y-1">
                 <div className="text-emerald-400 font-bold text-[11px] uppercase">Sourcing Farm</div>
                 <div>{activeRecord.farmName}</div>
-                <div className="text-slate-400 text-[11px]">{activeRecord.location}</div>
+                <div className="text-emerald-300/80 text-[11px]">{activeRecord.location}</div>
               </div>
 
               <div className="space-y-1">

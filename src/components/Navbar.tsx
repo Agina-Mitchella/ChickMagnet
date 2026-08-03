@@ -74,8 +74,10 @@ export default function Navbar({
                 ChickMagnet
               </span>
             </div>
-            <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium">
-              Poultry & Hatchery Marketplace
+            <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium flex items-center gap-1">
+              <span>📍 Kisii, Kenya</span>
+              <span>•</span>
+              <span>Hatchery Marketplace</span>
             </p>
           </div>
         </div>

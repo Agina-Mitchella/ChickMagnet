@@ -134,8 +134,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
 
       if (isDemo) {
         const demoUser: User = {
-          email: 'user@example.com',
-          name: 'Amara Oakwood',
+          email: 'uxagina@gmail.com',
+          name: 'Agina',
           avatarEmoji: '🐣',
           role: 'BUYER',
           buyerType: 'retail'
@@ -161,7 +161,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
           setSuccessMsg(null);
         }, 1000);
       } else {
-        setError(err.message || 'Invalid email or password.');
+        setError('Invalid email or password. You can register a new account or try user@example.com / password');
       }
     }
   };
@@ -170,30 +170,33 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     e.preventDefault();
     setError(null);
 
-    if (!email || !password || !name) {
-      setError('Please provide a name, email, and password.');
+    if (!name.trim()) {
+      setError('Please enter your name.');
       return;
     }
-
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-
     if (!acceptTerms) {
-      setError('You must accept the Terms of Service to create an account.');
-      return;
-    }
-
-    if (password.length < 4) {
-      setError('Password must be at least 4 characters long.');
+      setError('You must accept the terms and conditions to register.');
       return;
     }
 
     try {
-      const response = await api.auth.register(name.trim(), email.trim(), selectedEmoji, selectedRole);
+      const response = await api.auth.register({
+        email,
+        name,
+        avatarEmoji: selectedEmoji,
+        role: selectedRole,
+        buyerType: 'retail'
+      });
       const loggedUser = response.user;
-      
+
       resetForm();
       onAuthSuccess(loggedUser);
       setRegisteredUser(loggedUser);
@@ -249,18 +252,18 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div 
         onClick={handleClose}
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-[#0b2217]/80 backdrop-blur-md"
       />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-auto text-emerald-950"
+        className="bg-white border-2 border-emerald-800 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-auto text-emerald-950"
       >
         <button 
           onClick={handleClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+          className="absolute top-4 right-4 p-2 text-emerald-800 hover:text-emerald-950 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -271,12 +274,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
             <h3 className="font-serif font-black text-2xl text-emerald-950">
               Welcome to ChickMagnet, {registeredUser?.name}!
             </h3>
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-emerald-800 mt-2">
               Your account has been created successfully. Explore our bio-secure poultry marketplace.
             </p>
             <button
               onClick={handleClose}
-              className="mt-6 w-full bg-emerald-900 hover:bg-emerald-800 text-amber-300 font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-colors"
+              className="mt-6 w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
             >
               Start Exploring Catalog
             </button>
@@ -284,26 +287,26 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         ) : (
           <>
             <div className="mb-6 text-center">
-              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold font-mono mb-2">
-                ChickMagnet Portal
+              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-950 border border-amber-300 rounded-full text-xs font-bold font-mono mb-2">
+                📍 Kisii, Kenya
               </span>
               <h3 className="font-serif font-black text-2xl text-emerald-950">
                 {mode === 'signin' ? 'Sign In to Account' : 'Create an Account'}
               </h3>
 
-              <div className="mt-4 p-1 bg-slate-100 rounded-xl flex">
+              <div className="mt-4 p-1 bg-emerald-50 border border-emerald-200 rounded-xl flex">
                 <button
                   onClick={() => { setMode('signin'); resetForm(); }}
-                  className={`flex-1 text-xs py-2 rounded-lg font-bold transition-all ${
-                    mode === 'signin' ? 'bg-white text-emerald-950 shadow-xs' : 'text-slate-500'
+                  className={`flex-1 text-xs py-2 rounded-lg font-bold transition-all cursor-pointer ${
+                    mode === 'signin' ? 'bg-emerald-800 text-white shadow-xs' : 'text-emerald-800 hover:text-emerald-950'
                   }`}
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => { setMode('register'); resetForm(); }}
-                  className={`flex-1 text-xs py-2 rounded-lg font-bold transition-all ${
-                    mode === 'register' ? 'bg-white text-emerald-950 shadow-xs' : 'text-slate-500'
+                  className={`flex-1 text-xs py-2 rounded-lg font-bold transition-all cursor-pointer ${
+                    mode === 'register' ? 'bg-emerald-800 text-white shadow-xs' : 'text-emerald-800 hover:text-emerald-950'
                   }`}
                 >
                   Register Account
@@ -312,14 +315,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
             </div>
 
             {error && (
-              <div className="mb-4 bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 flex items-center gap-2 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3 flex items-center gap-2 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{error}</span>
               </div>
             )}
 
             {successMsg && (
-              <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-3 text-xs text-center font-bold">
+              <div className="mb-4 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-xl p-3 text-xs text-center font-bold">
                 {successMsg}
               </div>
             )}
@@ -328,27 +331,27 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               {mode === 'register' && (
                 <>
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">Full Name</label>
+                    <label className="block text-xs font-bold text-emerald-950 font-mono">Full Name</label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Amara Oakwood"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600"
+                      placeholder="e.g. Agina"
+                      className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
                       required
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">Choose Avatar Icon</label>
+                    <label className="block text-xs font-bold text-emerald-950 font-mono">Choose Avatar Icon</label>
                     <div className="flex gap-2">
                       {AVATAR_SYMBOLS.map(item => (
                         <button
                           key={item.symbol}
                           type="button"
                           onClick={() => setSelectedEmoji(item.symbol)}
-                          className={`text-xl p-2 rounded-xl border flex-1 transition-all ${
-                            selectedEmoji === item.symbol ? 'border-amber-500 bg-amber-50 scale-105' : 'border-slate-200 bg-slate-50'
+                          className={`text-xl p-2 rounded-xl border-2 flex-1 transition-all cursor-pointer ${
+                            selectedEmoji === item.symbol ? 'border-amber-500 bg-amber-50 scale-105' : 'border-emerald-200 bg-emerald-50/50'
                           }`}
                         >
                           {item.symbol}
@@ -360,38 +363,38 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               )}
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">Email Address</label>
+                <label className="block text-xs font-bold text-emerald-950 font-mono">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. buyer@farmnet.co.ke"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600"
+                  placeholder="e.g. uxagina@gmail.com"
+                  className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">Password</label>
+                <label className="block text-xs font-bold text-emerald-950 font-mono">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600"
+                  className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
                   required
                 />
               </div>
 
               {mode === 'register' && (
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Confirm Password</label>
+                  <label className="block text-xs font-bold text-emerald-950 font-mono">Confirm Password</label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600"
+                    className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
                     required
                   />
                 </div>
@@ -404,9 +407,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                     id="accept-terms"
                     checked={acceptTerms}
                     onChange={(e) => setAcceptTerms(e.target.checked)}
-                    className="mt-0.5 accent-emerald-700 rounded"
+                    className="mt-0.5 accent-emerald-800 rounded cursor-pointer"
                   />
-                  <label htmlFor="accept-terms" className="text-xs text-slate-600">
+                  <label htmlFor="accept-terms" className="text-xs text-emerald-900 cursor-pointer">
                     I agree to the ChickMagnet Bio-Security Terms & Conditions.
                   </label>
                 </div>
@@ -414,7 +417,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
 
               <button
                 type="submit"
-                className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-colors"
+                className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-md"
               >
                 {mode === 'signin' ? 'Sign In' : 'Complete Registration'}
               </button>
@@ -422,7 +425,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 Sign in with Google
               </button>

@@ -111,7 +111,7 @@ export default function WholesalePortal({
                     </span>
                   </div>
                   <div className="text-emerald-200 font-mono text-[11px]">{order.itemsSummary}</div>
-                  <div className="text-slate-400 text-[10px] font-mono">Contact: {order.contactPerson} ({order.email})</div>
+                  <div className="text-emerald-300/80 text-[10px] font-mono">Contact: {order.contactPerson} ({order.email})</div>
                 </div>
 
                 <div className="text-right space-y-1 font-mono text-[11px]">

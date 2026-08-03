@@ -115,7 +115,7 @@ export default function CongratsModal({
                     onClose();
                     onOpenClaims();
                   }}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-[10px] font-mono cursor-pointer shrink-0"
+                  className="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-bold px-2.5 py-1 rounded text-[10px] font-mono cursor-pointer shrink-0"
                 >
                   File 24h Claim
                 </button>

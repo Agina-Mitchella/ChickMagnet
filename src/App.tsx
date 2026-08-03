@@ -15,6 +15,7 @@ import AboutLore from './components/AboutLore';
 import AuthModal from './components/AuthModal';
 import ChatbotHelp from './components/ChatbotHelp';
 import Footer from './components/Footer';
+import AccountDashboard from './components/AccountDashboard';
 import heroChickenImage from './assets/images/hero_poultry_chicks_1785408878635.jpg';
 import { ShieldCheck, Activity, Truck, Sparkles, HelpCircle, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -50,8 +51,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('chickmagnet_user');
     return saved ? JSON.parse(saved) : {
-      name: 'Amara Oakwood',
-      email: 'amara.oakwood@farmnet.co.ke',
+      name: 'Agina',
+      email: 'uxagina@gmail.com',
       buyerType: 'retail'
     };
   });
@@ -166,6 +167,17 @@ export default function App() {
           />
         ) : activeTab === 'about' ? (
           <AboutLore />
+        ) : activeTab === 'profile' ? (
+          <AccountDashboard
+            currentUser={currentUser}
+            buyerType={buyerType}
+            onOpenTraceability={(batchId) => {
+              handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
+            }}
+            onOpenWholesale={() => setIsWholesaleOpen(true)}
+            onOpenClaims={() => setIsClaimsOpen(true)}
+            onNavigateToShop={() => setActiveTab('shop')}
+          />
         ) : (
           /* MARKETPLACE SHOP VIEW */
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
@@ -356,19 +368,19 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer onNavigate={(tab) => {
-        if (tab === 'shop' || tab === 'about') {
-          setActiveTab(tab);
-        } else if (tab === 'batch-traceability') {
-          setIsTraceabilityOpen(true);
-        } else if (tab === 'wholesale') {
-          setIsWholesaleOpen(true);
-        } else if (tab === 'mortality-claim') {
-          setIsClaimsOpen(true);
-        } else if (tab === 'cart') {
-          setIsCartOpen(true);
-        }
-      }} />
+      <Footer 
+        onNavigate={(tab, sectionId) => {
+          if (tab === 'shop' || tab === 'about' || tab === 'profile') {
+            setActiveTab(tab as any);
+            if (sectionId) {
+              setTimeout(() => {
+                const el = document.getElementById(sectionId);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            }
+          }
+        }} 
+      />
 
       {/* Product Detail Modal */}
       {selectedProduct && (

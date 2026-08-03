@@ -228,7 +228,7 @@ export default function MortalityClaimRitual({
                         <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold">
                           Credit: Ksh {c.refundAmount?.toLocaleString()}
                         </span>
-                        <div className="text-[10px] text-slate-400">{c.claimDate}</div>
+                        <div className="text-[10px] text-emerald-300/80">{c.claimDate}</div>
                       </div>
                     </div>
                   ))}
@@ -272,12 +272,12 @@ export default function MortalityClaimRitual({
                     <div>
                       <span className="text-emerald-400 block text-[10px]">Estimated Weight</span>
                       <span className="text-white font-bold">{inv.estimatedWeightKg} kg</span>
-                      <span className="block text-[10px] text-slate-400">(Ksh {inv.estimatedPrice.toLocaleString()})</span>
+                      <span className="block text-[10px] text-emerald-300/80">(Ksh {inv.estimatedPrice.toLocaleString()})</span>
                     </div>
                     <div>
                       <span className="text-emerald-400 block text-[10px]">Actual Packed Scale</span>
                       <span className="text-amber-300 font-bold">{inv.actualScaleWeightKg} kg</span>
-                      <span className="block text-[10px] text-slate-400">(Ksh {inv.actualPrice.toLocaleString()})</span>
+                      <span className="block text-[10px] text-emerald-300/80">(Ksh {inv.actualPrice.toLocaleString()})</span>
                     </div>
                     <div className="col-span-2 sm:col-span-1">
                       <span className="text-emerald-400 block text-[10px]">Scale Adjustment</span>
