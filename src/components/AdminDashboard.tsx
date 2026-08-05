@@ -2009,6 +2009,48 @@ export default function AdminDashboard({
                   className="w-full bg-[#123524] border border-emerald-700 p-2 rounded-xl text-slate-200"
                 />
               </div>
+
+              {/* Product Image Section */}
+              <div className="bg-[#123524] p-3 rounded-xl border border-emerald-700/80 space-y-2">
+                <label className="block text-amber-300 font-bold">Product Image</label>
+                <div className="flex gap-3 items-center">
+                  <div className="w-16 h-16 rounded-lg bg-[#0b2217] border border-emerald-800 overflow-hidden shrink-0 flex items-center justify-center">
+                    {productForm.image ? (
+                      <img src={productForm.image} alt="SKU Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] text-emerald-400">No image</span>
+                    )}
+                  </div>
+                  <div className="flex-grow space-y-1.5">
+                    <input
+                      type="url"
+                      value={productForm.image || ''}
+                      onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full bg-[#0b2217] border border-emerald-800 p-1.5 rounded-lg text-amber-200 font-mono text-xs focus:outline-none focus:border-amber-400"
+                    />
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === 'string') {
+                                setProductForm({ ...productForm, image: reader.result });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="block w-full text-[11px] text-emerald-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-emerald-950 hover:file:bg-amber-400 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="pt-3 border-t border-emerald-800 flex justify-between">

@@ -33,7 +33,20 @@ export default function App() {
   // Products State
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('chickmagnet_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (!saved) return INITIAL_PRODUCTS;
+    try {
+      const parsed: Product[] = JSON.parse(saved);
+      // Ensure product images match the updated high-accuracy image URLs from INITIAL_PRODUCTS
+      return parsed.map(p => {
+        const initialMatch = INITIAL_PRODUCTS.find(ip => ip.id === p.id);
+        if (initialMatch) {
+          return { ...p, image: initialMatch.image };
+        }
+        return p;
+      });
+    } catch {
+      return INITIAL_PRODUCTS;
+    }
   });
 
   // Admin Dashboard Mode
