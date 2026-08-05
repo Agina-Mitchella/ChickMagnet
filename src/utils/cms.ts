@@ -53,16 +53,56 @@ export const CMS_PAGES: CMSPageMeta[] = [
 ];
 
 export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
-  // GLOBAL
+  // GLOBAL BRANDING & LOGO
+  {
+    id: 'global_logo_type',
+    pageId: 'global',
+    label: 'Brand Logo Display Mode (emoji or image)',
+    type: 'text',
+    value: 'emoji',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'global_logo_display_mode',
+    pageId: 'global',
+    label: 'Logo Layout Mode (image_only, image_with_text, emoji_with_text)',
+    type: 'text',
+    value: 'image_only',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'global_logo_emoji',
+    pageId: 'global',
+    label: 'Brand Logo Icon / Emoji',
+    type: 'text',
+    value: '🐔',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'global_logo_image_url',
+    pageId: 'global',
+    label: 'Brand Logo Image (URL or Data URI)',
+    type: 'image',
+    value: '',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
   {
     id: 'global_platform_name',
     pageId: 'global',
-    label: 'Platform Name (System Code locked)',
+    label: 'Platform Brand Name',
     type: 'heading',
-    value: 'Sol Handmades',
-    readOnly: true,
+    value: 'ChickMagnet',
+    readOnly: false,
     lastEditedBy: 'System Core',
-    lastEditedAt: '2026-07-01 09:00',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
@@ -1217,4 +1257,68 @@ export function useCMSToggle(blockId: string, fallback: boolean): boolean {
   }, [blockId, fallback]);
 
   return val;
+}
+
+export interface BrandLogoConfig {
+  logoType: 'emoji' | 'image';
+  logoDisplayMode?: 'image_only' | 'image_with_text' | 'emoji_with_text';
+  logoEmoji: string;
+  logoImageUrl: string;
+  brandName: string;
+}
+
+export const getStoredBrandLogo = (): BrandLogoConfig => {
+  const blocks = getStoredCMSData();
+  const logoTypeBlock = blocks.find(b => b.id === 'global_logo_type');
+  const logoDisplayModeBlock = blocks.find(b => b.id === 'global_logo_display_mode');
+  const logoEmojiBlock = blocks.find(b => b.id === 'global_logo_emoji');
+  const logoImageBlock = blocks.find(b => b.id === 'global_logo_image_url');
+  const brandNameBlock = blocks.find(b => b.id === 'global_platform_name');
+
+  return {
+    logoType: (logoTypeBlock?.value as 'emoji' | 'image') || 'emoji',
+    logoDisplayMode: (logoDisplayModeBlock?.value as 'image_only' | 'image_with_text' | 'emoji_with_text') || 'image_only',
+    logoEmoji: (logoEmojiBlock?.value as string) || '🐔',
+    logoImageUrl: (logoImageBlock?.value as string) || '',
+    brandName: (brandNameBlock?.value as string) || 'ChickMagnet',
+  };
+};
+
+export const updateBrandLogo = (config: Partial<BrandLogoConfig>, adminName: string = 'Admin') => {
+  if (config.logoType !== undefined) {
+    updateCMSBlock('global_logo_type', config.logoType, adminName);
+  }
+  if (config.logoDisplayMode !== undefined) {
+    updateCMSBlock('global_logo_display_mode', config.logoDisplayMode, adminName);
+  }
+  if (config.logoEmoji !== undefined) {
+    updateCMSBlock('global_logo_emoji', config.logoEmoji, adminName);
+  }
+  if (config.logoImageUrl !== undefined) {
+    updateCMSBlock('global_logo_image_url', config.logoImageUrl, adminName);
+  }
+  if (config.brandName !== undefined) {
+    updateCMSBlock('global_platform_name', config.brandName, adminName);
+  }
+  window.dispatchEvent(new Event('chickmagnet_brand_updated'));
+};
+
+export function useBrandLogo(): BrandLogoConfig {
+  const [brand, setBrand] = useState<BrandLogoConfig>(getStoredBrandLogo);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setBrand(getStoredBrandLogo());
+    };
+    window.addEventListener('sol_cms_updated', handleUpdate);
+    window.addEventListener('chickmagnet_brand_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('sol_cms_updated', handleUpdate);
+      window.removeEventListener('chickmagnet_brand_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  return brand;
 }

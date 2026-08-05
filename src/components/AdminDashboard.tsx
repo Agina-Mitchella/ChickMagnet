@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
-import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock } from '../utils/cms';
+import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo } from '../utils/cms';
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
 
@@ -143,6 +143,60 @@ export default function AdminDashboard({
     | 'audit_logs';
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+
+  // Brand Logo & Platform Name State
+  const brand = useBrandLogo();
+  const [logoType, setLogoType] = useState<'emoji' | 'image'>(brand.logoType || 'emoji');
+  const [logoDisplayMode, setLogoDisplayMode] = useState<'image_only' | 'image_with_text' | 'emoji_with_text'>(brand.logoDisplayMode || 'image_only');
+  const [logoEmoji, setLogoEmoji] = useState(brand.logoEmoji || '🐔');
+  const [logoImageUrl, setLogoImageUrl] = useState(brand.logoImageUrl || '');
+  const [brandName, setBrandName] = useState(brand.brandName || 'ChickMagnet');
+  const [logoSavedSuccess, setLogoSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    setLogoType(brand.logoType || 'emoji');
+    setLogoDisplayMode(brand.logoDisplayMode || 'image_only');
+    setLogoEmoji(brand.logoEmoji || '🐔');
+    setLogoImageUrl(brand.logoImageUrl || '');
+    setBrandName(brand.brandName || 'ChickMagnet');
+  }, [brand]);
+
+  const handleSaveBrandLogo = () => {
+    updateBrandLogo({
+      logoType,
+      logoDisplayMode,
+      logoEmoji,
+      logoImageUrl,
+      brandName
+    }, currentUser?.name || 'Admin');
+    logAction(
+      currentUser?.name || 'Admin',
+      'Platform Logo Updated',
+      `Type: ${logoType}, Mode: ${logoDisplayMode}, Logo: ${logoType === 'emoji' ? logoEmoji : 'Custom Image'}`,
+      brand.brandName,
+      brandName
+    );
+    setLogoSavedSuccess(true);
+    setTimeout(() => setLogoSavedSuccess(false), 3500);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Selected image file is too large. Please select an image under 3MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setLogoImageUrl(reader.result);
+        setLogoType('image');
+        setLogoDisplayMode('image_only');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Role Control
   const [activeRole, setActiveRole] = useState<AdminRole>('ADMIN');
@@ -475,12 +529,16 @@ export default function AdminDashboard({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg shadow-md">
-              🛠️
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg shadow-md overflow-hidden shrink-0">
+              {brand.logoType === 'image' && brand.logoImageUrl ? (
+                <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="w-full h-full object-cover" />
+              ) : (
+                <span>{brand.logoEmoji || '🐔'}</span>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-serif text-lg font-bold text-amber-400">ChickMagnet Control Center</span>
+                <span className="font-serif text-lg font-bold text-amber-400">{brand.brandName || 'ChickMagnet'} Control Center</span>
                 <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-bold">
                   Admin Platform v2.4
                 </span>
@@ -1364,8 +1422,8 @@ export default function AdminDashboard({
           <div className="space-y-5">
             <div className="bg-[#0b2217] p-4 rounded-2xl border border-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-amber-300 font-serif">No-Code Website Content Editor</h2>
-                <p className="text-xs text-emerald-300/80">Update hero section headlines, value propositions, and static copy without code changes.</p>
+                <h2 className="text-lg font-bold text-amber-300 font-serif">No-Code Website & Brand Identity Editor</h2>
+                <p className="text-xs text-emerald-300/80">Update brand logo, platform name, hero headlines, and value propositions live across the marketplace.</p>
               </div>
 
               <button
@@ -1373,8 +1431,249 @@ export default function AdminDashboard({
                 className="bg-gradient-to-r from-amber-400 to-amber-500 text-emerald-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Publish Content Changes</span>
+                <span>Publish Copy Changes</span>
               </button>
+            </div>
+
+            {/* BRAND LOGO & IDENTITY MANAGER CARD */}
+            <div className="bg-[#0b2217] border-2 border-amber-500/50 rounded-2xl p-6 space-y-6 shadow-xl relative overflow-hidden">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-emerald-800 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <h3 className="text-base font-bold text-amber-300 font-serif">Brand Logo & Platform Identity</h3>
+                    <span className="bg-amber-400/20 text-amber-300 text-[10px] font-mono px-2 py-0.5 rounded-full border border-amber-400/30 uppercase font-bold">Live Global Sync</span>
+                  </div>
+                  <p className="text-xs text-emerald-300/80 mt-1">
+                    Upload your company logo image file or pick an icon. Any change updates the header, footer, admin, and receipts instantly.
+                  </p>
+                </div>
+
+                {/* Live Realtime Header Preview Box */}
+                <div className="bg-[#123524] border border-emerald-700/80 rounded-xl p-3 flex items-center gap-3 shrink-0 shadow-inner max-w-full overflow-hidden">
+                  <div className="text-[10px] font-mono text-emerald-400/80 uppercase tracking-wider mr-1 shrink-0">
+                    Live Header Preview:
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {logoType === 'image' && logoImageUrl && logoDisplayMode === 'image_only' ? (
+                      <img src={logoImageUrl} alt="Logo Preview" className="h-9 max-w-[180px] object-contain rounded-lg drop-shadow" />
+                    ) : (
+                      <>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg shadow-inner overflow-hidden shrink-0">
+                          {logoType === 'image' && logoImageUrl ? (
+                            <img src={logoImageUrl} alt="Logo Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{logoEmoji || '🐔'}</span>
+                          )}
+                        </div>
+                        <span className="font-serif text-lg font-black text-amber-400 tracking-tight">
+                          {brandName || 'ChickMagnet'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Controls */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                
+                {/* Column 1: Logo Type & Display Mode */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-emerald-300 font-bold mb-1.5">Platform Brand Name</label>
+                    <input
+                      type="text"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder="e.g. ChickMagnet"
+                      className="w-full bg-[#123524] border border-emerald-700 rounded-xl p-2.5 text-amber-300 font-bold text-sm focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-emerald-300 font-bold mb-1.5">Logo Format & Display Style</label>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoType('image');
+                          setLogoDisplayMode('image_only');
+                        }}
+                        className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
+                          logoType === 'image' && logoDisplayMode === 'image_only'
+                            ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
+                            : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Upload className="w-4 h-4" />
+                          <span>Uploaded Image Logo (Image Only)</span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">Replaces text with graphic</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoType('image');
+                          setLogoDisplayMode('image_with_text');
+                        }}
+                        className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
+                          logoType === 'image' && logoDisplayMode === 'image_with_text'
+                            ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
+                            : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Upload className="w-4 h-4" />
+                          <span>Image Icon + Brand Name Text</span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">Square badge + text</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoType('emoji');
+                          setLogoDisplayMode('emoji_with_text');
+                        }}
+                        className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
+                          logoType === 'emoji' 
+                            ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
+                            : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span>🐔 Emoji Icon + Brand Name Text</span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">Emoji badge + text</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Preset Emoji Options if mode is emoji */}
+                  {logoType === 'emoji' && (
+                    <div className="space-y-2 bg-[#123524] p-3.5 rounded-xl border border-emerald-700">
+                      <label className="block text-amber-300 font-bold">Pick Preset Icon or Custom Emoji</label>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {['🐔', '🐣', '🐓', '🥚', '🌾', '🚜', '🦅', '🐥', '👑', '🛡️'].map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => setLogoEmoji(emoji)}
+                            className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-transform cursor-pointer ${
+                              logoEmoji === emoji ? 'bg-amber-400 text-emerald-950 scale-110 shadow-lg font-black' : 'bg-[#0b2217] hover:bg-emerald-800/80 text-white'
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="pt-2">
+                        <label className="block text-[11px] text-emerald-400 mb-1">Or Type Custom Emoji Symbol</label>
+                        <input
+                          type="text"
+                          maxLength={4}
+                          value={logoEmoji}
+                          onChange={(e) => setLogoEmoji(e.target.value)}
+                          className="w-24 bg-[#0b2217] border border-emerald-800 rounded-lg p-2 text-center text-xl text-amber-300 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Column 2: Custom Image Upload / URL Controls */}
+                <div className="space-y-4">
+                  <div className="space-y-3 bg-[#123524] p-4 rounded-xl border border-emerald-700">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-amber-300 font-bold">Upload Brand Logo Image</label>
+                      <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded font-mono">PNG / JPG / WEBP / SVG</span>
+                    </div>
+
+                    {/* File Dropzone Input */}
+                    <div className="relative border-2 border-dashed border-emerald-600/80 hover:border-amber-400 rounded-xl p-4 text-center bg-[#0b2217]/80 hover:bg-[#0b2217] transition-colors cursor-pointer group">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="flex flex-col items-center justify-center space-y-1.5 pointer-events-none">
+                        <Upload className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-amber-300">Click or Drag & Drop Logo Image File</span>
+                        <span className="text-[10px] text-emerald-400/80">Select any graphic file from your computer (Max 3MB)</span>
+                      </div>
+                    </div>
+
+                    <div className="relative flex py-1 items-center">
+                      <div className="flex-grow border-t border-emerald-800"></div>
+                      <span className="flex-shrink mx-2 text-[10px] text-emerald-400 font-mono">OR PASTE WEB URL</span>
+                      <div className="flex-grow border-t border-emerald-800"></div>
+                    </div>
+
+                    <div>
+                      <input
+                        type="url"
+                        value={logoImageUrl}
+                        onChange={(e) => {
+                          setLogoImageUrl(e.target.value);
+                          setLogoType('image');
+                        }}
+                        placeholder="https://example.com/my-company-logo.png"
+                        className="w-full bg-[#0b2217] border border-emerald-800 rounded-xl p-2.5 text-amber-200 font-mono text-[11px] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {logoImageUrl && (
+                      <div className="bg-[#0b2217] p-3 rounded-xl border border-emerald-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-amber-300 font-bold">Uploaded Image Preview:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLogoImageUrl('');
+                              setLogoType('emoji');
+                              setLogoDisplayMode('emoji_with_text');
+                            }}
+                            className="text-[10px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                        <div className="h-16 w-full bg-[#123524] rounded-lg p-2 flex items-center justify-center border border-emerald-700/60 overflow-hidden">
+                          <img src={logoImageUrl} alt="Uploaded Brand Logo" className="max-h-full max-w-full object-contain" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Action */}
+              <div className="pt-3 border-t border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                {logoSavedSuccess ? (
+                  <div className="flex items-center gap-2 text-emerald-300 font-bold bg-emerald-950 border border-emerald-700 px-3.5 py-2 rounded-xl text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Logo & Brand Settings Saved Live! All site headers updated.</span>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-emerald-400/80">
+                    Clicking save updates the logo and brand title across all sessions immediately.
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSaveBrandLogo}
+                  className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black px-6 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-xl cursor-pointer transition-transform active:scale-95"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save & Update Logo Everywhere</span>
+                </button>
+              </div>
             </div>
 
             <div className="bg-[#0b2217] border border-emerald-800 rounded-2xl p-6 space-y-6">

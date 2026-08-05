@@ -4,6 +4,7 @@ import { X, Sparkles, Mail, Lock, User as UserIcon, LogIn, UserPlus, AlertCircle
 import { User } from '../types';
 import { api } from '../utils/api';
 import { signInWithGoogle } from '../config/firebase';
+import { useBrandLogo } from '../utils/cms';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ const AVATAR_SYMBOLS = [
 ];
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signin', targetRole = 'BUYER' }: AuthModalProps) {
+  const brand = useBrandLogo();
   const [mode, setMode] = useState<'signin' | 'register' | 'welcome'>(initialMode);
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   
@@ -288,7 +290,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
           <div className="text-center py-4 flex flex-col items-center">
             <div className="text-6xl mb-4">{registeredUser?.avatarEmoji || '🐣'}</div>
             <h3 className="font-serif font-black text-2xl text-emerald-950">
-              Welcome to ChickMagnet, {registeredUser?.name}!
+              Welcome to {brand.brandName || 'ChickMagnet'}, {registeredUser?.name}!
             </h3>
             <p className="text-xs text-emerald-800 mt-2">
               Your account has been created successfully. Explore our bio-secure poultry marketplace.

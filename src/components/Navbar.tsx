@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingBag, Search, ShieldCheck, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Package, Egg, Layers, HelpCircle, FileText, Activity, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, BuyerType, MainCategory } from '../types';
+import { useBrandLogo } from '../utils/cms';
 
 interface NavbarProps {
   activeTab: string;
@@ -45,6 +46,7 @@ export default function Navbar({
   onOpenBusinessPlan
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const brand = useBrandLogo();
 
   const isAdmin = currentUser?.role === 'ADMIN';
 
@@ -71,21 +73,46 @@ export default function Navbar({
           }}
           className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 select-none"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg sm:text-xl shadow-inner group-hover:scale-105 transition-transform">
-            🐔
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
-                ChickMagnet
-              </span>
+          {brand.logoType === 'image' && brand.logoImageUrl && brand.logoDisplayMode === 'image_only' ? (
+            /* Standalone Logo Image Mode (replaces emoji and text) */
+            <div className="flex items-center gap-3">
+              <img 
+                src={brand.logoImageUrl} 
+                alt={brand.brandName || 'Logo'} 
+                className="h-10 sm:h-12 max-w-[200px] sm:max-w-[240px] object-contain rounded-lg group-hover:scale-105 transition-transform drop-shadow-md" 
+              />
+              <div className="hidden lg:block border-l border-emerald-800/80 pl-3">
+                <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase font-medium flex items-center gap-1">
+                  <span>📍 Kisii, Kenya</span>
+                  <span>•</span>
+                  <span>Hatchery Marketplace</span>
+                </p>
+              </div>
             </div>
-            <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium flex items-center gap-1">
-              <span>📍 Kisii, Kenya</span>
-              <span>•</span>
-              <span>Hatchery Marketplace</span>
-            </p>
-          </div>
+          ) : (
+            /* Icon (Image or Emoji) + Text Mode */
+            <>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg sm:text-xl shadow-inner group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+                {brand.logoType === 'image' && brand.logoImageUrl ? (
+                  <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{brand.logoEmoji || '🐔'}</span>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
+                    {brand.brandName || 'ChickMagnet'}
+                  </span>
+                </div>
+                <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium flex items-center gap-1">
+                  <span>📍 Kisii, Kenya</span>
+                  <span>•</span>
+                  <span>Hatchery Marketplace</span>
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Desktop Search Bar */}
