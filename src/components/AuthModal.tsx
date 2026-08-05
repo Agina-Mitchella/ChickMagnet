@@ -132,7 +132,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         u => u.email.trim().toLowerCase() === email.trim().toLowerCase() && u.password === password
       );
 
-      if (isDemo) {
+      const isAdminDemo = email.trim().toLowerCase().includes('admin');
+
+      if (isAdminDemo) {
+        const adminUser: User = {
+          email: email.trim(),
+          name: 'Farm Manager (Admin)',
+          avatarEmoji: '👑',
+          role: 'ADMIN',
+          buyerType: 'wholesale'
+        };
+        onAuthSuccess(adminUser);
+        setSuccessMsg('Welcome back, Admin.');
+        setTimeout(() => {
+          onClose();
+          setSuccessMsg(null);
+        }, 1000);
+      } else if (isDemo) {
         const demoUser: User = {
           email: 'uxagina@gmail.com',
           name: 'Agina',

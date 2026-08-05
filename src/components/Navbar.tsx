@@ -21,6 +21,7 @@ interface NavbarProps {
   onOpenWholesale: () => void;
   onOpenClaims: () => void;
   onOpenAdmin?: () => void;
+  onOpenBusinessPlan?: () => void;
 }
 
 export default function Navbar({
@@ -40,9 +41,12 @@ export default function Navbar({
   onOpenTraceability,
   onOpenWholesale,
   onOpenClaims,
-  onOpenAdmin
+  onOpenAdmin,
+  onOpenBusinessPlan
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const categoriesList: { id: MainCategory | 'all'; label: string; icon: React.ReactNode; description: string }[] = [
     { id: 'all', label: 'All Catalog', icon: <ShoppingBag className="w-4 h-4" />, description: 'Browse all poultry, eggs & farm inputs' },
@@ -150,7 +154,7 @@ export default function Navbar({
                       <span>My Account & Orders</span>
                     </button>
                     
-                    {onOpenAdmin && (
+                    {onOpenAdmin && isAdmin && (
                       <button
                         onClick={() => {
                           onOpenAdmin();
@@ -201,14 +205,25 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Admin Dashboard Quick Button */}
-          {onOpenAdmin && (
+          {/* Admin Dashboard Quick Button - Strictly for Admin Role */}
+          {onOpenAdmin && isAdmin && (
             <button
               onClick={onOpenAdmin}
               className="flex items-center gap-1.5 bg-[#0b2217] hover:bg-emerald-900/60 border border-amber-500/50 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px]"
             >
               <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Admin</span>
+            </button>
+          )}
+
+          {/* Farm Business Plan Quick Button - Strictly for Admin Role */}
+          {onOpenBusinessPlan && isAdmin && (
+            <button
+              onClick={onOpenBusinessPlan}
+              className="flex items-center gap-1.5 bg-[#0b2217] hover:bg-emerald-900/60 border border-emerald-500/50 text-emerald-300 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px]"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Farm Plan</span>
             </button>
           )}
 

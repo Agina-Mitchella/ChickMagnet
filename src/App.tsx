@@ -17,6 +17,7 @@ import ChatbotHelp from './components/ChatbotHelp';
 import Footer from './components/Footer';
 import AccountDashboard from './components/AccountDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import BusinessPlanHub from './components/BusinessPlanHub';
 import heroChickenImage from './assets/images/hero_poultry_chicks_1785408878635.jpg';
 import { ShieldCheck, Activity, Truck, Sparkles, HelpCircle, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export default function App() {
 
   // Admin Dashboard Mode
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isBusinessPlanOpen, setIsBusinessPlanOpen] = useState<boolean>(false);
 
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -63,6 +65,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : {
       name: 'Agina',
       email: 'uxagina@gmail.com',
+      role: 'BUYER',
       buyerType: 'retail'
     };
   });
@@ -71,6 +74,42 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('chickmagnet_cart', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  // Listen for background updates from Admin / Farm Operations
+  useEffect(() => {
+    const handleProductsUpdate = () => {
+      const saved = localStorage.getItem('chickmagnet_products');
+      if (saved) {
+        try {
+          setProducts(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    const handleOrdersUpdate = () => {
+      const saved = localStorage.getItem('chickmagnet_user_orders');
+      if (saved) {
+        try {
+          setUserOrders(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    window.addEventListener('chickmagnet_products_updated', handleProductsUpdate);
+    window.addEventListener('chickmagnet_user_orders_updated', handleOrdersUpdate);
+    window.addEventListener('storage', handleProductsUpdate);
+    window.addEventListener('storage', handleOrdersUpdate);
+
+    return () => {
+      window.removeEventListener('chickmagnet_products_updated', handleProductsUpdate);
+      window.removeEventListener('chickmagnet_user_orders_updated', handleOrdersUpdate);
+      window.removeEventListener('storage', handleProductsUpdate);
+      window.removeEventListener('storage', handleOrdersUpdate);
+    };
+  }, []);
 
   // Handle Cart Operations
   const handleAddToCart = (product: Product, quantity: number = 1, selectedSex?: 'male' | 'female' | 'unsexed') => {
@@ -221,7 +260,37 @@ export default function App() {
         onOpenWholesale={() => setIsWholesaleOpen(true)}
         onOpenClaims={() => setIsClaimsOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenBusinessPlan={() => setIsBusinessPlanOpen(true)}
       />
+
+      {/* Admin Dashboard Command Overlay View */}
+      {isAdminOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
+          <AdminDashboard
+            products={products}
+            onUpdateProduct={handleUpdateProduct}
+            onAddProduct={handleAddProduct}
+            onDeleteProduct={handleDeleteProduct}
+            userOrders={userOrders}
+            onUpdateOrderStatus={(orderId, newStatus) => {
+              const updated = userOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
+              setUserOrders(updated);
+              localStorage.setItem('chickmagnet_user_orders', JSON.stringify(updated));
+              window.dispatchEvent(new Event('chickmagnet_user_orders_updated'));
+            }}
+            onOpenStorefrontPreview={() => setIsAdminOpen(false)}
+            currentUser={currentUser}
+            onCloseAdmin={() => setIsAdminOpen(false)}
+          />
+        </div>
+      )}
+
+      {/* Business Plan Command Hub Overlay View */}
+      {isBusinessPlanOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
+          <BusinessPlanHub onClose={() => setIsBusinessPlanOpen(false)} />
+        </div>
+      )}
 
       {/* Main Content View */}
       <main className="flex-1 pb-16">

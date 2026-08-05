@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Search, Activity, ShieldCheck, CheckCircle2, FileText, Download, Award, Clock } from 'lucide-react';
 import { MOCK_BATCH_TRACE_RECORDS } from '../data/products';
 import { BatchTraceabilityRecord } from '../types';
@@ -9,22 +9,63 @@ interface BatchTraceabilityPortalProps {
   initialBatchId?: string;
 }
 
+const getBatchRecordMap = (): Record<string, BatchTraceabilityRecord> => {
+  const map: Record<string, BatchTraceabilityRecord> = { ...MOCK_BATCH_TRACE_RECORDS };
+  const saved = localStorage.getItem('chickmagnet_admin_batches');
+  if (saved) {
+    try {
+      const array: BatchTraceabilityRecord[] = JSON.parse(saved);
+      array.forEach(b => {
+        if (b.batchId) {
+          map[b.batchId.trim().toUpperCase()] = b;
+        }
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  return map;
+};
+
 export default function BatchTraceabilityPortal({
   isOpen,
   onClose,
   initialBatchId = 'BATCH-2026-CHX9'
 }: BatchTraceabilityPortalProps) {
   const [searchQuery, setSearchQuery] = useState(initialBatchId);
-  const [activeRecord, setActiveRecord] = useState<BatchTraceabilityRecord | null>(
-    MOCK_BATCH_TRACE_RECORDS[initialBatchId] || MOCK_BATCH_TRACE_RECORDS['BATCH-2026-CHX9']
-  );
+  const [activeRecord, setActiveRecord] = useState<BatchTraceabilityRecord | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const batchMap = getBatchRecordMap();
+      const targetKey = (searchQuery || initialBatchId).trim().toUpperCase();
+      setActiveRecord(batchMap[targetKey] || batchMap['BATCH-2026-CHX9'] || null);
+    }
+  }, [isOpen, initialBatchId]);
+
+  useEffect(() => {
+    const handleBatchUpdate = () => {
+      const batchMap = getBatchRecordMap();
+      const targetKey = searchQuery.trim().toUpperCase();
+      if (batchMap[targetKey]) {
+        setActiveRecord(batchMap[targetKey]);
+      }
+    };
+    window.addEventListener('chickmagnet_batch_updated', handleBatchUpdate);
+    window.addEventListener('storage', handleBatchUpdate);
+    return () => {
+      window.removeEventListener('chickmagnet_batch_updated', handleBatchUpdate);
+      window.removeEventListener('storage', handleBatchUpdate);
+    };
+  }, [searchQuery]);
 
   if (!isOpen) return null;
 
   const handleSearch = (batchId: string) => {
+    const batchMap = getBatchRecordMap();
     const formatted = batchId.trim().toUpperCase();
-    if (MOCK_BATCH_TRACE_RECORDS[formatted]) {
-      setActiveRecord(MOCK_BATCH_TRACE_RECORDS[formatted]);
+    if (batchMap[formatted]) {
+      setActiveRecord(batchMap[formatted]);
     } else {
       setActiveRecord(null);
     }

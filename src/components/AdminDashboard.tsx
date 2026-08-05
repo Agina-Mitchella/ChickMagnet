@@ -10,6 +10,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
 import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock } from '../utils/cms';
+import BusinessPlanHub from './BusinessPlanHub';
+import FarmOperationsModule from './FarmOperationsModule';
 
 export type AdminRole = 'ADMIN' | 'CONTENT_EDITOR' | 'FULFILLMENT_STAFF';
 
@@ -128,6 +130,8 @@ export default function AdminDashboard({
   // Navigation tab
   type AdminTab = 
     | 'overview' 
+    | 'farm_ops'
+    | 'business_plan'
     | 'orders' 
     | 'claims' 
     | 'customers' 
@@ -555,6 +559,26 @@ export default function AdminDashboard({
             </button>
 
             <button
+              onClick={() => setActiveTab('farm_ops')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer border border-emerald-500/60 ${
+                activeTab === 'farm_ops' ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold' : 'bg-emerald-900/40 text-emerald-300 hover:bg-emerald-900/70'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-amber-400" />
+              <span>Farm Operations (Internal)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('business_plan')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer border border-amber-500/50 ${
+                activeTab === 'business_plan' ? 'bg-amber-400 text-emerald-950 shadow-md font-black' : 'bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Farm Business Plan Hub</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('orders')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 activeTab === 'orders' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
@@ -661,6 +685,16 @@ export default function AdminDashboard({
 
       {/* Main Admin Dashboard Body Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+        {/* FARM OPERATIONS COMMAND MODULE */}
+        {activeTab === 'farm_ops' && (
+          <FarmOperationsModule />
+        )}
+
+        {/* 0. BUSINESS PLAN HUB SCREEN */}
+        {activeTab === 'business_plan' && (
+          <BusinessPlanHub />
+        )}
 
         {/* 1. OVERVIEW SCREEN */}
         {activeTab === 'overview' && (
