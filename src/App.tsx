@@ -20,6 +20,13 @@ import AdminDashboard from './components/AdminDashboard';
 import BusinessPlanHub from './components/BusinessPlanHub';
 import heroChickenImage from './assets/images/hero_poultry_chicks_1785408878635.jpg';
 import { ShieldCheck, Activity, Truck, Sparkles, HelpCircle, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
+import {
+  subscribeProducts,
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+  subscribeOrders,
+  saveOrderToFirestore
+} from './services/firestoreSync';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>('shop');
@@ -88,39 +95,18 @@ export default function App() {
     localStorage.setItem('chickmagnet_cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Listen for background updates from Admin / Farm Operations
+  // Real-time Firestore sync for Products and Orders
   useEffect(() => {
-    const handleProductsUpdate = () => {
-      const saved = localStorage.getItem('chickmagnet_products');
-      if (saved) {
-        try {
-          setProducts(JSON.parse(saved));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-    const handleOrdersUpdate = () => {
-      const saved = localStorage.getItem('chickmagnet_user_orders');
-      if (saved) {
-        try {
-          setUserOrders(JSON.parse(saved));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-
-    window.addEventListener('chickmagnet_products_updated', handleProductsUpdate);
-    window.addEventListener('chickmagnet_user_orders_updated', handleOrdersUpdate);
-    window.addEventListener('storage', handleProductsUpdate);
-    window.addEventListener('storage', handleOrdersUpdate);
+    const unsubProducts = subscribeProducts((updatedProducts) => {
+      setProducts(updatedProducts);
+    });
+    const unsubOrders = subscribeOrders((updatedOrders) => {
+      setUserOrders(updatedOrders);
+    });
 
     return () => {
-      window.removeEventListener('chickmagnet_products_updated', handleProductsUpdate);
-      window.removeEventListener('chickmagnet_user_orders_updated', handleOrdersUpdate);
-      window.removeEventListener('storage', handleProductsUpdate);
-      window.removeEventListener('storage', handleOrdersUpdate);
+      unsubProducts();
+      unsubOrders();
     };
   }, []);
 
@@ -187,28 +173,20 @@ export default function App() {
       deliverySlots: summary.deliverySlots
     };
 
-    const updated = [newOrderRecord, ...userOrders];
-    setUserOrders(updated);
-    localStorage.setItem('chickmagnet_user_orders', JSON.stringify(updated));
+    saveOrderToFirestore(newOrderRecord);
   };
 
-  // Product CRUD Handlers
+  // Product CRUD Handlers (Writing to Firestore)
   const handleUpdateProduct = (updatedProduct: Product) => {
-    const updated = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-    setProducts(updated);
-    localStorage.setItem('chickmagnet_products', JSON.stringify(updated));
+    saveProductToFirestore(updatedProduct);
   };
 
   const handleAddProduct = (newProduct: Product) => {
-    const updated = [newProduct, ...products];
-    setProducts(updated);
-    localStorage.setItem('chickmagnet_products', JSON.stringify(updated));
+    saveProductToFirestore(newProduct);
   };
 
   const handleDeleteProduct = (productId: string) => {
-    const updated = products.filter(p => p.id !== productId);
-    setProducts(updated);
-    localStorage.setItem('chickmagnet_products', JSON.stringify(updated));
+    deleteProductFromFirestore(productId);
   };
 
   // Filter Products

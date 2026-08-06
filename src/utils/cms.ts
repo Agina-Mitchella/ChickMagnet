@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../config/firebase';
 
 export type CMSBlockType = 'text' | 'heading' | 'image' | 'button' | 'toggle' | 'datetime';
 
@@ -1089,7 +1091,37 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
 const STORAGE_KEY = 'sol_cms_data_v1';
 const AUDIT_LOG_KEY = 'sol_cms_audit_logs';
 
+let memoryCmsBlocks: CMSBlock[] | null = null;
+
+// Initialize Firestore real-time listener for CMS blocks
+if (typeof window !== 'undefined') {
+  onSnapshot(collection(db, 'cms_blocks'), async (snapshot) => {
+    try {
+      if (snapshot.empty) {
+        console.log('Seeding initial CMS blocks to Firestore...');
+        for (const block of DEFAULT_CMS_BLOCKS) {
+          await setDoc(doc(db, 'cms_blocks', block.id), block);
+        }
+        memoryCmsBlocks = DEFAULT_CMS_BLOCKS;
+        saveStoredCMSData(DEFAULT_CMS_BLOCKS);
+      } else {
+        const fetched = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CMSBlock));
+        const existingIds = new Set(fetched.map(b => b.id));
+        const missing = DEFAULT_CMS_BLOCKS.filter(b => !existingIds.has(b.id));
+        memoryCmsBlocks = [...fetched, ...missing];
+        saveStoredCMSData(memoryCmsBlocks);
+        window.dispatchEvent(new CustomEvent('sol_cms_updated', { detail: { realtime: true } }));
+      }
+    } catch (err) {
+      console.error('CMS Firestore Listener error:', err);
+    }
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, 'cms_blocks');
+  });
+}
+
 export function getStoredCMSData(): CMSBlock[] {
+  if (memoryCmsBlocks) return memoryCmsBlocks;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_CMS_BLOCKS;
@@ -1168,9 +1200,15 @@ export function updateCMSBlock(
   };
 
   blocks[index] = updatedBlock;
+  memoryCmsBlocks = blocks;
   saveStoredCMSData(blocks);
 
-  // Sync with backend API
+  // Write directly to Firestore cloud database!
+  setDoc(doc(db, 'cms_blocks', blockId), updatedBlock).catch(err => {
+    handleFirestoreError(err, OperationType.WRITE, `cms_blocks/${blockId}`);
+  });
+
+  // Sync with backend API if needed
   if (typeof window !== 'undefined') {
     fetch('/api/v1/content/blocks', {
       method: 'POST',
@@ -1186,19 +1224,25 @@ export function updateCMSBlock(
     );
   }
 
-  // Record audit log entry
+  // Record audit log entry to Firestore
   try {
-    const rawLogs = localStorage.getItem(AUDIT_LOG_KEY);
-    const logs = rawLogs ? JSON.parse(rawLogs) : [];
-    logs.unshift({
-      id: 'log_' + Date.now(),
+    const logId = 'log_' + Date.now();
+    const logData = {
+      id: logId,
       blockId,
       label: block.label,
       adminName,
       timestamp,
       oldValue,
       newValue,
+    };
+    setDoc(doc(db, 'cms_audit_logs', logId), logData).catch(err => {
+      handleFirestoreError(err, OperationType.WRITE, `cms_audit_logs/${logId}`);
     });
+
+    const rawLogs = localStorage.getItem(AUDIT_LOG_KEY);
+    const logs = rawLogs ? JSON.parse(rawLogs) : [];
+    logs.unshift(logData);
     localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs.slice(0, 100)));
   } catch (e) {
     console.error('Failed to update CMS audit log:', e);
@@ -1275,11 +1319,17 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
   const logoImageBlock = blocks.find(b => b.id === 'global_logo_image_url');
   const brandNameBlock = blocks.find(b => b.id === 'global_platform_name');
 
+  const logoImageUrl = (logoImageBlock?.value as string) || '';
+  const rawType = logoTypeBlock?.value as 'emoji' | 'image' | undefined;
+  const logoType = rawType || (logoImageUrl ? 'image' : 'emoji');
+  const rawDisplayMode = logoDisplayModeBlock?.value as 'image_only' | 'image_with_text' | 'emoji_with_text' | undefined;
+  const logoDisplayMode = rawDisplayMode || (logoType === 'image' ? 'image_only' : 'emoji_with_text');
+
   return {
-    logoType: (logoTypeBlock?.value as 'emoji' | 'image') || 'emoji',
-    logoDisplayMode: (logoDisplayModeBlock?.value as 'image_only' | 'image_with_text' | 'emoji_with_text') || 'image_only',
+    logoType,
+    logoDisplayMode,
     logoEmoji: (logoEmojiBlock?.value as string) || '🐔',
-    logoImageUrl: (logoImageBlock?.value as string) || '',
+    logoImageUrl,
     brandName: (brandNameBlock?.value as string) || 'ChickMagnet',
   };
 };

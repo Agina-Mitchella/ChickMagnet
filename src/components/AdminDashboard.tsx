@@ -12,6 +12,20 @@ import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityReco
 import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo } from '../utils/cms';
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
+import {
+  subscribeOrders,
+  saveOrderToFirestore,
+  subscribeClaims,
+  saveClaimToFirestore,
+  subscribeWholesale,
+  saveWholesaleAccountToFirestore,
+  subscribeBadges,
+  saveBadgeToFirestore,
+  subscribeBatches,
+  saveBatchToFirestore,
+  subscribeAuditLogs,
+  saveAuditLogToFirestore
+} from '../services/firestoreSync';
 
 export type AdminRole = 'ADMIN' | 'CONTENT_EDITOR' | 'FULFILLMENT_STAFF';
 
@@ -190,9 +204,25 @@ export default function AdminDashboard({
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
-        setLogoImageUrl(reader.result);
+        const dataUrl = reader.result;
+        setLogoImageUrl(dataUrl);
         setLogoType('image');
         setLogoDisplayMode('image_only');
+        updateBrandLogo({
+          logoType: 'image',
+          logoDisplayMode: 'image_only',
+          logoImageUrl: dataUrl,
+          brandName
+        }, currentUser?.name || 'Admin');
+        logAction(
+          currentUser?.name || 'Admin',
+          'Logo Image Uploaded',
+          `Uploaded brand logo file: ${file.name}`,
+          brand.logoImageUrl ? 'Previous Image' : 'Emoji Logo',
+          'New Uploaded Logo Image'
+        );
+        setLogoSavedSuccess(true);
+        setTimeout(() => setLogoSavedSuccess(false), 3500);
       }
     };
     reader.readAsDataURL(file);
@@ -206,21 +236,6 @@ export default function AdminDashboard({
     const saved = localStorage.getItem('chickmagnet_admin_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
-
-  const logAction = (user: string, action: string, detail: string, oldValue: string, newValue: string) => {
-    const newEntry = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      user,
-      action,
-      detail,
-      oldValue,
-      newValue
-    };
-    const updated = [newEntry, ...auditLogs];
-    setAuditLogs(updated);
-    localStorage.setItem('chickmagnet_admin_audit_logs', JSON.stringify(updated));
-  };
 
   // Orders State (Merged initial sample + real user orders)
   const INITIAL_ORDERS = [
@@ -281,38 +296,72 @@ export default function AdminDashboard({
 
   const [orders, setOrders] = useState<any[]>(() => {
     const saved = localStorage.getItem('chickmagnet_admin_orders');
-    if (saved) return JSON.parse(saved);
-    
-    // merge with userOrders from App
-    const appUserOrders = userOrders.map(u => ({
-      id: u.id,
-      date: u.date,
-      customerName: currentUser?.name || 'Customer',
-      email: currentUser?.email || 'customer@chickmagnet.co.ke',
-      buyerType: 'retail',
-      items: [{ product: { name: u.items }, quantity: 1, fulfillmentGroup: 'live-climate' }],
-      deliverySlots: u.deliverySlots || { 'live-climate': u.eta || 'Standard Slot' },
-      status: u.status || 'Placed',
-      fulfillment: u.fulfillment || 'Express Transport',
-      paymentStatus: 'Paid',
-      grandTotal: u.total || 5000,
-      batchIds: [u.batchId || 'BATCH-2026-CHX9'],
-      weightAdjustments: []
-    }));
-
-    return [...appUserOrders, ...INITIAL_ORDERS];
+    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
   });
 
+  // Claims State
+  const [claims, setClaims] = useState<MortalityClaim[]>(() => {
+    const saved = localStorage.getItem('chickmagnet_admin_claims');
+    return saved ? JSON.parse(saved) : INITIAL_CLAIMS;
+  });
+
+  // Wholesale Accounts State
+  const [wholesaleAccounts, setWholesaleAccounts] = useState<any[]>(() => {
+    const saved = localStorage.getItem('chickmagnet_admin_wholesale');
+    return saved ? JSON.parse(saved) : INITIAL_WHOLESALE_ACCOUNTS;
+  });
+
+  // Trust Badges State
+  const [badges, setBadges] = useState<any[]>(() => {
+    const saved = localStorage.getItem('chickmagnet_admin_badges');
+    return saved ? JSON.parse(saved) : INITIAL_BADGES;
+  });
+
+  // Batches State
+  const [batches, setBatches] = useState<BatchTraceabilityRecord[]>(() => {
+    const saved = localStorage.getItem('chickmagnet_admin_batches');
+    return saved ? JSON.parse(saved) : INITIAL_BATCHES;
+  });
+
+  // Real-time Firestore Subscriptions for all Admin entities
+  useEffect(() => {
+    const unsubAudit = subscribeAuditLogs(setAuditLogs, INITIAL_AUDIT_LOGS);
+    const unsubOrders = subscribeOrders(setOrders, INITIAL_ORDERS);
+    const unsubClaims = subscribeClaims(setClaims, INITIAL_CLAIMS);
+    const unsubWholesale = subscribeWholesale(setWholesaleAccounts, INITIAL_WHOLESALE_ACCOUNTS);
+    const unsubBadges = subscribeBadges(setBadges, INITIAL_BADGES);
+    const unsubBatches = subscribeBatches(setBatches, INITIAL_BATCHES);
+
+    return () => {
+      unsubAudit();
+      unsubOrders();
+      unsubClaims();
+      unsubWholesale();
+      unsubBadges();
+      unsubBatches();
+    };
+  }, []);
+
+  const logAction = (user: string, action: string, detail: string, oldValue: string, newValue: string) => {
+    const newEntry = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      user,
+      action,
+      detail,
+      oldValue,
+      newValue
+    };
+    saveAuditLogToFirestore(newEntry);
+  };
+
   const handleAdvanceOrderStatus = (orderId: string, newStatus: string) => {
-    const updated = orders.map(o => {
-      if (o.id === orderId) {
-        logAction(currentUser?.name || 'Admin', 'Order Status Update', `Order ${orderId}`, o.status, newStatus);
-        return { ...o, status: newStatus };
-      }
-      return o;
-    });
-    setOrders(updated);
-    localStorage.setItem('chickmagnet_admin_orders', JSON.stringify(updated));
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (targetOrder) {
+      logAction(currentUser?.name || 'Admin', 'Order Status Update', `Order ${orderId}`, targetOrder.status, newStatus);
+      const updatedOrder = { ...targetOrder, status: newStatus };
+      saveOrderToFirestore(updatedOrder);
+    }
     if (onUpdateOrderStatus) onUpdateOrderStatus(orderId, newStatus);
   };
 
@@ -323,51 +372,29 @@ export default function AdminDashboard({
   const [orderBuyerFilter, setOrderBuyerFilter] = useState('all');
   const [selectedOrderModal, setSelectedOrderModal] = useState<any | null>(null);
 
-  // Claims State
-  const [claims, setClaims] = useState<MortalityClaim[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_admin_claims');
-    return saved ? JSON.parse(saved) : INITIAL_CLAIMS;
-  });
   const [selectedClaimModal, setSelectedClaimModal] = useState<MortalityClaim | null>(null);
   const [claimResolutionNote, setClaimResolutionNote] = useState('');
 
   const handleResolveClaim = (claimId: string, newStatus: 'approved_credit' | 'approved_replacement' | 'rejected', creditAmt?: number) => {
-    const updated = claims.map(c => {
-      if (c.id === claimId) {
-        logAction(currentUser?.name || 'Admin', 'Claim Resolution', `Claim ${claimId}`, c.status, `${newStatus} (${claimResolutionNote})`);
-        return { ...c, status: newStatus, refundAmount: creditAmt || c.refundAmount };
-      }
-      return c;
-    });
-    setClaims(updated);
-    localStorage.setItem('chickmagnet_admin_claims', JSON.stringify(updated));
+    const targetClaim = claims.find(c => c.id === claimId);
+    if (targetClaim) {
+      logAction(currentUser?.name || 'Admin', 'Claim Resolution', `Claim ${claimId}`, targetClaim.status, `${newStatus} (${claimResolutionNote})`);
+      const updatedClaim = { ...targetClaim, status: newStatus, refundAmount: creditAmt || targetClaim.refundAmount };
+      saveClaimToFirestore(updatedClaim);
+    }
     setSelectedClaimModal(null);
     setClaimResolutionNote('');
   };
 
-  // Wholesale Accounts State
-  const [wholesaleAccounts, setWholesaleAccounts] = useState<any[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_admin_wholesale');
-    return saved ? JSON.parse(saved) : INITIAL_WHOLESALE_ACCOUNTS;
-  });
-
   const handleApproveWholesaleAccount = (accId: string, limitKsh: number) => {
-    const updated = wholesaleAccounts.map(a => {
-      if (a.id === accId) {
-        logAction(currentUser?.name || 'Admin', 'Wholesale Approval', `Account ${a.companyName}`, a.net30Status, `Approved (Limit Ksh ${limitKsh.toLocaleString()})`);
-        return { ...a, net30Status: 'approved', creditLimitKsh: limitKsh };
-      }
-      return a;
-    });
-    setWholesaleAccounts(updated);
-    localStorage.setItem('chickmagnet_admin_wholesale', JSON.stringify(updated));
+    const targetAcc = wholesaleAccounts.find(a => a.id === accId);
+    if (targetAcc) {
+      logAction(currentUser?.name || 'Admin', 'Wholesale Approval', `Account ${targetAcc.companyName}`, targetAcc.net30Status, `Approved (Limit Ksh ${limitKsh.toLocaleString()})`);
+      const updatedAcc = { ...targetAcc, net30Status: 'approved', creditLimitKsh: limitKsh };
+      saveWholesaleAccountToFirestore(updatedAcc);
+    }
   };
 
-  // Trust Badges State
-  const [badges, setBadges] = useState<any[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_admin_badges');
-    return saved ? JSON.parse(saved) : INITIAL_BADGES;
-  });
   const [isAddBadgeModal, setIsAddBadgeModal] = useState(false);
   const [newBadge, setNewBadge] = useState({ name: '', category: 'Standards', number: '', expiryDate: '', icon: '🛡️', issuer: '' });
 
@@ -379,19 +406,12 @@ export default function AdminDashboard({
       ...newBadge,
       status: isExpired ? 'expired' : 'active'
     };
-    const updated = [...badges, created];
-    setBadges(updated);
-    localStorage.setItem('chickmagnet_admin_badges', JSON.stringify(updated));
+    saveBadgeToFirestore(created);
     logAction(currentUser?.name || 'Admin', 'Badge Created', `Trust Badge: ${newBadge.name}`, 'None', created.status);
     setIsAddBadgeModal(false);
     setNewBadge({ name: '', category: 'Standards', number: '', expiryDate: '', icon: '🛡️', issuer: '' });
   };
 
-  // Batches State
-  const [batches, setBatches] = useState<BatchTraceabilityRecord[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_admin_batches');
-    return saved ? JSON.parse(saved) : INITIAL_BATCHES;
-  });
   const [isAddBatchModal, setIsAddBatchModal] = useState(false);
   const [newBatch, setNewBatch] = useState<Partial<BatchTraceabilityRecord>>({
     batchId: `BATCH-2026-CHX${Math.floor(10 + Math.random() * 90)}`,
@@ -410,9 +430,8 @@ export default function AdminDashboard({
 
   const handleSaveBatch = () => {
     if (!newBatch.batchId) return;
-    const updated = [newBatch as BatchTraceabilityRecord, ...batches];
-    setBatches(updated);
-    localStorage.setItem('chickmagnet_admin_batches', JSON.stringify(updated));
+    const batchRecord = newBatch as BatchTraceabilityRecord;
+    saveBatchToFirestore(batchRecord);
     logAction(currentUser?.name || 'Admin', 'Batch Created', `Hatchery/Pack Batch ${newBatch.batchId}`, 'None', newBatch.breedOrCut || 'Batch Record');
     setIsAddBatchModal(false);
   };
@@ -529,13 +548,9 @@ export default function AdminDashboard({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg shadow-md overflow-hidden shrink-0">
-              {brand.logoType === 'image' && brand.logoImageUrl ? (
-                <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="w-full h-full object-cover" />
-              ) : (
-                <span>{brand.logoEmoji || '🐔'}</span>
-              )}
-            </div>
+            {brand.logoImageUrl ? (
+              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-9 max-w-[180px] object-contain drop-shadow shrink-0" />
+            ) : null}
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-serif text-lg font-bold text-amber-400">{brand.brandName || 'ChickMagnet'} Control Center</span>
@@ -1455,21 +1470,19 @@ export default function AdminDashboard({
                     Live Header Preview:
                   </div>
                   <div className="flex items-center gap-2.5">
-                    {logoType === 'image' && logoImageUrl && logoDisplayMode === 'image_only' ? (
-                      <img src={logoImageUrl} alt="Logo Preview" className="h-9 max-w-[180px] object-contain rounded-lg drop-shadow" />
+                    {logoImageUrl ? (
+                      <div className="flex items-center gap-2.5">
+                        <img src={logoImageUrl} alt="Logo Preview" className="h-9 max-w-[180px] object-contain drop-shadow" />
+                        {logoDisplayMode === 'image_with_text' && (
+                          <span className="font-serif text-lg font-black text-amber-400 tracking-tight">
+                            {brandName || 'ChickMagnet'}
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <>
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-emerald-950 flex items-center justify-center font-black text-lg shadow-inner overflow-hidden shrink-0">
-                          {logoType === 'image' && logoImageUrl ? (
-                            <img src={logoImageUrl} alt="Logo Preview" className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{logoEmoji || '🐔'}</span>
-                          )}
-                        </div>
-                        <span className="font-serif text-lg font-black text-amber-400 tracking-tight">
-                          {brandName || 'ChickMagnet'}
-                        </span>
-                      </>
+                      <span className="font-serif text-lg font-black text-amber-400 tracking-tight">
+                        {brandName || 'ChickMagnet'}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1478,7 +1491,7 @@ export default function AdminDashboard({
               {/* Form Controls */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
                 
-                {/* Column 1: Logo Type & Display Mode */}
+                {/* Column 1: Logo Style Settings */}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-emerald-300 font-bold mb-1.5">Platform Brand Name</label>
@@ -1492,7 +1505,7 @@ export default function AdminDashboard({
                   </div>
 
                   <div>
-                    <label className="block text-emerald-300 font-bold mb-1.5">Logo Format & Display Style</label>
+                    <label className="block text-emerald-300 font-bold mb-1.5">Logo Display Layout</label>
                     <div className="space-y-2">
                       <button
                         type="button"
@@ -1501,16 +1514,16 @@ export default function AdminDashboard({
                           setLogoDisplayMode('image_only');
                         }}
                         className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
-                          logoType === 'image' && logoDisplayMode === 'image_only'
+                          logoDisplayMode === 'image_only'
                             ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
                             : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
                         }`}
                       >
                         <span className="flex items-center gap-2">
                           <Upload className="w-4 h-4" />
-                          <span>Uploaded Image Logo (Image Only)</span>
+                          <span>Uploaded Image Logo (Graphic Only)</span>
                         </span>
-                        <span className="text-[10px] font-mono opacity-80">Replaces text with graphic</span>
+                        <span className="text-[10px] font-mono opacity-80">Full image emblem</span>
                       </button>
 
                       <button
@@ -1520,69 +1533,19 @@ export default function AdminDashboard({
                           setLogoDisplayMode('image_with_text');
                         }}
                         className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
-                          logoType === 'image' && logoDisplayMode === 'image_with_text'
+                          logoDisplayMode === 'image_with_text'
                             ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
                             : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
                         }`}
                       >
                         <span className="flex items-center gap-2">
                           <Upload className="w-4 h-4" />
-                          <span>Image Icon + Brand Name Text</span>
+                          <span>Logo Graphic + Brand Name Text</span>
                         </span>
-                        <span className="text-[10px] font-mono opacity-80">Square badge + text</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLogoType('emoji');
-                          setLogoDisplayMode('emoji_with_text');
-                        }}
-                        className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
-                          logoType === 'emoji' 
-                            ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
-                            : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span>🐔 Emoji Icon + Brand Name Text</span>
-                        </span>
-                        <span className="text-[10px] font-mono opacity-80">Emoji badge + text</span>
+                        <span className="text-[10px] font-mono opacity-80">Clean image & title</span>
                       </button>
                     </div>
                   </div>
-
-                  {/* Preset Emoji Options if mode is emoji */}
-                  {logoType === 'emoji' && (
-                    <div className="space-y-2 bg-[#123524] p-3.5 rounded-xl border border-emerald-700">
-                      <label className="block text-amber-300 font-bold">Pick Preset Icon or Custom Emoji</label>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {['🐔', '🐣', '🐓', '🥚', '🌾', '🚜', '🦅', '🐥', '👑', '🛡️'].map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={() => setLogoEmoji(emoji)}
-                            className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-transform cursor-pointer ${
-                              logoEmoji === emoji ? 'bg-amber-400 text-emerald-950 scale-110 shadow-lg font-black' : 'bg-[#0b2217] hover:bg-emerald-800/80 text-white'
-                            }`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="pt-2">
-                        <label className="block text-[11px] text-emerald-400 mb-1">Or Type Custom Emoji Symbol</label>
-                        <input
-                          type="text"
-                          maxLength={4}
-                          value={logoEmoji}
-                          onChange={(e) => setLogoEmoji(e.target.value)}
-                          className="w-24 bg-[#0b2217] border border-emerald-800 rounded-lg p-2 text-center text-xl text-amber-300 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Column 2: Custom Image Upload / URL Controls */}
@@ -1635,8 +1598,8 @@ export default function AdminDashboard({
                             type="button"
                             onClick={() => {
                               setLogoImageUrl('');
-                              setLogoType('emoji');
-                              setLogoDisplayMode('emoji_with_text');
+                              setLogoType('image');
+                              setLogoDisplayMode('image_only');
                             }}
                             className="text-[10px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
                           >

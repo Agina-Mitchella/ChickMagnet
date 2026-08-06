@@ -99,8 +99,8 @@ export default function Footer({ onNavigate, onOpenSupport }: FooterProps) {
       <div className="border-t border-emerald-900 bg-[#071710] py-6 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-emerald-300/70">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-            {brand.logoType === 'image' && brand.logoImageUrl ? (
-              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-7 max-w-[140px] object-contain rounded" />
+            {brand.logoImageUrl ? (
+              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-8 max-w-[160px] object-contain drop-shadow" />
             ) : (
               <span className="font-serif font-black text-amber-400 text-base">{brand.brandName || 'ChickMagnet'}</span>
             )}

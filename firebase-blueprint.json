@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "CMSBlock": {
+      "title": "CMS Content Block",
+      "description": "Dynamic content block for site customization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "pageId": { "type": "string" },
+        "label": { "type": "string" },
+        "type": { "type": "string" },
+        "value": { "type": "string" },
+        "lastEditedBy": { "type": "string" },
+        "lastEditedAt": { "type": "string" }
+      },
+      "required": ["id", "pageId", "value"]
+    },
+    "Product": {
+      "title": "Product Catalog Item",
+      "description": "Poultry product, feed, egg, or farm supply item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "wholesalePrice": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "stock": { "type": "number" }
+      },
+      "required": ["id", "name", "price", "category"]
+    },
+    "Order": {
+      "title": "Customer Order",
+      "description": "Marketplace purchase order record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "total", "status"]
+    },
+    "Claim": {
+      "title": "Mortality / Insurance Claim",
+      "description": "Buyer mortality claim submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "orderId", "status"]
+    },
+    "HatcheryBatch": {
+      "title": "Hatchery Traceability Batch",
+      "description": "Bio-secure batch record",
+      "type": "object",
+      "properties": {
+        "batchNumber": { "type": "string" },
+        "breed": { "type": "string" },
+        "vaccinationStatus": { "type": "string" }
+      },
+      "required": ["batchNumber", "breed"]
+    }
+  },
+  "firestore": {
+    "/cms_blocks/{blockId}": {
+      "schema": { "$ref": "#/entities/CMSBlock" },
+      "description": "Global CMS content blocks and site configurations"
+    },
+    "/cms_audit_logs/{logId}": {
+      "schema": { "type": "object" },
+      "description": "CMS block edit history logs"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Live storefront products and inventory"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Marketplace orders and fulfillment tracking"
+    },
+    "/claims/{claimId}": {
+      "schema": { "$ref": "#/entities/Claim" },
+      "description": "Buyer mortality and warranty claims"
+    },
+    "/wholesale_applications/{appId}": {
+      "schema": { "type": "object" },
+      "description": "Wholesale vendor verification applications"
+    },
+    "/seller_badges/{badgeId}": {
+      "schema": { "type": "object" },
+      "description": "Verified seller badges and health certifications"
+    },
+    "/hatchery_batches/{batchId}": {
+      "schema": { "$ref": "#/entities/HatcheryBatch" },
+      "description": "Batch traceability records"
+    },
+    "/admin_audit_logs/{logId}": {
+      "schema": { "type": "object" },
+      "description": "Admin activity and audit logs"
+    },
+    "/users/{userId}": {
+      "schema": { "type": "object" },
+      "description": "User account profiles"
+    }
+  }
+}

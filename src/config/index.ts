@@ -391,6 +391,7 @@ export const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 // In-Memory Fallback Redis for development/sandbox where Redis is not running
 class MemoryRedis {
   private store = new Map<string, any>();
+  private ttls = new Map<string, number>();
 
   constructor() {
     console.log('🔮 In-memory fallback Redis initialized safely.');
@@ -401,6 +402,40 @@ class MemoryRedis {
     return this;
   }
 
+  async ping(): Promise<string> {
+    return 'PONG';
+  }
+
+  async get(key: string): Promise<string | null> {
+    const val = this.store.get(key);
+    if (val === undefined || val === null) return null;
+    return String(val);
+  }
+
+  async set(key: string, value: any, ...args: any[]): Promise<'OK'> {
+    this.store.set(key, value);
+    if (args.length >= 2 && (args[0] === 'EX' || args[0] === 'ex')) {
+      const seconds = Number(args[1]);
+      if (!isNaN(seconds)) {
+        this.expire(key, seconds);
+      }
+    }
+    return 'OK';
+  }
+
+  async del(key: string): Promise<number> {
+    const deleted = this.store.delete(key);
+    this.ttls.delete(key);
+    return deleted ? 1 : 0;
+  }
+
+  async ttl(key: string): Promise<number> {
+    const expiry = this.ttls.get(key);
+    if (!expiry) return -1;
+    const remainingSecs = Math.ceil((expiry - Date.now()) / 1000);
+    return remainingSecs > 0 ? remainingSecs : -2;
+  }
+
   async incr(key: string): Promise<number> {
     const val = Number(this.store.get(key) || 0) + 1;
     this.store.set(key, val);
@@ -408,20 +443,23 @@ class MemoryRedis {
   }
 
   async expire(key: string, seconds: number): Promise<number> {
+    const expiryTime = Date.now() + seconds * 1000;
+    this.ttls.set(key, expiryTime);
     setTimeout(() => {
       this.store.delete(key);
+      this.ttls.delete(key);
     }, seconds * 1000);
     return 1;
   }
 
   async hgetall(key: string): Promise<Record<string, string>> {
     const hash = this.store.get(key);
-    return hash ? { ...hash } : {};
+    return hash && typeof hash === 'object' ? { ...hash } : {};
   }
 
   async hset(key: string, field: string, value: any): Promise<number> {
     let hash = this.store.get(key);
-    if (!hash) {
+    if (!hash || typeof hash !== 'object') {
       hash = {};
       this.store.set(key, hash);
     }
@@ -431,7 +469,7 @@ class MemoryRedis {
 
   async hdel(key: string, field: string): Promise<number> {
     const hash = this.store.get(key);
-    if (hash) {
+    if (hash && typeof hash === 'object') {
       delete hash[field];
     }
     return 1;

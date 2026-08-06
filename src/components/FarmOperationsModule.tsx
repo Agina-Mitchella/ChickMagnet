@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { MOCK_BATCH_TRACE_RECORDS, INITIAL_PRODUCTS } from '../data/products';
 import { BatchTraceabilityRecord, Product } from '../types';
+import { saveBatchToFirestore, saveProductToFirestore } from '../services/firestoreSync';
 
 interface FlockBatchOps {
   batchId: string;
@@ -336,7 +337,8 @@ export default function FarmOperationsModule() {
       setTraceRecords(updatedMap);
       MOCK_BATCH_TRACE_RECORDS[selectedBatchId] = updatedTrace;
 
-      // Persist to admin batch records storage & fire sync event
+      // Persist to admin batch records storage in Firestore
+      saveBatchToFirestore(updatedTrace);
       const savedAdminBatches = localStorage.getItem('chickmagnet_admin_batches');
       let adminBatchList: BatchTraceabilityRecord[] = savedAdminBatches ? JSON.parse(savedAdminBatches) : Object.values(MOCK_BATCH_TRACE_RECORDS);
       const existingIdx = adminBatchList.findIndex(b => b.batchId === selectedBatchId);
@@ -403,15 +405,17 @@ export default function FarmOperationsModule() {
     };
     setDressingLogs([newEntry, ...dressingLogs]);
 
-    // Live sync stock update to storefront products
+    // Live sync stock update to storefront products in Firestore
     const savedProducts = localStorage.getItem('chickmagnet_products');
     let productList: Product[] = savedProducts ? JSON.parse(savedProducts) : INITIAL_PRODUCTS;
     const targetIdx = productList.findIndex(p => p.id === 'prod-improved-kienyeji-mature' || p.category === 'fresh-poultry');
     if (targetIdx !== -1) {
-      productList[targetIdx] = {
+      const updatedProd = {
         ...productList[targetIdx],
         stock: productList[targetIdx].stock + dressingInputSuccess
       };
+      saveProductToFirestore(updatedProd);
+      productList[targetIdx] = updatedProd;
       localStorage.setItem('chickmagnet_products', JSON.stringify(productList));
       window.dispatchEvent(new Event('chickmagnet_products_updated'));
     }
