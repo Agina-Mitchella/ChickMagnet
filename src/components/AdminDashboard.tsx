@@ -1488,130 +1488,70 @@ export default function AdminDashboard({
                 </div>
               </div>
 
-              {/* Form Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-                
-                {/* Column 1: Logo Style Settings */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-emerald-300 font-bold mb-1.5">Platform Brand Name</label>
+              {/* Form Controls - Brand Image Upload Only */}
+              <div className="space-y-4 text-xs">
+                <div className="space-y-3 bg-[#123524] p-5 rounded-xl border border-emerald-700">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-amber-300 font-bold text-sm">Upload Brand Logo Image</label>
+                    <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded font-mono">PNG / JPG / WEBP / SVG</span>
+                  </div>
+
+                  {/* File Dropzone Input */}
+                  <div className="relative border-2 border-dashed border-emerald-600/80 hover:border-amber-400 rounded-xl p-5 text-center bg-[#0b2217]/80 hover:bg-[#0b2217] transition-colors cursor-pointer group">
                     <input
-                      type="text"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      placeholder="e.g. ChickMagnet"
-                      className="w-full bg-[#123524] border border-emerald-700 rounded-xl p-2.5 text-amber-300 font-bold text-sm focus:outline-none focus:border-amber-400"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
+                      <Upload className="w-7 h-7 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-bold text-amber-300">Click or Drag & Drop Logo Image File</span>
+                      <span className="text-[11px] text-emerald-400/80">Select any graphic file from your computer (Max 3MB)</span>
+                    </div>
+                  </div>
+
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-emerald-800"></div>
+                    <span className="flex-shrink mx-3 text-[10px] text-emerald-400 font-mono">OR PASTE WEB URL</span>
+                    <div className="flex-grow border-t border-emerald-800"></div>
+                  </div>
+
+                  <div>
+                    <input
+                      type="url"
+                      value={logoImageUrl}
+                      onChange={(e) => {
+                        setLogoImageUrl(e.target.value);
+                        setLogoType('image');
+                        setLogoDisplayMode('image_only');
+                      }}
+                      placeholder="https://example.com/my-company-logo.png"
+                      className="w-full bg-[#0b2217] border border-emerald-800 rounded-xl p-2.5 text-amber-200 font-mono text-xs focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-emerald-300 font-bold mb-1.5">Logo Display Layout</label>
-                    <div className="space-y-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLogoType('image');
-                          setLogoDisplayMode('image_only');
-                        }}
-                        className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
-                          logoDisplayMode === 'image_only'
-                            ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
-                            : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Upload className="w-4 h-4" />
-                          <span>Uploaded Image Logo (Graphic Only)</span>
-                        </span>
-                        <span className="text-[10px] font-mono opacity-80">Full image emblem</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLogoType('image');
-                          setLogoDisplayMode('image_with_text');
-                        }}
-                        className={`w-full p-2.5 rounded-xl font-bold flex items-center justify-between gap-2 border cursor-pointer transition-all ${
-                          logoDisplayMode === 'image_with_text'
-                            ? 'bg-amber-400 text-emerald-950 border-amber-300 font-extrabold shadow-md' 
-                            : 'bg-[#123524] text-emerald-300 border-emerald-800 hover:bg-emerald-900/60'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Upload className="w-4 h-4" />
-                          <span>Logo Graphic + Brand Name Text</span>
-                        </span>
-                        <span className="text-[10px] font-mono opacity-80">Clean image & title</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 2: Custom Image Upload / URL Controls */}
-                <div className="space-y-4">
-                  <div className="space-y-3 bg-[#123524] p-4 rounded-xl border border-emerald-700">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-amber-300 font-bold">Upload Brand Logo Image</label>
-                      <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded font-mono">PNG / JPG / WEBP / SVG</span>
-                    </div>
-
-                    {/* File Dropzone Input */}
-                    <div className="relative border-2 border-dashed border-emerald-600/80 hover:border-amber-400 rounded-xl p-4 text-center bg-[#0b2217]/80 hover:bg-[#0b2217] transition-colors cursor-pointer group">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      <div className="flex flex-col items-center justify-center space-y-1.5 pointer-events-none">
-                        <Upload className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-bold text-amber-300">Click or Drag & Drop Logo Image File</span>
-                        <span className="text-[10px] text-emerald-400/80">Select any graphic file from your computer (Max 3MB)</span>
+                  {logoImageUrl && (
+                    <div className="bg-[#0b2217] p-3.5 rounded-xl border border-emerald-800 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-amber-300 font-bold">Uploaded Image Preview:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLogoImageUrl('');
+                            setLogoType('image');
+                            setLogoDisplayMode('image_only');
+                          }}
+                          className="text-[11px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                      <div className="h-20 w-full bg-[#123524] rounded-lg p-3 flex items-center justify-center border border-emerald-700/60 overflow-hidden">
+                        <img src={logoImageUrl} alt="Uploaded Brand Logo" className="max-h-full max-w-full object-contain" />
                       </div>
                     </div>
-
-                    <div className="relative flex py-1 items-center">
-                      <div className="flex-grow border-t border-emerald-800"></div>
-                      <span className="flex-shrink mx-2 text-[10px] text-emerald-400 font-mono">OR PASTE WEB URL</span>
-                      <div className="flex-grow border-t border-emerald-800"></div>
-                    </div>
-
-                    <div>
-                      <input
-                        type="url"
-                        value={logoImageUrl}
-                        onChange={(e) => {
-                          setLogoImageUrl(e.target.value);
-                          setLogoType('image');
-                        }}
-                        placeholder="https://example.com/my-company-logo.png"
-                        className="w-full bg-[#0b2217] border border-emerald-800 rounded-xl p-2.5 text-amber-200 font-mono text-[11px] focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    {logoImageUrl && (
-                      <div className="bg-[#0b2217] p-3 rounded-xl border border-emerald-800 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-amber-300 font-bold">Uploaded Image Preview:</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLogoImageUrl('');
-                              setLogoType('image');
-                              setLogoDisplayMode('image_only');
-                            }}
-                            className="text-[10px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
-                          >
-                            Remove Image
-                          </button>
-                        </div>
-                        <div className="h-16 w-full bg-[#123524] rounded-lg p-2 flex items-center justify-center border border-emerald-700/60 overflow-hidden">
-                          <img src={logoImageUrl} alt="Uploaded Brand Logo" className="max-h-full max-w-full object-contain" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
 
