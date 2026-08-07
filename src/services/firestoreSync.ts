@@ -5,6 +5,22 @@ import { db, handleFirestoreError, OperationType } from '../config/firebase';
 import { Product } from '../types';
 import { INITIAL_PRODUCTS } from '../data/products';
 
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`LocalStorage quota issue for key "${key}". Truncating dataset for offline cache...`);
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        localStorage.setItem(key, JSON.stringify(parsed.slice(0, 20)));
+      }
+    } catch {
+      // Ignore if parsing fails
+    }
+  }
+}
+
 // 1. Products Realtime Sync
 export function subscribeProducts(
   onUpdate: (products: Product[]) => void
@@ -22,7 +38,7 @@ export function subscribeProducts(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_products', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_products', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Error handling products snapshot:', err);
@@ -37,7 +53,7 @@ export function subscribeProducts(
 export async function saveProductToFirestore(product: Product) {
   try {
     await setDoc(doc(db, 'products', product.id), product);
-    localStorage.setItem('chickmagnet_products_last_update', Date.now().toString());
+    safeSetLocalStorage('chickmagnet_products_last_update', Date.now().toString());
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `products/${product.id}`);
   }
@@ -69,7 +85,7 @@ export function subscribeOrders(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_admin_orders', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_admin_orders', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Orders snapshot error:', err);
@@ -106,7 +122,7 @@ export function subscribeClaims(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_admin_claims', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_admin_claims', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Claims snapshot error:', err);
@@ -143,7 +159,7 @@ export function subscribeWholesale(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_admin_wholesale', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_admin_wholesale', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Wholesale snapshot error:', err);
@@ -180,7 +196,7 @@ export function subscribeBadges(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_admin_badges', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_admin_badges', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Badges snapshot error:', err);
@@ -217,7 +233,7 @@ export function subscribeBatches(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_admin_batches', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_admin_batches', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Batches snapshot error:', err);
@@ -254,7 +270,7 @@ export function subscribeAuditLogs(
       } else {
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
-        localStorage.setItem('chickmagnet_admin_audit_logs', JSON.stringify(items));
+        safeSetLocalStorage('chickmagnet_admin_audit_logs', JSON.stringify(items));
       }
     } catch (err) {
       console.error('Audit logs snapshot error:', err);

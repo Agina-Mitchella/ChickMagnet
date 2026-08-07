@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
-import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo } from '../utils/cms';
+import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo, compressImageDataUrl, getCMSValue } from '../utils/cms';
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
 import {
@@ -175,12 +175,17 @@ export default function AdminDashboard({
     setBrandName(brand.brandName || 'ChickMagnet');
   }, [brand]);
 
-  const handleSaveBrandLogo = () => {
-    updateBrandLogo({
+  const handleSaveBrandLogo = async () => {
+    let finalImageUrl = logoImageUrl;
+    if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
+      finalImageUrl = await compressImageDataUrl(finalImageUrl, 500, 250);
+      setLogoImageUrl(finalImageUrl);
+    }
+    await updateBrandLogo({
       logoType,
       logoDisplayMode,
       logoEmoji,
-      logoImageUrl,
+      logoImageUrl: finalImageUrl,
       brandName
     }, currentUser?.name || 'Admin');
     logAction(
@@ -197,28 +202,29 @@ export default function AdminDashboard({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Selected image file is too large. Please select an image under 3MB.');
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Selected image file is too large. Please select an image under 5MB.');
       return;
     }
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       if (typeof reader.result === 'string') {
-        const dataUrl = reader.result;
-        setLogoImageUrl(dataUrl);
+        const rawDataUrl = reader.result;
+        const compressedDataUrl = await compressImageDataUrl(rawDataUrl, 500, 250);
+        setLogoImageUrl(compressedDataUrl);
         setLogoType('image');
         setLogoDisplayMode('image_only');
         updateBrandLogo({
           logoType: 'image',
           logoDisplayMode: 'image_only',
-          logoImageUrl: dataUrl,
+          logoImageUrl: compressedDataUrl,
           brandName
         }, currentUser?.name || 'Admin');
         logAction(
           currentUser?.name || 'Admin',
           'Logo Image Uploaded',
           `Uploaded brand logo file: ${file.name}`,
-          brand.logoImageUrl ? 'Previous Image' : 'Emoji Logo',
+          brand.logoImageUrl ? 'Previous Image' : 'Default Logo',
           'New Uploaded Logo Image'
         );
         setLogoSavedSuccess(true);
@@ -437,21 +443,32 @@ export default function AdminDashboard({
   };
 
   // CMS No-Code Website Editor State
-  const [cmsDrafts, setCmsDrafts] = useState<Record<string, string>>({
-    hero_headline: 'Direct-from-Hatchery Day-Old Chicks & Cold-Chain Dressed Poultry',
-    hero_subhead: 'Bio-secure Kenbro & Kienyeji chicks, air-chilled cuts, and hatching eggs delivered via climate-controlled transit with 48-hour mortality guarantee.',
-    hero_cta_text: 'Explore Fresh Hatch Catalog',
-    announcement_bar: '🚚 Live Climate Vehicle Dispatch: Tuesday & Friday Mornings across Nairobi & Rift Valley',
-    feature_1_title: 'Vaccinated & Health Certified',
-    feature_1_desc: "Marek's & Newcastle vaccination records linked directly to verified hatchery batch IDs.",
-    feature_2_title: '0-4°C Cold-Chain & Live Transit',
-    feature_2_desc: 'Climate-controlled vehicles for live chick transport and air-chilled fresh poultry.',
-    feature_3_title: 'Net-30 & Weight Invoicing',
-    feature_3_desc: 'Commercial buyer terms with weight tolerance adjustments and bulk crate pricing.'
+  const loadCmsDrafts = () => ({
+    hero_headline: getCMSValue('hero_headline', 'Direct-from-Hatchery Day-Old Chicks & Cold-Chain Dressed Poultry'),
+    hero_subhead: getCMSValue('hero_subhead', 'Bio-secure Kenbro & Kienyeji chicks, air-chilled cuts, and hatching eggs delivered via climate-controlled transit with 48-hour mortality guarantee.'),
+    hero_cta_text: getCMSValue('hero_cta_text', 'Explore Fresh Hatch Catalog'),
+    announcement_bar: getCMSValue('announcement_bar', '🚚 Live Climate Vehicle Dispatch: Tuesday & Friday Mornings across Nairobi & Rift Valley'),
+    feature_1_title: getCMSValue('feature_1_title', 'Vaccinated & Health Certified'),
+    feature_1_desc: getCMSValue('feature_1_desc', "Marek's & Newcastle vaccination records linked directly to verified hatchery batch IDs."),
+    feature_2_title: getCMSValue('feature_2_title', '0-4°C Cold-Chain & Live Transit'),
+    feature_2_desc: getCMSValue('feature_2_desc', 'Climate-controlled vehicles for live chick transport and air-chilled fresh poultry.'),
+    feature_3_title: getCMSValue('feature_3_title', 'Net-30 & Weight Invoicing'),
+    feature_3_desc: getCMSValue('feature_3_desc', 'Commercial buyer terms with weight tolerance adjustments and bulk crate pricing.')
   });
 
+  const [cmsDrafts, setCmsDrafts] = useState<Record<string, string>>(loadCmsDrafts);
   const [hasUnpublishedCmsChanges, setHasUnpublishedCmsChanges] = useState(false);
   const [cmsPublishModal, setCmsPublishModal] = useState(false);
+
+  useEffect(() => {
+    const handleCmsUpdated = () => {
+      if (!hasUnpublishedCmsChanges) {
+        setCmsDrafts(loadCmsDrafts());
+      }
+    };
+    window.addEventListener('sol_cms_updated', handleCmsUpdated);
+    return () => window.removeEventListener('sol_cms_updated', handleCmsUpdated);
+  }, [hasUnpublishedCmsChanges]);
 
   const handleCmsChange = (key: string, val: string) => {
     setCmsDrafts(prev => ({ ...prev, [key]: val }));

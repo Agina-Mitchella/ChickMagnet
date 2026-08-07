@@ -27,6 +27,7 @@ import {
   subscribeOrders,
   saveOrderToFirestore
 } from './services/firestoreSync';
+import { useCMSBlock } from './utils/cms';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>('shop');
@@ -43,18 +44,15 @@ export default function App() {
     if (!saved) return INITIAL_PRODUCTS;
     try {
       const parsed: Product[] = JSON.parse(saved);
-      // Ensure product images match the updated high-accuracy image URLs from INITIAL_PRODUCTS
-      return parsed.map(p => {
-        const initialMatch = INITIAL_PRODUCTS.find(ip => ip.id === p.id);
-        if (initialMatch) {
-          return { ...p, image: initialMatch.image };
-        }
-        return p;
-      });
+      return parsed.length > 0 ? parsed : INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
   });
+
+  // CMS Live Blocks
+  const heroHeadline = useCMSBlock('hero_headline', 'Your Favorite Marketplace for Premium Poultry & Hatchery Supplies');
+  const heroSubhead = useCMSBlock('hero_subhead', 'Bio-secure Kenbro & Kienyeji chicks, air-chilled cuts, and hatching eggs delivered via climate-controlled transit with 48-hour mortality guarantee.');
 
   // Admin Dashboard Mode
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
@@ -179,14 +177,17 @@ export default function App() {
   // Product CRUD Handlers (Writing to Firestore)
   const handleUpdateProduct = (updatedProduct: Product) => {
     saveProductToFirestore(updatedProduct);
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
   };
 
   const handleAddProduct = (newProduct: Product) => {
     saveProductToFirestore(newProduct);
+    setProducts(prev => [newProduct, ...prev.filter(p => p.id !== newProduct.id)]);
   };
 
   const handleDeleteProduct = (productId: string) => {
     deleteProductFromFirestore(productId);
+    setProducts(prev => prev.filter(p => p.id !== productId));
   };
 
   // Filter Products

@@ -1137,11 +1137,106 @@ export function getStoredCMSData(): CMSBlock[] {
   }
 }
 
+export function compressImageDataUrl(dataUrl: string, maxWidth = 500, maxHeight = 250): Promise<string> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !dataUrl.startsWith('data:image/') || dataUrl.startsWith('data:image/svg+xml')) {
+      resolve(dataUrl);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(dataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Strip light/white solid background to ensure transparent logo rendering
+      try {
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+
+        // Sample corner pixels to check if image has a light/white solid canvas background
+        const cornerIndices = [
+          0,
+          (width - 1) * 4,
+          (height - 1) * width * 4,
+          ((height - 1) * width + (width - 1)) * 4
+        ];
+        let lightCorners = 0;
+        cornerIndices.forEach(idx => {
+          if (data[idx] > 200 && data[idx + 1] > 200 && data[idx + 2] > 200) {
+            lightCorners++;
+          }
+        });
+
+        // If corners are white/light, convert white/near-white pixels to transparent
+        if (lightCorners >= 2) {
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+
+            if (a > 0 && r > 215 && g > 215 && b > 215) {
+              const avg = (r + g + b) / 3;
+              if (avg > 235) {
+                data[i + 3] = 0; // Transparent
+              } else {
+                const alphaFactor = (235 - avg) / 20;
+                data[i + 3] = Math.round(a * Math.max(0, alphaFactor));
+              }
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+        }
+      } catch (err) {
+        console.warn('Canvas background removal note:', err);
+      }
+
+      // Export as PNG or WEBP to preserve transparency (never JPEG)
+      let compressed = canvas.toDataURL('image/webp', 0.90);
+      if (!compressed.startsWith('data:image/webp')) {
+        compressed = canvas.toDataURL('image/png');
+      }
+      resolve(compressed);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 export function saveStoredCMSData(blocks: CMSBlock[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks));
   } catch (e) {
-    console.error('Failed to save CMS data to localStorage:', e);
+    console.warn('LocalStorage quota issue saving CMS data, cleaning history & retrying...', e);
+    try {
+      // Create a lightweight copy without large history or image strings to fit in quota
+      const lightBlocks = blocks.map(b => ({
+        ...b,
+        history: (b.history || []).map(h => ({
+          ...h,
+          oldValue: typeof h.oldValue === 'string' && h.oldValue.length > 150 ? '[Image Data]' : h.oldValue,
+          newValue: typeof h.newValue === 'string' && h.newValue.length > 150 ? '[Image Data]' : h.newValue,
+        })).slice(0, 2)
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lightBlocks));
+    } catch (e2) {
+      console.warn('Could not save to localStorage, maintaining in-memory state:', e2);
+    }
   }
 }
 
@@ -1180,13 +1275,21 @@ export function updateCMSBlock(
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
   const oldValue = block.value;
 
+  const sanitizeForLog = (val: string | boolean) => {
+    if (typeof val === 'string' && val.length > 200) {
+      if (val.startsWith('data:image/')) return '[Image Data URL]';
+      return val.slice(0, 150) + '...';
+    }
+    return val;
+  };
+
   // Add history item
   const newHistoryItem: CMSHistoryEntry = {
     id: 'h_' + Date.now(),
     timestamp,
     adminName,
-    oldValue,
-    newValue,
+    oldValue: sanitizeForLog(oldValue),
+    newValue: sanitizeForLog(newValue),
   };
 
   const updatedHistory = [newHistoryItem, ...(block.history || [])].slice(0, 5);
@@ -1233,19 +1336,28 @@ export function updateCMSBlock(
       label: block.label,
       adminName,
       timestamp,
-      oldValue,
-      newValue,
+      oldValue: sanitizeForLog(oldValue),
+      newValue: sanitizeForLog(newValue),
     };
     setDoc(doc(db, 'cms_audit_logs', logId), logData).catch(err => {
       handleFirestoreError(err, OperationType.WRITE, `cms_audit_logs/${logId}`);
     });
 
-    const rawLogs = localStorage.getItem(AUDIT_LOG_KEY);
-    const logs = rawLogs ? JSON.parse(rawLogs) : [];
-    logs.unshift(logData);
-    localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs.slice(0, 100)));
+    try {
+      const rawLogs = localStorage.getItem(AUDIT_LOG_KEY);
+      const logs = rawLogs ? JSON.parse(rawLogs) : [];
+      logs.unshift(logData);
+      localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs.slice(0, 20)));
+    } catch (storageErr) {
+      console.warn('LocalStorage quota issue for audit logs, keeping latest log item:', storageErr);
+      try {
+        localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify([logData]));
+      } catch {
+        // Silently ignore if browser storage is completely full
+      }
+    }
   } catch (e) {
-    console.error('Failed to update CMS audit log:', e);
+    console.warn('CMS audit log recording note:', e);
   }
 
   return { success: true, updatedBlock };
@@ -1334,7 +1446,7 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
   };
 };
 
-export const updateBrandLogo = (config: Partial<BrandLogoConfig>, adminName: string = 'Admin') => {
+export const updateBrandLogo = async (config: Partial<BrandLogoConfig>, adminName: string = 'Admin') => {
   if (config.logoType !== undefined) {
     updateCMSBlock('global_logo_type', config.logoType, adminName);
   }
@@ -1345,7 +1457,11 @@ export const updateBrandLogo = (config: Partial<BrandLogoConfig>, adminName: str
     updateCMSBlock('global_logo_emoji', config.logoEmoji, adminName);
   }
   if (config.logoImageUrl !== undefined) {
-    updateCMSBlock('global_logo_image_url', config.logoImageUrl, adminName);
+    let finalUrl = config.logoImageUrl;
+    if (finalUrl && finalUrl.startsWith('data:image/')) {
+      finalUrl = await compressImageDataUrl(finalUrl, 500, 250);
+    }
+    updateCMSBlock('global_logo_image_url', finalUrl, adminName);
   }
   if (config.brandName !== undefined) {
     updateCMSBlock('global_platform_name', config.brandName, adminName);
