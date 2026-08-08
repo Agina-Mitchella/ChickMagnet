@@ -41,13 +41,24 @@ export default function App() {
   // Products State
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('chickmagnet_products');
-    if (!saved) return INITIAL_PRODUCTS;
-    try {
-      const parsed: Product[] = JSON.parse(saved);
-      return parsed.length > 0 ? parsed : INITIAL_PRODUCTS;
-    } catch {
-      return INITIAL_PRODUCTS;
+    let rawProducts = INITIAL_PRODUCTS;
+    if (saved) {
+      try {
+        const parsed: Product[] = JSON.parse(saved);
+        if (parsed.length > 0) rawProducts = parsed;
+      } catch {
+        rawProducts = INITIAL_PRODUCTS;
+      }
     }
+    const validCategories = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies'];
+    const deletedIds = new Set(['prod-improved-kienyeji-mature', 'prod-chick-cobb500']);
+    const initialImageMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip.image]));
+    return rawProducts
+      .filter(p => validCategories.includes(p.category) && !deletedIds.has(p.id))
+      .map(p => ({
+        ...p,
+        image: initialImageMap.get(p.id) || p.image
+      }));
   });
 
   // CMS Live Blocks
@@ -191,7 +202,9 @@ export default function App() {
   };
 
   // Filter Products
+  const VALID_CATEGORIES = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies'];
   const filteredProducts = products.filter(p => {
+    if (!VALID_CATEGORIES.includes(p.category)) return false;
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -425,8 +438,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Product Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Product Grid - Fits 4 cards in a row on medium/large screens */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
               {filteredProducts.map(product => (
                 <ProductCard
                   key={product.id}

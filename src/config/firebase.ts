@@ -3,8 +3,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 import { initializeFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
-// Mute internal info/warning logs in client console
-setLogLevel('error');
+// Mute internal info/warning/error logs in client console for offline resilience
+setLogLevel('silent');
 
 // Support Vercel environment variables or fallback to firebase-applet-config.json
 const firebaseConfig = {

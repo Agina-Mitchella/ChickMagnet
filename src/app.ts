@@ -28,6 +28,8 @@ import messagingRouter from './modules/messaging/router.ts';
 import adminRouter from './modules/admin/router.ts';
 import contentRouter from './modules/content/router.ts';
 
+import { getMongoDBStatus, connectMongoDB } from './db/mongodb.ts';
+
 const app = express();
 
 // ==========================================
@@ -49,6 +51,8 @@ app.get(['/health', '/api/v1/health'], async (req, res) => {
     redisStatus = 'UNHEALTHY';
   }
 
+  const mongoStatus = getMongoDBStatus();
+
   const isHealthy = dbStatus === 'HEALTHY' && redisStatus === 'HEALTHY';
 
   res.status(isHealthy ? 200 : 503).json({
@@ -58,7 +62,27 @@ app.get(['/health', '/api/v1/health'], async (req, res) => {
     subsystems: {
       database: dbStatus,
       redis: redisStatus,
+      mongodb: mongoStatus.connected ? 'HEALTHY' : (mongoStatus.uriConfigured ? 'DISCONNECTED' : 'NOT_CONFIGURED'),
       memoryUsage: process.memoryUsage()
+    }
+  });
+});
+
+app.get(['/api/mongodb/status', '/api/v1/mongodb/status'], async (req, res) => {
+  const status = getMongoDBStatus();
+  if (!status.connected) {
+    await connectMongoDB();
+  }
+  const updatedStatus = getMongoDBStatus();
+  res.json({
+    success: true,
+    data: {
+      connected: updatedStatus.connected,
+      uriConfigured: updatedStatus.uriConfigured,
+      readyState: updatedStatus.readyState,
+      message: updatedStatus.connected 
+        ? 'MongoDB is connected and operational.' 
+        : 'MongoDB is offline or MONGODB_URI is not set. Using hybrid storage fallback.'
     }
   });
 });

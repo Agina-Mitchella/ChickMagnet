@@ -51,12 +51,11 @@ export default function Navbar({
   const isAdmin = currentUser?.role === 'ADMIN';
 
   const categoriesList: { id: MainCategory | 'all'; label: string; icon: React.ReactNode; description: string }[] = [
-    { id: 'all', label: 'All Catalog', icon: <ShoppingBag className="w-4 h-4" />, description: 'Browse all poultry, eggs & farm inputs' },
+    { id: 'all', label: 'All Catalog', icon: <ShoppingBag className="w-4 h-4" />, description: 'Browse all live birds, fresh poultry, eggs & farm supplies' },
     { id: 'live-birds', label: 'Live Birds', icon: <Feather className="w-4 h-4" />, description: 'Day-old chicks, pullets & roosters' },
     { id: 'fresh-poultry', label: 'Fresh & Whole Poultry', icon: <Utensils className="w-4 h-4" />, description: 'Dressed whole birds & fresh cuts' },
-    { id: 'processed', label: 'Processed & Value-Added', icon: <Package className="w-4 h-4" />, description: 'Raw fresh cuts, sausages & farm items' },
     { id: 'eggs', label: 'Eggs', icon: <Egg className="w-4 h-4" />, description: 'Table eggs & hatching eggs' },
-    { id: 'farm-supplies', label: 'Farm Supplies', icon: <Layers className="w-4 h-4" />, description: 'Feed, vaccines & incubators' }
+    { id: 'farm-supplies', label: 'Farm Supplies', icon: <Layers className="w-4 h-4" />, description: 'Feed, vaccines & equipment' }
   ];
 
   return (

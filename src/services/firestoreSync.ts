@@ -36,15 +36,43 @@ export function subscribeProducts(
         }
         onUpdate(INITIAL_PRODUCTS);
       } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_products', JSON.stringify(items));
+        const initialImageMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip.image]));
+        const items = snapshot.docs.map(d => {
+          const data = d.data() as Product;
+          return {
+            id: d.id,
+            ...data,
+            image: initialImageMap.get(d.id) || data.image
+          };
+        });
+        // Merge missing initial products if Firestore snapshot is incomplete or missing defaults
+        const existingIds = new Set(items.map(i => i.id));
+        const merged = [...items];
+        for (const prod of INITIAL_PRODUCTS) {
+          if (!existingIds.has(prod.id)) {
+            merged.push(prod);
+            setDoc(doc(db, 'products', prod.id), prod).catch(() => {});
+          }
+        }
+        onUpdate(merged);
+        safeSetLocalStorage('chickmagnet_products', JSON.stringify(merged));
       }
     } catch (err) {
       console.error('Error handling products snapshot:', err);
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'products');
+    const saved = localStorage.getItem('chickmagnet_products');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          onUpdate(parsed);
+          return;
+        }
+      } catch {}
+    }
+    onUpdate(INITIAL_PRODUCTS);
   });
 
   return unsubscribe;
@@ -92,6 +120,14 @@ export function subscribeOrders(
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'orders');
+    const saved = localStorage.getItem('chickmagnet_admin_orders');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
+      } catch {}
+    }
+    onUpdate(initialOrders);
   });
 }
 
@@ -129,6 +165,14 @@ export function subscribeClaims(
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'claims');
+    const saved = localStorage.getItem('chickmagnet_admin_claims');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
+      } catch {}
+    }
+    onUpdate(initialClaims);
   });
 }
 
@@ -166,6 +210,14 @@ export function subscribeWholesale(
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'wholesale_applications');
+    const saved = localStorage.getItem('chickmagnet_admin_wholesale');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
+      } catch {}
+    }
+    onUpdate(initialAccounts);
   });
 }
 
@@ -203,6 +255,14 @@ export function subscribeBadges(
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'seller_badges');
+    const saved = localStorage.getItem('chickmagnet_admin_badges');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
+      } catch {}
+    }
+    onUpdate(initialBadges);
   });
 }
 
@@ -240,6 +300,14 @@ export function subscribeBatches(
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'hatchery_batches');
+    const saved = localStorage.getItem('chickmagnet_admin_batches');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
+      } catch {}
+    }
+    onUpdate(initialBatches);
   });
 }
 
@@ -277,6 +345,14 @@ export function subscribeAuditLogs(
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'admin_audit_logs');
+    const saved = localStorage.getItem('chickmagnet_admin_audit_logs');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
+      } catch {}
+    }
+    onUpdate(initialLogs);
   });
 }
 
