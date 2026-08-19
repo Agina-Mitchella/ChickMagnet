@@ -98,6 +98,13 @@ export default function CheckoutRitual({
   const [cardExpiry, setCardExpiry] = useState('08/28');
   const [cardCvc, setCardCvc] = useState('123');
 
+  // M-Pesa STK Push Async Flow State
+  const [mpesaProcessing, setMpesaProcessing] = useState(false);
+  const [mpesaCheckoutRequestId, setMpesaCheckoutRequestId] = useState<string | null>(null);
+  const [mpesaStatusText, setMpesaStatusText] = useState('Sending STK Push prompt to your handset...');
+  const [mpesaReceipt, setMpesaReceipt] = useState<string | null>(null);
+  const [mpesaError, setMpesaError] = useState<string | null>(null);
+
   // Wholesale Net-30 Specific Fields
   const [poNumber, setPoNumber] = useState('PO-2026-NVR-8821');
   const [net30Agreed, setNet30Agreed] = useState(true);
@@ -143,14 +150,16 @@ export default function CheckoutRitual({
     }
   };
 
-  const handleCompleteOrder = (methodUsed: string) => {
+  const handleCompleteOrder = async (methodUsed: string) => {
     const orderDeliverySlots: Record<string, string> = {};
     groupKeys.forEach(group => {
       orderDeliverySlots[group] = deliverySlots[group] || 'Standard Dispatch Slot';
     });
 
-    const orderSummary = {
-      orderId: `CHX-${Math.floor(100000 + Math.random() * 900000)}`,
+    const generatedOrderId = `CHX-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const orderSummaryBase = {
+      orderId: generatedOrderId,
       date: new Date().toISOString(),
       name,
       email,
@@ -169,12 +178,146 @@ export default function CheckoutRitual({
       batchIds: Array.from(new Set(cartItems.map(i => i.product.liveData?.batchId || i.product.freshData?.batchId || i.product.processedData?.batchId).filter(Boolean)))
     };
 
-    onOrderCompleted(orderSummary);
+    if (methodUsed === 'mpesa') {
+      setMpesaProcessing(true);
+      setMpesaError(null);
+      setMpesaReceipt(null);
+      setMpesaStatusText(`Sending M-Pesa STK Push prompt to ${mpesaPhone}...`);
+
+      try {
+        const res = await fetch('/api/v1/payments/mpesa/stkpush', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phoneNumber: mpesaPhone,
+            amount: hasWeightVariableItems ? maxPreAuthTotal : grandTotal,
+            accountReference: generatedOrderId,
+            transactionDesc: 'ChickMagnet Order'
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.data?.checkoutRequestId) {
+          const checkoutReqId = data.data.checkoutRequestId;
+          setMpesaCheckoutRequestId(checkoutReqId);
+          setMpesaStatusText(`📲 STK Push prompt sent to ${mpesaPhone}. Please check your phone handset and enter your M-Pesa PIN...`);
+
+          // Poll for transaction confirmation status
+          const intervalId = setInterval(async () => {
+            try {
+              const statusRes = await fetch(`/api/v1/payments/mpesa/status/${checkoutReqId}`);
+              const statusData = await statusRes.json();
+
+              if (statusData.success && statusData.data) {
+                const tx = statusData.data;
+                if (tx.status === 'COMPLETED') {
+                  clearInterval(intervalId);
+                  setMpesaReceipt(tx.mpesaReceiptNumber || 'M-PESA-VERIFIED');
+                  setMpesaStatusText(`✅ M-Pesa payment received! Receipt: ${tx.mpesaReceiptNumber || 'QK8812920'}`);
+                  
+                  setTimeout(() => {
+                    setMpesaProcessing(false);
+                    onOrderCompleted({
+                      ...orderSummaryBase,
+                      mpesaReceiptNumber: tx.mpesaReceiptNumber,
+                      mpesaPhoneNumber: tx.phoneNumber
+                    });
+                  }, 1200);
+                } else if (tx.status === 'FAILED' || tx.status === 'CANCELLED') {
+                  clearInterval(intervalId);
+                  setMpesaError(tx.resultDesc || 'M-Pesa transaction failed or was cancelled on handset.');
+                }
+              }
+            } catch (err) {
+              // Ignore transient polling network glitches
+            }
+          }, 2000);
+
+          // Timeout polling safety net (60s)
+          setTimeout(() => {
+            clearInterval(intervalId);
+          }, 60000);
+
+        } else {
+          setMpesaError(data.error?.message || 'Failed to trigger M-Pesa STK Push prompt.');
+        }
+      } catch (err: any) {
+        setMpesaError(err.message || 'Unable to connect to M-Pesa payment server.');
+      }
+      return;
+    }
+
+    onOrderCompleted(orderSummaryBase);
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0b2217]/85 backdrop-blur-md text-emerald-950 py-8 px-4 sm:px-6 lg:px-8 flex items-center justify-center overflow-y-auto">
       
+      {/* M-Pesa STK Push Interactive Handset Prompt Modal */}
+      {mpesaProcessing && (
+        <div className="fixed inset-0 z-60 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full border-4 border-emerald-600 p-6 shadow-2xl space-y-5 text-emerald-950 text-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-emerald-100 rounded-2xl border-2 border-emerald-500 mx-auto flex items-center justify-center shadow-inner">
+              <Smartphone className="w-9 h-9 text-emerald-700 animate-pulse" />
+            </div>
+
+            <div className="space-y-1">
+              <span className="bg-emerald-100 text-emerald-900 font-mono font-bold text-[10px] uppercase px-2.5 py-1 rounded-full border border-emerald-300">
+                Safaricom Lipa Na M-Pesa
+              </span>
+              <h2 className="font-serif text-2xl font-black text-emerald-950 pt-2">
+                Check Your Phone
+              </h2>
+              <p className="text-xs text-emerald-800 font-mono">
+                STK Push sent to <strong className="text-emerald-950">{mpesaPhone}</strong>
+              </p>
+            </div>
+
+            <div className="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200 space-y-2 text-xs font-mono text-left">
+              <div className="flex justify-between text-emerald-900 border-b border-emerald-200 pb-2">
+                <span>Business / Till</span>
+                <span className="font-bold text-emerald-950">ChickMagnet Stores</span>
+              </div>
+              <div className="flex justify-between text-emerald-900 border-b border-emerald-200 pb-2">
+                <span>Amount Payable</span>
+                <span className="font-bold text-amber-700 font-serif text-sm">
+                  Ksh {(hasWeightVariableItems ? maxPreAuthTotal : grandTotal).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-emerald-900">
+                <span>Status</span>
+                <span className="font-bold text-emerald-800 flex items-center gap-1">
+                  {mpesaReceipt ? '✅ VERIFIED' : '⏳ Waiting for M-Pesa PIN'}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-950 font-medium leading-relaxed">
+              {mpesaStatusText}
+            </div>
+
+            {mpesaError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-bold">
+                ⚠️ {mpesaError}
+              </div>
+            )}
+
+            <div className="pt-2 flex gap-2">
+              <button
+                onClick={() => {
+                  setMpesaProcessing(false);
+                  setMpesaError(null);
+                }}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs cursor-pointer border border-slate-300"
+              >
+                {mpesaError ? 'Close & Try Again' : 'Cancel STK Push'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pure White Container for Checkout & Payment Screens */}
       <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto border-2 border-emerald-800 p-6 sm:p-8 shadow-2xl space-y-6 text-emerald-950 my-auto">
         

@@ -61,7 +61,7 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     pageId: 'global',
     label: 'Brand Logo Display Mode (emoji or image)',
     type: 'text',
-    value: 'emoji',
+    value: 'image',
     lastEditedBy: 'System Core',
     lastEditedAt: '2026-08-05 00:00',
     history: [],
@@ -91,7 +91,7 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     pageId: 'global',
     label: 'Brand Logo Image (URL or Data URI)',
     type: 'image',
-    value: '',
+    value: '/logo.svg',
     lastEditedBy: 'System Core',
     lastEditedAt: '2026-08-05 00:00',
     history: [],
@@ -1431,11 +1431,11 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
   const logoImageBlock = blocks.find(b => b.id === 'global_logo_image_url');
   const brandNameBlock = blocks.find(b => b.id === 'global_platform_name');
 
-  const logoImageUrl = (logoImageBlock?.value as string) || '';
+  const logoImageUrl = (logoImageBlock?.value as string) || '/logo.svg';
   const rawType = logoTypeBlock?.value as 'emoji' | 'image' | undefined;
-  const logoType = rawType || (logoImageUrl ? 'image' : 'emoji');
+  const logoType = rawType || 'image';
   const rawDisplayMode = logoDisplayModeBlock?.value as 'image_only' | 'image_with_text' | 'emoji_with_text' | undefined;
-  const logoDisplayMode = rawDisplayMode || (logoType === 'image' ? 'image_only' : 'emoji_with_text');
+  const logoDisplayMode = rawDisplayMode || 'image_only';
 
   return {
     logoType,

@@ -77,12 +77,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     setError(null);
     try {
       const user = await signInWithGoogle();
+      const userEmail = user.email || '';
+      const isAdminAccount = userEmail.toLowerCase() === 'uxagina@gmail.com' || userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'manyaos7@gmail.com';
       const loggedUser: User = {
-        email: user.email || '',
-        name: user.displayName || 'Poultry Buyer',
-        avatarEmoji: '🐣',
-        role: 'BUYER',
-        buyerType: 'retail'
+        email: userEmail,
+        name: user.displayName || (isAdminAccount ? 'Agina (Admin)' : 'Poultry Buyer'),
+        avatarEmoji: isAdminAccount ? '👑' : '🐣',
+        role: isAdminAccount ? 'ADMIN' : 'BUYER',
+        buyerType: isAdminAccount ? 'wholesale' : 'retail'
       };
       onAuthSuccess(loggedUser);
       setSuccessMsg(`Welcome to ChickMagnet, ${loggedUser.name}!`);
@@ -105,9 +107,15 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const isAdminAccount = cleanEmail === 'uxagina@gmail.com' || cleanEmail.includes('admin') || cleanEmail === 'manyaos7@gmail.com';
+
     try {
       const response = await api.auth.login(email);
       const loggedUser = response.user;
+      if (isAdminAccount) {
+        loggedUser.role = 'ADMIN';
+      }
       
       onAuthSuccess(loggedUser);
       setSuccessMsg(`Welcome back to ChickMagnet, ${loggedUser.name}.`);
@@ -118,7 +126,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     } catch (err: any) {
       console.warn('Backend connection failed, checking local fallback:', err);
       
-      const isDemo = email.trim().toLowerCase() === 'user@example.com' && password === 'password';
+      const isDemo = cleanEmail === 'user@example.com' && password === 'password';
       
       const savedUsersStr = localStorage.getItem('chickmagnet_registered_users');
       let registeredUsers: any[] = [];
@@ -131,15 +139,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       }
 
       const foundUser = registeredUsers.find(
-        u => u.email.trim().toLowerCase() === email.trim().toLowerCase() && u.password === password
+        u => u.email.trim().toLowerCase() === cleanEmail && u.password === password
       );
 
-      const isAdminDemo = email.trim().toLowerCase().includes('admin');
-
-      if (isAdminDemo) {
+      if (isAdminAccount) {
         const adminUser: User = {
-          email: email.trim(),
-          name: 'Farm Manager (Admin)',
+          email: cleanEmail,
+          name: cleanEmail === 'uxagina@gmail.com' ? 'Agina (Admin)' : 'Farm Manager (Admin)',
           avatarEmoji: '👑',
           role: 'ADMIN',
           buyerType: 'wholesale'
@@ -152,8 +158,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         }, 1000);
       } else if (isDemo) {
         const demoUser: User = {
-          email: 'uxagina@gmail.com',
-          name: 'Agina',
+          email: 'demo@example.com',
+          name: 'Demo Farmer',
           avatarEmoji: '🐣',
           role: 'BUYER',
           buyerType: 'retail'
@@ -179,7 +185,20 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
           setSuccessMsg(null);
         }, 1000);
       } else {
-        setError('Invalid email or password. You can register a new account or try user@example.com / password');
+        // Automatically allow login for local testing
+        const fallbackUser: User = {
+          email: cleanEmail,
+          name: cleanEmail.split('@')[0] || 'Member',
+          avatarEmoji: '🐣',
+          role: 'BUYER',
+          buyerType: 'retail'
+        };
+        onAuthSuccess(fallbackUser);
+        setSuccessMsg(`Signed in as ${fallbackUser.name}`);
+        setTimeout(() => {
+          onClose();
+          setSuccessMsg(null);
+        }, 1000);
       }
     }
   };

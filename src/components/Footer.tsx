@@ -5,9 +5,10 @@ import { useBrandLogo } from '../utils/cms';
 interface FooterProps {
   onNavigate?: (tab: string, sectionId?: string) => void;
   onOpenSupport?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export default function Footer({ onNavigate, onOpenSupport }: FooterProps) {
+export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: FooterProps) {
   const brand = useBrandLogo();
   const companyLinks = [
     { label: 'About ChickMagnet', action: () => onNavigate?.('about', 'about') },
@@ -15,6 +16,7 @@ export default function Footer({ onNavigate, onOpenSupport }: FooterProps) {
     { label: 'Frequently Asked Questions (FAQs)', action: () => onNavigate?.('about', 'faqs') },
     { label: 'Shop All Catalog', action: () => onNavigate?.('shop') },
     { label: 'Quality & Guarantees', action: () => onNavigate?.('about', 'quality-guarantees') },
+    { label: '👑 Admin Dashboard & CMS', action: () => onOpenAdmin ? onOpenAdmin() : onNavigate?.('profile') },
   ];
 
   return (
@@ -100,7 +102,7 @@ export default function Footer({ onNavigate, onOpenSupport }: FooterProps) {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-emerald-300/70">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
             {brand.logoImageUrl ? (
-              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-8 max-w-[160px] object-contain drop-shadow" />
+              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-9 sm:h-10 max-w-[200px] object-contain drop-shadow" />
             ) : (
               <span className="font-serif font-black text-amber-400 text-base">{brand.brandName || 'ChickMagnet'}</span>
             )}

@@ -91,11 +91,22 @@ export default function App() {
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('chickmagnet_user');
-    return saved ? JSON.parse(saved) : {
-      name: 'Agina',
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.email?.toLowerCase() === 'uxagina@gmail.com' || parsed.email?.toLowerCase().includes('admin') || parsed.email?.toLowerCase() === 'manyaos7@gmail.com') {
+          parsed.role = 'ADMIN';
+        }
+        return parsed;
+      } catch (e) {
+        console.error('Failed to parse saved user', e);
+      }
+    }
+    return {
+      name: 'Agina (Admin)',
       email: 'uxagina@gmail.com',
-      role: 'BUYER',
-      buyerType: 'retail'
+      role: 'ADMIN',
+      buyerType: 'wholesale'
     };
   });
 
@@ -321,6 +332,15 @@ export default function App() {
             onOpenWholesale={() => setIsWholesaleOpen(true)}
             onOpenClaims={() => setIsClaimsOpen(true)}
             onNavigateToShop={() => setActiveTab('shop')}
+            onOpenAdmin={() => setIsAdminOpen(true)}
+            onOpenBusinessPlan={() => setIsBusinessPlanOpen(true)}
+            onSwitchRole={(newRole) => {
+              if (currentUser) {
+                const updated = { ...currentUser, role: newRole };
+                setCurrentUser(updated);
+                localStorage.setItem('chickmagnet_user', JSON.stringify(updated));
+              }
+            }}
           />
         ) : (
           /* MARKETPLACE SHOP VIEW */
@@ -489,6 +509,7 @@ export default function App() {
             }
           }
         }} 
+        onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
       {/* Product Detail Modal */}

@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { User, Package, ShieldCheck, FileText, Activity, Truck, AlertTriangle, Calculator, ChevronRight, CheckCircle2, Clock, Search, ExternalLink } from 'lucide-react';
+import { User, Package, ShieldCheck, FileText, Activity, Truck, AlertTriangle, Calculator, ChevronRight, CheckCircle2, Clock, Search, ExternalLink, LayoutDashboard, Settings, Crown, Layers } from 'lucide-react';
 import { BuyerType } from '../types';
 
 interface AccountDashboardProps {
-  currentUser?: { name: string; email: string; buyerType?: BuyerType } | null;
+  currentUser?: { name: string; email: string; buyerType?: BuyerType; role?: string } | null;
   buyerType: BuyerType;
   userOrders?: any[];
   onOpenTraceability: (batchId?: string) => void;
   onOpenWholesale: () => void;
   onOpenClaims: () => void;
   onNavigateToShop: () => void;
+  onOpenAdmin?: () => void;
+  onOpenBusinessPlan?: () => void;
+  onSwitchRole?: (newRole: 'ADMIN' | 'BUYER' | 'KEEPER') => void;
 }
 
 export default function AccountDashboard({
@@ -19,7 +22,10 @@ export default function AccountDashboard({
   onOpenTraceability,
   onOpenWholesale,
   onOpenClaims,
-  onNavigateToShop
+  onNavigateToShop,
+  onOpenAdmin,
+  onOpenBusinessPlan,
+  onSwitchRole
 }: AccountDashboardProps) {
   const [activeTab, setActiveTab] = useState<'orders' | 'tools' | 'calculator'>('orders');
   
@@ -57,6 +63,8 @@ export default function AccountDashboard({
   const userDisplayName = currentUser?.name || 'Agina';
   const userEmail = currentUser?.email || 'uxagina@gmail.com';
   const effectiveBuyerType = currentUser?.buyerType || buyerType;
+  const userRole = currentUser?.role || 'ADMIN';
+  const isAdmin = userRole === 'ADMIN' || userEmail.toLowerCase() === 'uxagina@gmail.com' || userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'manyaos7@gmail.com';
 
   // Hatchability Calculator Logic
   const expectedChicks = Math.floor(eggCount * (hatchRate / 100));
@@ -70,11 +78,15 @@ export default function AccountDashboard({
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-2xl shadow-lg border-2 border-amber-300">
-              {userDisplayName.charAt(0)}
+              {isAdmin ? '👑' : userDisplayName.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-serif text-2xl sm:text-3xl font-black text-amber-300">{userDisplayName}</h1>
+                <span className="bg-amber-400 text-emerald-950 text-[10px] font-mono uppercase font-black px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  <span>Role: {userRole}</span>
+                </span>
                 <span className="bg-emerald-800/80 text-amber-300 text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full border border-emerald-700">
                   {effectiveBuyerType === 'wholesale' ? '🏢 Commercial Wholesale (Net-30)' : '🐥 Retail & Homesteader'}
                 </span>
@@ -83,13 +95,35 @@ export default function AccountDashboard({
             </div>
           </div>
 
-          <button
-            onClick={onNavigateToShop}
-            className="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold px-5 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-2 cursor-pointer self-stretch md:self-auto justify-center shadow-md"
-          >
-            <span>Browse Poultry Catalog</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-3 flex-wrap self-stretch md:self-auto">
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black px-5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:scale-102"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Open Admin Dashboard</span>
+              </button>
+            )}
+
+            {onOpenBusinessPlan && (
+              <button
+                onClick={onOpenBusinessPlan}
+                className="bg-[#0b2217] hover:bg-emerald-900/80 border border-emerald-500/50 text-emerald-300 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+              >
+                <FileText className="w-4 h-4 text-emerald-400" />
+                <span>Farm Plan</span>
+              </button>
+            )}
+
+            <button
+              onClick={onNavigateToShop}
+              className="bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-700 text-amber-200 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Shop Catalog</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -103,8 +137,30 @@ export default function AccountDashboard({
           <span className="text-xs text-emerald-800 font-mono font-bold">Account Context Tools</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           
+          {/* Tool 0: Admin Dashboard Portal */}
+          <div 
+            onClick={onOpenAdmin}
+            className="bg-gradient-to-br from-amber-50 to-amber-100/60 border-2 border-amber-400/80 hover:border-amber-500 p-5 rounded-2xl shadow-sm transition-all cursor-pointer group space-y-3"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center font-bold shadow-xs">
+              <LayoutDashboard className="w-5 h-5 text-emerald-950" />
+            </div>
+            <div>
+              <h3 className="font-serif font-bold text-sm text-emerald-950 group-hover:text-amber-900 flex items-center justify-between">
+                <span>Admin & CMS Control</span>
+                <ExternalLink className="w-3.5 h-3.5 text-amber-800 group-hover:text-amber-950" />
+              </h3>
+              <p className="text-xs text-emerald-900/90 mt-1 leading-relaxed">
+                Manage live products, orders, pricing, brand logos, CMS announcements, and inventory.
+              </p>
+            </div>
+            <span className="inline-block text-[10px] font-mono font-black text-amber-950 bg-amber-300/80 px-2 py-0.5 rounded border border-amber-400">
+              Master Admin Mode
+            </span>
+          </div>
+
           {/* Tool 1: Batch Traceability */}
           <div 
             onClick={() => onOpenTraceability()}
@@ -181,7 +237,7 @@ export default function AccountDashboard({
             </div>
             <div>
               <h3 className="font-serif font-bold text-sm text-emerald-950 group-hover:text-emerald-800 flex items-center justify-between">
-                <span>Hatch Yield Calculator</span>
+                <span>Hatch Calculator</span>
                 <ChevronRight className="w-3.5 h-3.5 text-emerald-600 group-hover:text-emerald-800" />
               </h3>
               <p className="text-xs text-emerald-800 mt-1 leading-relaxed">

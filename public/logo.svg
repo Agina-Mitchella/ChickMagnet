@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 280" width="100%" height="100%">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&amp;display=swap');
+      .logo-text-chick {
+        font-family: 'Fredoka', 'Arial Rounded MT Bold', 'Comfortaa', sans-serif;
+        font-weight: 700;
+        font-size: 102px;
+        fill: #FFFFFF;
+        letter-spacing: -1.5px;
+      }
+      .logo-text-magnet {
+        font-family: 'Fredoka', 'Arial Rounded MT Bold', 'Comfortaa', sans-serif;
+        font-weight: 700;
+        font-size: 104px;
+        fill: #FFFFFF;
+        letter-spacing: -1.5px;
+      }
+    </style>
+
+    <!-- Linear Gradients matching the exact chicken illustration -->
+    <linearGradient id="chickBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB300" />
+      <stop offset="65%" stop-color="#FF8F00" />
+      <stop offset="100%" stop-color="#F57C00" />
+    </linearGradient>
+
+    <linearGradient id="chickChest" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="100%" stop-color="#FFCA28" />
+    </linearGradient>
+
+    <linearGradient id="redFeathers" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EF5350" />
+      <stop offset="50%" stop-color="#E53935" />
+      <stop offset="100%" stop-color="#C62828" />
+    </linearGradient>
+
+    <linearGradient id="beak" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA726" />
+      <stop offset="100%" stop-color="#FB8C00" />
+    </linearGradient>
+
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <g filter="url(#subtleShadow)">
+    <!-- ==================================================== -->
+    <!-- CHICKEN CHARACTER (LEFT)                             -->
+    <!-- ==================================================== -->
+    <g transform="translate(10, 15)">
+      <!-- Red Tail Feathers (3 fanned lobes) -->
+      <path d="M 136 106 C 168 86, 192 104, 178 128 C 196 126, 204 150, 182 166 C 196 174, 184 198, 156 188 C 140 182, 130 168, 126 154 Z" fill="url(#redFeathers)" />
+
+      <!-- Red Comb on Head (4 scalloped lobes) -->
+      <path d="M 72 58 C 62 42, 76 24, 92 30 C 98 16, 120 14, 126 30 C 134 18, 152 22, 150 38 C 158 30, 172 36, 164 54 C 158 64, 144 68, 134 70 Z" fill="url(#redFeathers)" />
+
+      <!-- Main Plump Yellow/Orange Body -->
+      <path d="M 116 50 C 158 50, 184 86, 178 132 C 172 184, 136 216, 86 216 C 34 216, 20 178, 24 132 C 30 90, 76 50, 116 50 Z" fill="url(#chickBody)" />
+
+      <!-- Soft Lighter Chest Patch -->
+      <path d="M 86 86 C 116 86, 136 112, 130 152 C 124 192, 96 208, 76 208 C 50 208, 40 182, 42 152 C 44 116, 64 86, 86 86 Z" fill="url(#chickChest)" opacity="0.55" />
+
+      <!-- Beak (Orange Triangle on Left) -->
+      <path d="M 40 104 C 20 110, 14 116, 24 124 C 32 128, 42 124, 46 120 Z" fill="url(#beak)" />
+
+      <!-- Red Wing with White Crescent Inner Accent -->
+      <g>
+        <path d="M 106 132 C 128 132, 150 144, 150 168 C 150 192, 126 206, 102 206 C 76 206, 72 178, 82 154 C 90 137, 96 132, 106 132 Z" fill="url(#redFeathers)" />
+        <!-- White Crescent Outline Accent -->
+        <path d="M 90 148 C 78 162, 80 186, 96 196 C 86 188, 84 170, 94 152 Z" fill="#FFFFFF" opacity="0.9" />
+      </g>
+
+      <!-- Eye (Dark Green, Eyelashes, Pupil & Sparkles) -->
+      <g>
+        <!-- Eyelashes -->
+        <path d="M 66 80 C 62 72, 54 72, 52 75 M 74 77 C 74 69, 70 66, 68 69" stroke="#003020" stroke-width="3" stroke-linecap="round" fill="none" />
+        <!-- Eye White -->
+        <ellipse cx="70" cy="88" rx="14.5" ry="17.5" fill="#FFFFFF" />
+        <!-- Dark Green Iris -->
+        <ellipse cx="68" cy="88" rx="10.5" ry="13.5" fill="#1B5E20" />
+        <!-- Pupil -->
+        <ellipse cx="67" cy="88" rx="6.8" ry="9.5" fill="#051E0A" />
+        <!-- Sparkle Dots -->
+        <circle cx="64" cy="83" r="4.2" fill="#FFFFFF" />
+        <circle cx="70" cy="92" r="2" fill="#FFFFFF" opacity="0.85" />
+      </g>
+    </g>
+
+    <!-- ==================================================== -->
+    <!-- TYPOGRAPHY "Chick Magnet" (RIGHT)                    -->
+    <!-- ==================================================== -->
+    <g transform="translate(208, 12)">
+      <!-- Top Line: "Chick" -->
+      <text x="0" y="104" class="logo-text-chick">Chick</text>
+
+      <!-- Yellow Circle Dot replacing the dot over 'i' -->
+      <!-- In "Chick", 'C'(0),'h'(60),'i'(115) -->
+      <circle cx="126" cy="38" r="14" fill="#FFC107" stroke="#FFA000" stroke-width="1" />
+
+      <!-- Bottom Line: "Magnet" -->
+      <text x="0" y="208" class="logo-text-magnet">Magnet</text>
+    </g>
+  </g>
+</svg>
