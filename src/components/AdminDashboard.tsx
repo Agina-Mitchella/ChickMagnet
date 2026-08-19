@@ -5,7 +5,7 @@ import {
   Clock, Search, Filter, RefreshCw, Upload, Download, ArrowRight, Lock, 
   Key, Award, AlertCircle, HelpCircle, ChevronRight, Save, Globe, Sparkles, 
   PieChart, BarChart3, TrendingUp, DollarSign, Calendar, Mail, Building, 
-  FileSpreadsheet, XCircle, Check, ArrowUpRight, Layers, Tag
+  FileSpreadsheet, XCircle, Check, ArrowUpRight, Layers, Tag, Menu, X, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
@@ -557,34 +557,309 @@ export default function AdminDashboard({
     return matchesSearch && matchesStatus && matchesBuyer;
   });
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const pendingClaimsCount = claims.filter(c => c.status === 'pending_review').length;
+  const lowStockCount = products.filter(p => p.stock < 500).length;
+
+  const navSections = [
+    {
+      title: 'SITE SECTIONS',
+      items: [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard, badge: null },
+        { id: 'farm_ops', label: 'Farm Operations', icon: Activity, badge: 'Internal', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+        { id: 'business_plan', label: 'Farm Business Plan', icon: Sparkles, badge: '2026', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+        { id: 'orders', label: 'Orders & Dispatch', icon: ShoppingBag, badge: orders.length.toString(), badgeColor: 'bg-emerald-800 text-amber-300 border-emerald-700' },
+        { id: 'claims', label: 'Mortality Claims', icon: ShieldCheck, badge: pendingClaimsCount > 0 ? `${pendingClaimsCount} Pending` : null, badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+        { id: 'customers', label: 'Customers & Net-30', icon: Users, badge: wholesaleAccounts.length.toString(), badgeColor: 'bg-emerald-800 text-emerald-200 border-emerald-700' },
+        { id: 'analytics', label: 'Sales & Analytics', icon: BarChart3, badge: null }
+      ]
+    },
+    {
+      title: 'INVENTORY & TRACEABILITY',
+      items: [
+        { id: 'products', label: 'Inventory & SKUs', icon: Layers, badge: lowStockCount > 0 ? `${lowStockCount} Low` : products.length.toString(), badgeColor: lowStockCount > 0 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-emerald-800 text-emerald-200 border-emerald-700' },
+        { id: 'batches', label: 'Traceability Batches', icon: Tag, badge: batches.length.toString(), badgeColor: 'bg-emerald-800 text-emerald-200 border-emerald-700' },
+        { id: 'badges', label: 'Trust Badges', icon: Award, badge: null }
+      ]
+    },
+    {
+      title: 'CMS & SYSTEM',
+      items: [
+        { id: 'website_cms', label: 'Website Copy', icon: Edit3, badge: hasUnpublishedCmsChanges ? 'Draft' : null, badgeColor: 'bg-amber-400 text-emerald-950 font-black' },
+        { id: 'audit_logs', label: 'Security & Audit Logs', icon: FileText, badge: auditLogs.length.toString(), badgeColor: 'bg-emerald-900 text-emerald-300 border-emerald-800' }
+      ]
+    }
+  ];
+
+  const tabMeta: Record<string, { title: string; subtitle: string; category: string; actionBtn?: { label: string; action: () => void; icon: any; primary?: boolean } }> = {
+    overview: {
+      title: 'Commercial Operations Overview',
+      subtitle: 'Real-time commercial dispatch, live vehicle telemetry, and revenue performance summary.',
+      category: 'SITE SECTIONS',
+      actionBtn: {
+        label: 'Live Storefront',
+        action: onOpenStorefrontPreview,
+        icon: Globe
+      }
+    },
+    farm_ops: {
+      title: 'Farm Operations & Bio-Security Command',
+      subtitle: 'Live hatchery incubation, feed batch control, brooder telemetry, and flock pen management.',
+      category: 'SITE SECTIONS'
+    },
+    business_plan: {
+      title: 'ChickMagnet 2026 Commercial Poultry Business Plan',
+      subtitle: 'Comprehensive financial models, CAPEX budgets, unit economics, and Kisii regional expansion.',
+      category: 'SITE SECTIONS'
+    },
+    orders: {
+      title: 'Live Poultry Orders & Fulfillment Pipeline',
+      subtitle: 'Climate-controlled transport scheduling, tare weight reconciliations, and Net-30 commercial invoicing.',
+      category: 'SITE SECTIONS'
+    },
+    claims: {
+      title: 'Transit Mortality & Guarantee Claims Management',
+      subtitle: '24–48 hour live chick arrival claims, photo proof audits, and credit note issuance.',
+      category: 'SITE SECTIONS'
+    },
+    customers: {
+      title: 'Commercial Wholesale & Retail Accounts',
+      subtitle: 'Net-30 credit approvals, institutional HORECA accounts, and buyer order records.',
+      category: 'SITE SECTIONS'
+    },
+    analytics: {
+      title: 'Commercial Sales & Hatchery Yield Analytics',
+      subtitle: 'Order velocity, fulfillment accuracy, and revenue breakdown by product line.',
+      category: 'SITE SECTIONS'
+    },
+    products: {
+      title: 'Poultry Catalog & SKU Stock Control',
+      subtitle: 'Manage live chick breeds, air-chilled meat cuts, fertile hatching eggs, and bio-feeds.',
+      category: 'INVENTORY & TRACEABILITY',
+      actionBtn: {
+        label: 'Add New SKU',
+        action: () => {
+          setIsAddingNewProduct(true);
+          setSelectedProductModal(null);
+          setProductForm({
+            name: '',
+            price: 150,
+            wholesalePrice: 130,
+            wholesaleMinQty: 50,
+            category: 'live-birds',
+            subCategory: 'day-old-chicks',
+            stock: 500,
+            image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
+            sellerName: 'ChickMagnet',
+            sellerId: 'farm-1',
+            sellerBadge: 'ChickMagnet Certified Hatchery',
+            fulfillmentType: 'live-climate',
+            tags: ['Chickens', 'Vaccinated'],
+            rating: 5.0,
+            reviewsCount: 1
+          });
+        },
+        icon: Plus,
+        primary: true
+      }
+    },
+    batches: {
+      title: 'Hatchery & Pack Batch Traceability IDs',
+      subtitle: 'Link vaccination histories, DVS veterinary clearances, and incubation temperature logs.',
+      category: 'INVENTORY & TRACEABILITY',
+      actionBtn: {
+        label: 'Create Batch ID',
+        action: () => setIsAddBatchModal(true),
+        icon: Plus,
+        primary: true
+      }
+    },
+    website_cms: {
+      title: 'Website Copy & Brand Identity Editor',
+      subtitle: 'Update brand logo, platform name, hero headlines, and value propositions live across the marketplace.',
+      category: 'CMS & SYSTEM',
+      actionBtn: {
+        label: 'Publish Copy Changes',
+        action: () => setCmsPublishModal(true),
+        icon: Sparkles,
+        primary: true
+      }
+    },
+    badges: {
+      title: 'Regulatory Certifications & Trust Badges',
+      subtitle: 'Manage KEBS licenses, DVS vet clearance numbers, and Halal credentials.',
+      category: 'INVENTORY & TRACEABILITY',
+      actionBtn: {
+        label: 'Add Badge',
+        action: () => setIsAddBadgeModal(true),
+        icon: Plus,
+        primary: true
+      }
+    },
+    audit_logs: {
+      title: 'System Security & Administrative Audit Trail',
+      subtitle: 'Immutable record of price changes, content revisions, and status approvals.',
+      category: 'CMS & SYSTEM'
+    }
+  };
+
+  const currentMeta = tabMeta[activeTab] || {
+    title: 'ChickMagnet CRO Control Center',
+    subtitle: 'Administrative and operational management platform.',
+    category: 'SITE SECTIONS'
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-16">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col md:flex-row">
       
-      {/* Admin Top Banner & Role Switcher Header */}
-      <header className="sticky top-0 z-40 bg-[#07160e] border-b border-emerald-900/80 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          
+      {/* Mobile Drawer Overlay */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-xs md:hidden"
+        />
+      )}
+
+      {/* LEFT SIDEBAR NAVIGATION */}
+      <aside className={`fixed md:sticky top-0 left-0 z-50 md:z-30 h-screen w-64 lg:w-72 bg-[#06160e] border-r border-emerald-900/80 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
+        
+        {/* Top Branding Section */}
+        <div className="p-4 sm:p-5 border-b border-emerald-900/80 flex items-center justify-between shrink-0 bg-[#041009]">
           <div className="flex items-center gap-3">
             {brand.logoImageUrl ? (
-              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-9 max-w-[180px] object-contain drop-shadow shrink-0" />
-            ) : null}
+              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-8 max-w-[140px] object-contain drop-shadow shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-amber-400 text-emerald-950 font-black flex items-center justify-center text-sm shadow-md">
+                CM
+              </div>
+            )}
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif text-lg font-bold text-amber-400">{brand.brandName || 'ChickMagnet'} Control Center</span>
-                <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-bold">
-                  Admin Platform v2.4
+              <div className="flex items-center gap-1.5">
+                <span className="font-serif font-bold text-sm sm:text-base text-amber-400 leading-tight">
+                  {brand.brandName || 'ChickMagnet'} CRO
                 </span>
               </div>
-              <p className="text-[11px] text-emerald-300/80">Track live orders, process claims & edit site copy without code</p>
+              <span className="inline-block text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400/80 bg-emerald-950/80 border border-emerald-800 px-1.5 py-0.2 rounded">
+                Admin v2.4
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap w-full md:w-auto justify-between md:justify-end">
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden text-slate-400 hover:text-white p-1 rounded-lg hover:bg-emerald-900/50 cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Vertical Navigation Menu */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 no-scrollbar">
+          {navSections.map((section, sIdx) => (
+            <div key={sIdx} className="space-y-1.5">
+              <div className="px-3 text-[10px] font-mono uppercase font-bold tracking-widest text-emerald-500/70 mb-1">
+                {section.title}
+              </div>
+              
+              <div className="space-y-0.5">
+                {section.items.map(item => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id as AdminTab);
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-amber-400 text-emerald-950 font-black shadow-md'
+                          : 'text-slate-300 hover:text-amber-200 hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-950' : 'text-emerald-400'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full uppercase border shrink-0 ${
+                          isActive 
+                            ? 'bg-emerald-950 text-amber-300 border-emerald-900' 
+                            : (item.badgeColor || 'bg-emerald-900 text-emerald-300 border-emerald-800')
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom Sidebar User Profile & Quick Actions */}
+        <div className="p-3 sm:p-4 border-t border-emerald-900/80 bg-[#041009] shrink-0 space-y-2">
+          <div className="flex items-center justify-between gap-2 p-2 bg-[#0a1e14] rounded-xl border border-emerald-800/80">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-amber-400 text-emerald-950 font-black flex items-center justify-center text-xs shrink-0 shadow-xs">
+                👑
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-amber-300 truncate">
+                  {currentUser?.name || 'Agina (Admin)'}
+                </div>
+                <div className="text-[10px] font-mono text-emerald-400/80 truncate">
+                  {currentUser?.email || 'uxagina@gmail.com'}
+                </div>
+              </div>
+            </div>
+            
+            <button
+              onClick={onCloseAdmin}
+              title="Exit Admin"
+              className="text-rose-400 hover:text-rose-300 p-1 rounded-lg hover:bg-rose-950/60 transition-colors cursor-pointer shrink-0"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-slate-950 overflow-y-auto">
+        
+        {/* Persistent Top Header Bar */}
+        <header className="sticky top-0 z-20 bg-[#07160e]/95 backdrop-blur-md border-b border-emerald-900/80 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 shadow-xl">
+          
+          {/* Left: Mobile Toggle & Dynamic Breadcrumb */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden text-amber-400 hover:text-amber-300 p-1.5 rounded-lg bg-[#0b2217] border border-emerald-800 cursor-pointer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-1.5 text-xs truncate">
+              <span className="font-mono text-emerald-500/80 uppercase font-bold hidden sm:inline">{currentMeta.category}</span>
+              <span className="text-emerald-700 hidden sm:inline">/</span>
+              <span className="font-bold text-amber-300 truncate">{currentMeta.title}</span>
+            </div>
+          </div>
+
+          {/* Right Action Controls */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             
             {/* Active Role Selector */}
-            <div className="flex items-center gap-1.5 bg-[#0b2217] border border-emerald-800 rounded-xl px-2.5 py-1 text-xs">
+            <div className="hidden lg:flex items-center gap-1.5 bg-[#0b2217] border border-emerald-800 rounded-xl px-2.5 py-1 text-xs">
               <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="text-slate-400 hidden sm:inline">Role:</span>
+              <span className="text-slate-400">Role:</span>
               <select
                 value={activeRole}
                 onChange={(e) => setActiveRole(e.target.value as AdminRole)}
@@ -596,185 +871,74 @@ export default function AdminDashboard({
               </select>
             </div>
 
-            {/* Draft Publish Status Indicator */}
+            {/* Unpublished CMS Changes Pill */}
             {hasUnpublishedCmsChanges && (
               <button
                 onClick={() => setCmsPublishModal(true)}
                 className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-500/50 text-amber-300 hover:bg-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer animate-pulse"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Unpublished Changes</span>
+                <span className="hidden sm:inline">Unpublished Draft</span>
               </button>
             )}
 
-            {/* Storefront Preview Button */}
+            {/* Context Primary Action Button if provided */}
+            {currentMeta.actionBtn && (
+              <button
+                onClick={currentMeta.actionBtn.action}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer ${
+                  currentMeta.actionBtn.primary
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black'
+                    : 'bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/80'
+                }`}
+              >
+                <currentMeta.actionBtn.icon className="w-3.5 h-3.5" />
+                <span>{currentMeta.actionBtn.label}</span>
+              </button>
+            )}
+
+            {/* Preview Storefront Button */}
             <button
               onClick={onOpenStorefrontPreview}
-              className="flex items-center gap-1.5 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/80 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 bg-[#0b2217] hover:bg-emerald-900/80 text-emerald-200 border border-emerald-700/80 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
             >
               <Globe className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Preview Storefront</span>
+              <span>Storefront</span>
             </button>
 
-            {/* Exit Admin Button */}
+            {/* Exit Admin */}
             <button
               onClick={onCloseAdmin}
-              className="flex items-center gap-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/80 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              className="flex items-center gap-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/80 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
             >
               <XCircle className="w-3.5 h-3.5" />
-              <span>Exit Admin</span>
+              <span className="hidden sm:inline">Exit</span>
             </button>
+          </div>
+        </header>
+
+        {/* Dynamic Section Header Banner */}
+        <div className="bg-gradient-to-r from-[#0a2318] via-[#071910] to-[#0d2a1d] border-b border-emerald-900/80 px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
+                  {currentMeta.category}
+                </span>
+                <span className="text-xs text-emerald-400/80 font-mono">Live Telemetry & Sync Active</span>
+              </div>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold text-amber-300 mt-1">
+                {currentMeta.title}
+              </h1>
+              <p className="text-xs text-emerald-200/80 mt-1 max-w-3xl leading-relaxed">
+                {currentMeta.subtitle}
+              </p>
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* Admin Navigation Sidebar / Tab Bar */}
-      <div className="bg-[#091f14] border-b border-emerald-900/80 sticky top-[57px] z-30">
-        <div className="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar py-2.5 flex items-center gap-6 text-xs">
-          
-          {/* Group 1: MONITORING & TRACKING */}
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[10px] font-mono uppercase text-emerald-400/70 font-bold mr-1 tracking-wider hidden lg:inline">
-              [ Tracking ]
-            </span>
-            
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'overview' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Overview</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('farm_ops')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer border border-emerald-500/60 ${
-                activeTab === 'farm_ops' ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold' : 'bg-emerald-900/40 text-emerald-300 hover:bg-emerald-900/70'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5 text-amber-400" />
-              <span>Farm Operations (Internal)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('business_plan')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer border border-amber-500/50 ${
-                activeTab === 'business_plan' ? 'bg-amber-400 text-emerald-950 shadow-md font-black' : 'bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Farm Business Plan Hub</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'orders' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Orders ({orders.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('claims')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'claims' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Claims ({claims.filter(c => c.status === 'pending_review').length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('customers')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'customers' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Customers</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'analytics' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Analytics</span>
-            </button>
-          </div>
-
-          <div className="h-4 w-px bg-emerald-800/80 shrink-0" />
-
-          {/* Group 2: CONTENT & INVENTORY CONTROL */}
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[10px] font-mono uppercase text-emerald-400/70 font-bold mr-1 tracking-wider hidden lg:inline">
-              [ Content Control ]
-            </span>
-
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'products' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Inventory & SKUs</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('batches')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'batches' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Traceability Batches</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('website_cms')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer relative ${
-                activeTab === 'website_cms' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Website Copy (No-Code)</span>
-              {hasUnpublishedCmsChanges && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 absolute -top-0.5 -right-0.5" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('badges')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'badges' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5" />
-              <span>Trust Badges</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('audit_logs')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'audit_logs' ? 'bg-amber-400 text-emerald-950 shadow-md' : 'text-slate-300 hover:bg-emerald-900/50'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Audit Logs</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Admin Dashboard Body Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+        {/* Main Dashboard Module Body Content */}
+        <main className="px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1 pb-16">
 
         {/* FARM OPERATIONS COMMAND MODULE */}
         {activeTab === 'farm_ops' && (
@@ -1449,12 +1613,12 @@ export default function AdminDashboard({
           </div>
         )}
 
-        {/* 8. WEBSITE COPY (NO-CODE CMS) */}
+        {/* 8. WEBSITE COPY */}
         {activeTab === 'website_cms' && (
           <div className="space-y-5">
             <div className="bg-[#0b2217] p-4 rounded-2xl border border-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-amber-300 font-serif">No-Code Website & Brand Identity Editor</h2>
+                <h2 className="text-lg font-bold text-amber-300 font-serif">Website Copy & Brand Identity Editor</h2>
                 <p className="text-xs text-emerald-300/80">Update brand logo, platform name, hero headlines, and value propositions live across the marketplace.</p>
               </div>
 
@@ -1781,6 +1945,7 @@ export default function AdminDashboard({
         )}
 
       </main>
+      </div>
 
       {/* MODAL 1: ORDER DETAIL MODAL */}
       {selectedOrderModal && (
