@@ -27,8 +27,8 @@ services:
       - RESEND_API_KEY=re_mock
       - GOOGLE_CLIENT_ID=google_mock
       - GOOGLE_CLIENT_SECRET=google_secret_mock
-      - WEBPUSH_PUBLIC_KEY=webpush_pub_mock
-      - WEBPUSH_PRIVATE_KEY=webpush_priv_mock
+      - AFRICASTALKING_USERNAME=sandbox
+      - AFRICASTALKING_API_KEY=mock_at_key
       - FRONTEND_URL=http://localhost:3000
     depends_on:
       - redis

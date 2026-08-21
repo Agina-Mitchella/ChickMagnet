@@ -1,6 +1,5 @@
 import Redis from 'ioredis';
 import { Resend } from 'resend';
-import webpush from 'web-push';
 import fs from 'fs';
 import path from 'path';
 
@@ -461,14 +460,3 @@ export const railwayStorageConfig = {
 
 export const storageConfig = railwayStorageConfig;
 export const r2Config = railwayStorageConfig; // Backward compatibility alias
-
-// 5. Web Push Notifications Setup
-if (process.env.WEBPUSH_PUBLIC_KEY && process.env.WEBPUSH_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    'mailto:support@solhandmades.com',
-    process.env.WEBPUSH_PUBLIC_KEY,
-    process.env.WEBPUSH_PRIVATE_KEY
-  );
-}
-
-export const webPushClient = webpush;

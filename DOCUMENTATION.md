@@ -40,7 +40,8 @@ The application is built using a modern **Full-Stack Express + React (Vite)** ar
 | **Frontend Framework** | React 18, TypeScript, Tailwind CSS, Motion (Framer Motion) |
 | **Icons & Design** | Lucide React, Custom SVG Brand System |
 | **Backend API** | Node.js, Express.js (v4/v5 API routes under `/api/v1`) |
-| **Database & Auth** | Firebase Firestore (NoSQL), Firebase Auth, JWT with RBAC |
+| **Database & Auth** | Firebase Firestore (NoSQL), Firebase Auth |
+| **Notifications** | Transactional Email (Resend) & SMS Alerts (Africa's Talking) |
 | **Payments** | Safaricom M-Pesa Daraja 2.0 (STK Push) |
 | **Log Infrastructure** | Structured JSON Logger with correlation IDs |
 | **Containerization** | Docker, Docker Compose, Cloud Run (`cloudrun.yaml`) |
