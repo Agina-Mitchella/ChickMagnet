@@ -6,7 +6,6 @@ import {
   ShieldAlert, 
   ClipboardList, 
   CheckCircle2, 
-  Truck, 
   DollarSign, 
   Sparkles, 
   Info, 
@@ -17,47 +16,104 @@ import {
   X,
   AlertTriangle,
   Scale,
-  Thermometer,
-  Feather
+  Edit3,
+  Save,
+  Plus,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
+import { useFarmPlanData } from '../utils/cms';
 
 interface BusinessPlanHubProps {
   onClose?: () => void;
+  defaultTab?: 'snapshot' | 'feed' | 'vaccines' | 'equipment' | 'sops' | 'marketing';
 }
 
-export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
-  const [activeTab, setActiveTab] = useState<'snapshot' | 'feed' | 'vaccines' | 'equipment' | 'sops' | 'marketing'>('snapshot');
+export default function BusinessPlanHub({ onClose, defaultTab = 'snapshot' }: BusinessPlanHubProps) {
+  const { data, updateField } = useFarmPlanData();
+  const [activeTab, setActiveTab] = useState<'snapshot' | 'feed' | 'vaccines' | 'equipment' | 'sops' | 'marketing'>(defaultTab);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Profit Calculator State
-  const [remainingCostR, setRemainingCostR] = useState<number>(500); // Ksh per bird
-  const [targetProfitTier, setTargetProfitTier] = useState<number>(80000); // 69k, 80k, 104k
-  const sunkCost = 346788;
-  const initialPlaced = 600;
-  const currentLive = 570;
-  const conservativeSaleable = 542; // ~5% future mortality margin
+  // Local edit states initialized from live CMS data
+  const [editSunkCost, setEditSunkCost] = useState(data.sunkCost);
+  const [editInitialPlaced, setEditInitialPlaced] = useState(data.initialPlaced);
+  const [editCurrentLive, setEditCurrentLive] = useState(data.currentLive);
+  const [editMortalityCount, setEditMortalityCount] = useState(data.mortalityCount);
+  const [editFutureBufferPct, setEditFutureBufferPct] = useState(data.futureBufferPct);
+  const [editRemainingCostR, setEditRemainingCostR] = useState(data.remainingCostR);
+  const [editProfitTier1, setEditProfitTier1] = useState(data.targetProfitTier1);
+  const [editProfitTier2, setEditProfitTier2] = useState(data.targetProfitTier2);
+  const [editProfitTier3, setEditProfitTier3] = useState(data.targetProfitTier3);
+  const [editStarterBags, setEditStarterBags] = useState(data.starterBagsOnHand);
+  const [editStarterKgPerBag, setEditStarterKgPerBag] = useState(data.starterKgPerBag);
+  const [editDailyIntakeKg, setEditDailyIntakeKg] = useState(data.starterDailyIntakeKg);
+  const [editFeedSupplier, setEditFeedSupplier] = useState(data.feedSupplier);
+  const [editCostStarter, setEditCostStarter] = useState(data.costStarterBag);
+  const [editCostGrower, setEditCostGrower] = useState(data.costGrowerBag);
+  const [editCostFinisher, setEditCostFinisher] = useState(data.costFinisherBag);
+  const [editLocationName, setEditLocationName] = useState(data.farmLocation);
+  const [editHarvestDays, setEditHarvestDays] = useState(data.harvestDays);
+  const [editWeightMin, setEditWeightMin] = useState(data.weightMin);
+  const [editWeightMax, setEditWeightMax] = useState(data.weightMax);
+  const [editDeliveryRadius, setEditDeliveryRadius] = useState(data.deliveryRadiusKm);
+  const [editPitchTemplate, setEditPitchTemplate] = useState(data.pitchScriptTemplate);
 
-  // Formula: Required total revenue = Sunk Cost + Target Profit + (Saleable Birds * Remaining Cost R)
-  const totalRemainingCost = conservativeSaleable * remainingCostR;
-  const requiredTotalRevenue = sunkCost + targetProfitTier + totalRemainingCost;
-  const requiredPricePerBird = Math.round(requiredTotalRevenue / conservativeSaleable);
+  // Dynamic lists state
+  const [vaxList, setVaxList] = useState(data.vaccinationSchedule);
+  const [housingList, setHousingList] = useState(data.housingSpecs);
+  const [sopsList, setSopsList] = useState(data.dailySops);
 
-  // Starter Feed Inventory
-  const [starterBagsOnHand, setStarterBagsOnHand] = useState<number>(5.5);
-  const starterKgOnHand = starterBagsOnHand * 50; // 275 kg
-  const starterDaysCovered = Math.round(starterKgOnHand / (currentLive * 0.035)); // ~14 days
+  // Interactive Live Calculator values (from either live CMS or local user tweak)
+  const [sliderRemainingCostR, setSliderRemainingCostR] = useState(data.remainingCostR);
+  const [activeProfitTier, setActiveProfitTier] = useState(data.activeProfitTarget);
+
+  // Real-time computed values for active viewing
+  const activeSaleable = Math.round(data.currentLive * (1 - data.futureBufferPct / 100));
+  const activeRemainingCost = activeSaleable * sliderRemainingCostR;
+  const activeTotalRevenue = data.sunkCost + activeProfitTier + activeRemainingCost;
+  const activePricePerBird = activeSaleable > 0 ? Math.round(activeTotalRevenue / activeSaleable) : 0;
 
   // Marketing Pitch Copy State
   const [copiedPitch, setCopiedPitch] = useState(false);
-  const [locationName, setLocationName] = useState('Naivasha Farm');
-  const [introPrice, setIntroPrice] = useState(requiredPricePerBird);
-  const [deliveryRadius, setDeliveryRadius] = useState('25');
-
-  const pitchScript = `Hi, we're supplying improved kienyeji birds from ${locationName}. We harvest every Friday and Saturday, dressed or live. Average dressed weight is 1.3–1.6 kg, with excellent flavor and consistent quality. Intro price is Ksh. ${introPrice} per bird. Can I book you for 50–100 birds? We deliver within ${deliveryRadius} km.`;
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(pitchScript);
+    navigator.clipboard.writeText(data.pitchScript);
     setCopiedPitch(true);
     setTimeout(() => setCopiedPitch(false), 2500);
+  };
+
+  const handleSaveAllParameters = async () => {
+    await updateField('fp_sunk_cost', editSunkCost);
+    await updateField('fp_initial_placed', editInitialPlaced);
+    await updateField('fp_current_live', editCurrentLive);
+    await updateField('fp_mortality_count', editMortalityCount);
+    await updateField('fp_future_buffer_pct', editFutureBufferPct);
+    await updateField('fp_remaining_cost_r', editRemainingCostR);
+    await updateField('fp_target_profit_tier_1', editProfitTier1);
+    await updateField('fp_target_profit_tier_2', editProfitTier2);
+    await updateField('fp_target_profit_tier_3', editProfitTier3);
+    await updateField('fp_active_profit_target', activeProfitTier);
+    await updateField('fp_starter_bags_on_hand', editStarterBags);
+    await updateField('fp_starter_kg_per_bag', editStarterKgPerBag);
+    await updateField('fp_starter_daily_intake_kg', editDailyIntakeKg);
+    await updateField('fp_feed_supplier', editFeedSupplier);
+    await updateField('fp_cost_starter_bag', editCostStarter);
+    await updateField('fp_cost_grower_bag', editCostGrower);
+    await updateField('fp_cost_finisher_bag', editCostFinisher);
+    await updateField('fp_farm_location', editLocationName);
+    await updateField('fp_harvest_days', editHarvestDays);
+    await updateField('fp_weight_min', editWeightMin);
+    await updateField('fp_weight_max', editWeightMax);
+    await updateField('fp_delivery_radius_km', editDeliveryRadius);
+    await updateField('fp_pitch_script_template', editPitchTemplate);
+    await updateField('fp_vaccination_schedule_json', vaxList);
+    await updateField('fp_housing_specs_json', housingList);
+    await updateField('fp_daily_sops_json', sopsList);
+
+    setSaveSuccess(true);
+    setIsEditing(false);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   return (
@@ -70,56 +126,238 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
             <div>
               <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                Integrated Farm Business Plan & Operations Hub
+                Live Dynamic Farm Business Plan & Operations Hub
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-emerald-950 tracking-tight font-serif">
-                600-Flock Improved Kienyeji Operational Command
+                {data.farmTitle}
               </h1>
-              <p className="text-slate-600 text-sm mt-1">
-                Real-time target pricing matrix, feed inventory SOP, vaccination calendar, and daily attendant checklists based on your master farm plan.
+              <p className="text-slate-600 text-sm mt-1 max-w-3xl">
+                {data.farmSubtitle}
               </p>
             </div>
 
-            {onClose && (
+            <div className="flex items-center gap-3">
               <button
-                onClick={onClose}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer border border-slate-200 flex items-center gap-2"
+                onClick={() => setIsEditing(!isEditing)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border shadow-xs ${
+                  isEditing 
+                    ? 'bg-amber-400 text-emerald-950 border-amber-300' 
+                    : 'bg-emerald-900 hover:bg-emerald-800 text-white border-emerald-950'
+                }`}
               >
-                <X className="w-4 h-4" /> Exit Hub Preview
+                <Edit3 className="w-3.5 h-3.5" />
+                {isEditing ? 'Cancel Edit Mode' : 'Edit Farm Plan Parameters'}
               </button>
-            )}
+
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border border-slate-200 flex items-center gap-1.5"
+                >
+                  <X className="w-4 h-4" /> Exit
+                </button>
+              )}
+            </div>
           </div>
+
+          {saveSuccess && (
+            <div className="mt-4 bg-emerald-100 text-emerald-900 border border-emerald-300 p-3 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span>Farm Plan & Financial Equations updated successfully in Firestore CMS!</span>
+            </div>
+          )}
 
           {/* Quick Metrics Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100">
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
               <span className="text-xs text-emerald-800 font-semibold block">Current Flock Status</span>
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-xl font-bold text-slate-900">{currentLive}</span>
-                <span className="text-xs text-slate-500">/ {initialPlaced} live</span>
+                <span className="text-xl font-bold text-slate-900">{data.currentLive}</span>
+                <span className="text-xs text-slate-500">/ {data.initialPlaced} live</span>
               </div>
-              <span className="text-[11px] text-slate-600 mt-0.5 block">30 mortalities (5% loss)</span>
+              <span className="text-[11px] text-slate-600 mt-0.5 block">{data.mortalityCount} mortalities ({data.mortalityPct}% loss)</span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
               <span className="text-xs text-emerald-800 font-semibold block">Sunk Cash Invested</span>
-              <div className="text-xl font-bold text-slate-900 mt-1">Ksh. {sunkCost.toLocaleString()}</div>
+              <div className="text-xl font-bold text-slate-900 mt-1">Ksh. {data.sunkCost.toLocaleString()}</div>
               <span className="text-[11px] text-slate-600 mt-0.5 block">Feed, housing & chicks</span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
               <span className="text-xs text-emerald-800 font-semibold block">Conservative Saleable</span>
-              <div className="text-xl font-bold text-slate-900 mt-1">~{conservativeSaleable} birds</div>
-              <span className="text-[11px] text-slate-600 mt-0.5 block">Allows +5% future buffer</span>
+              <div className="text-xl font-bold text-slate-900 mt-1">~{activeSaleable} birds</div>
+              <span className="text-[11px] text-slate-600 mt-0.5 block">Allows +{data.futureBufferPct}% future buffer</span>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl">
               <span className="text-xs text-amber-900 font-semibold block">Target Price / Bird</span>
-              <div className="text-xl font-bold text-amber-900 mt-1">Ksh. {requiredPricePerBird}</div>
-              <span className="text-[11px] text-amber-800 mt-0.5 block">Achieves Ksh. {(targetProfitTier/1000).toFixed(0)}k profit</span>
+              <div className="text-xl font-bold text-amber-900 mt-1">Ksh. {activePricePerBird.toLocaleString()}</div>
+              <span className="text-[11px] text-amber-800 mt-0.5 block">Achieves Ksh. {(activeProfitTier/1000).toFixed(0)}k profit</span>
             </div>
           </div>
         </div>
+
+        {/* Global Admin Edit Modal / Drawer (when isEditing is true) */}
+        {isEditing && (
+          <div className="bg-emerald-950 text-white rounded-3xl p-6 shadow-xl border border-emerald-800 space-y-6">
+            <div className="flex justify-between items-center border-b border-emerald-800/80 pb-4">
+              <div>
+                <h3 className="text-lg font-bold font-serif text-amber-300 flex items-center gap-2">
+                  <Edit3 className="w-5 h-5" /> Edit Master Farm Plan & Business Equation
+                </h3>
+                <p className="text-xs text-emerald-200 mt-0.5">
+                  Update any underlying farm metric below. Changes sync instantly across the entire platform with zero code changes.
+                </p>
+              </div>
+              <button
+                onClick={handleSaveAllParameters}
+                className="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" /> Save All Changes to CMS
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Initial Chicks Placed:</label>
+                <input
+                  type="number"
+                  value={editInitialPlaced}
+                  onChange={(e) => setEditInitialPlaced(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Current Live Birds:</label>
+                <input
+                  type="number"
+                  value={editCurrentLive}
+                  onChange={(e) => setEditCurrentLive(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Mortality Count:</label>
+                <input
+                  type="number"
+                  value={editMortalityCount}
+                  onChange={(e) => setEditMortalityCount(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Sunk Cash Invested (Ksh):</label>
+                <input
+                  type="number"
+                  value={editSunkCost}
+                  onChange={(e) => setEditSunkCost(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Future Mortality Buffer (%):</label>
+                <input
+                  type="number"
+                  value={editFutureBufferPct}
+                  onChange={(e) => setEditFutureBufferPct(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Remaining Cost R / Bird (Ksh):</label>
+                <input
+                  type="number"
+                  value={editRemainingCostR}
+                  onChange={(e) => setEditRemainingCostR(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Profit Tier 1 (Ksh):</label>
+                <input
+                  type="number"
+                  value={editProfitTier1}
+                  onChange={(e) => setEditProfitTier1(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Profit Tier 2 (Ksh):</label>
+                <input
+                  type="number"
+                  value={editProfitTier2}
+                  onChange={(e) => setEditProfitTier2(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Profit Tier 3 (Ksh):</label>
+                <input
+                  type="number"
+                  value={editProfitTier3}
+                  onChange={(e) => setEditProfitTier3(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Starter Bags on Hand (50kg):</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={editStarterBags}
+                  onChange={(e) => setEditStarterBags(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Daily Intake / Bird (kg):</label>
+                <input
+                  type="number"
+                  step="0.005"
+                  value={editDailyIntakeKg}
+                  onChange={(e) => setEditDailyIntakeKg(Number(e.target.value))}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-emerald-200 font-semibold">Farm Location Name:</label>
+                <input
+                  type="text"
+                  value={editLocationName}
+                  onChange={(e) => setEditLocationName(e.target.value)}
+                  className="w-full bg-emerald-900/80 border border-emerald-700 text-white rounded-xl p-2"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="bg-emerald-900 hover:bg-emerald-800 text-emerald-200 px-4 py-2 rounded-xl text-xs font-semibold"
+              >
+                Close Editor
+              </button>
+              <button
+                onClick={handleSaveAllParameters}
+                className="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs px-6 py-2 rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" /> Save All Changes to CMS
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
@@ -172,15 +410,15 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-700 font-semibold">Remaining Cost "R" / Bird:</span>
-                      <span className="text-emerald-950 font-bold text-sm">Ksh. {remainingCostR}</span>
+                      <span className="text-emerald-950 font-bold text-sm">Ksh. {sliderRemainingCostR}</span>
                     </div>
                     <input 
                       type="range" 
                       min={300} 
                       max={700} 
                       step={25}
-                      value={remainingCostR}
-                      onChange={(e) => setRemainingCostR(Number(e.target.value))}
+                      value={sliderRemainingCostR}
+                      onChange={(e) => setSliderRemainingCostR(Number(e.target.value))}
                       className="w-full accent-emerald-700 bg-slate-200 h-2 rounded-lg cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-slate-500">
@@ -195,15 +433,15 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                     <label className="text-xs text-slate-700 font-semibold block">Desired Profit Tier:</label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { amount: 69000, label: '+Ksh 69k (20%)' },
-                        { amount: 80000, label: '+Ksh 80k (23%)' },
-                        { amount: 104000, label: '+Ksh 104k (30%)' }
+                        { amount: data.targetProfitTier1, label: `+Ksh ${(data.targetProfitTier1/1000).toFixed(0)}k (20%)` },
+                        { amount: data.targetProfitTier2, label: `+Ksh ${(data.targetProfitTier2/1000).toFixed(0)}k (23%)` },
+                        { amount: data.targetProfitTier3, label: `+Ksh ${(data.targetProfitTier3/1000).toFixed(0)}k (30%)` }
                       ].map(tier => (
                         <button
                           key={tier.amount}
-                          onClick={() => setTargetProfitTier(tier.amount)}
+                          onClick={() => setActiveProfitTier(tier.amount)}
                           className={`px-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            targetProfitTier === tier.amount 
+                            activeProfitTier === tier.amount 
                               ? 'bg-amber-400 text-emerald-950 shadow-xs' 
                               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                           }`}
@@ -221,26 +459,26 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                     <div>
                       <span className="text-xs text-emerald-800 uppercase tracking-wider font-bold">Recommended Farm-Gate Target Price</span>
                       <div className="text-3xl font-extrabold text-emerald-950 mt-1 font-serif">
-                        Ksh. {requiredPricePerBird.toLocaleString()} <span className="text-sm font-normal text-slate-600">/ bird</span>
+                        Ksh. {activePricePerBird.toLocaleString()} <span className="text-sm font-normal text-slate-600">/ bird</span>
                       </div>
                     </div>
                     <div className="bg-white border border-emerald-200 px-3 py-2 rounded-xl text-xs text-emerald-900 font-medium">
-                      Target Range: <strong className="text-emerald-950">Ksh. 1,300 – 1,350</strong> (Up to Ksh. 1,650 if dressed)
+                      Target Range: <strong className="text-emerald-950">Ksh. {activePricePerBird - 20} – {activePricePerBird + 30}</strong> (Up to Ksh. {activePricePerBird + 300} if dressed)
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-3 border-t border-emerald-200/60">
                     <div>
                       <span className="text-slate-600 block">Total Revenue Goal:</span>
-                      <span className="font-bold text-slate-900">Ksh. {requiredTotalRevenue.toLocaleString()}</span>
+                      <span className="font-bold text-slate-900">Ksh. {activeTotalRevenue.toLocaleString()}</span>
                     </div>
                     <div>
                       <span className="text-slate-600 block">Remaining Costs Total:</span>
-                      <span className="font-bold text-slate-900">Ksh. {totalRemainingCost.toLocaleString()}</span>
+                      <span className="font-bold text-slate-900">Ksh. {activeRemainingCost.toLocaleString()}</span>
                     </div>
                     <div>
                       <span className="text-slate-600 block">Net Profit Realized:</span>
-                      <span className="font-bold text-emerald-800">Ksh. {targetProfitTier.toLocaleString()}</span>
+                      <span className="font-bold text-emerald-800">Ksh. {activeProfitTier.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -253,29 +491,29 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                       <thead className="bg-slate-50 text-slate-800 font-bold uppercase text-[10px] border-b border-slate-200">
                         <tr>
                           <th className="p-3">Remaining Cost R/bird</th>
-                          <th className="p-3 text-emerald-900">+Ksh. 69k profit</th>
-                          <th className="p-3 text-amber-900 bg-amber-50">+Ksh. 80k profit</th>
-                          <th className="p-3 text-emerald-900">+Ksh. 104k profit</th>
+                          <th className="p-3 text-emerald-900">+Ksh. {(data.targetProfitTier1/1000).toFixed(0)}k profit</th>
+                          <th className="p-3 text-amber-900 bg-amber-50">+Ksh. {(data.targetProfitTier2/1000).toFixed(0)}k profit</th>
+                          <th className="p-3 text-emerald-900">+Ksh. {(data.targetProfitTier3/1000).toFixed(0)}k profit</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        <tr className={remainingCostR === 400 ? 'bg-emerald-50' : ''}>
+                        <tr className={sliderRemainingCostR === 400 ? 'bg-emerald-50' : ''}>
                           <td className="p-3 font-semibold text-slate-900">Ksh. 400</td>
-                          <td className="p-3">Ksh. 1,188</td>
-                          <td className="p-3 font-bold text-slate-900">Ksh. 1,208</td>
-                          <td className="p-3">Ksh. 1,252</td>
+                          <td className="p-3">Ksh. {Math.round((data.sunkCost + data.targetProfitTier1 + activeSaleable * 400) / activeSaleable).toLocaleString()}</td>
+                          <td className="p-3 font-bold text-slate-900">Ksh. {Math.round((data.sunkCost + data.targetProfitTier2 + activeSaleable * 400) / activeSaleable).toLocaleString()}</td>
+                          <td className="p-3">Ksh. {Math.round((data.sunkCost + data.targetProfitTier3 + activeSaleable * 400) / activeSaleable).toLocaleString()}</td>
                         </tr>
-                        <tr className={remainingCostR === 500 ? 'bg-amber-50 font-bold text-amber-950' : ''}>
+                        <tr className={sliderRemainingCostR === 500 ? 'bg-amber-50 font-bold text-amber-950' : ''}>
                           <td className="p-3 font-semibold text-amber-900">Ksh. 500 (Target R)</td>
-                          <td className="p-3">Ksh. 1,293</td>
-                          <td className="p-3 text-amber-950 bg-amber-100 font-bold">Ksh. 1,313</td>
-                          <td className="p-3 text-emerald-900">Ksh. 1,358</td>
+                          <td className="p-3">Ksh. {Math.round((data.sunkCost + data.targetProfitTier1 + activeSaleable * 500) / activeSaleable).toLocaleString()}</td>
+                          <td className="p-3 text-amber-950 bg-amber-100 font-bold">Ksh. {Math.round((data.sunkCost + data.targetProfitTier2 + activeSaleable * 500) / activeSaleable).toLocaleString()}</td>
+                          <td className="p-3 text-emerald-900">Ksh. {Math.round((data.sunkCost + data.targetProfitTier3 + activeSaleable * 500) / activeSaleable).toLocaleString()}</td>
                         </tr>
-                        <tr className={remainingCostR === 600 ? 'bg-emerald-50' : ''}>
+                        <tr className={sliderRemainingCostR === 600 ? 'bg-emerald-50' : ''}>
                           <td className="p-3 font-semibold text-slate-900">Ksh. 600</td>
-                          <td className="p-3">Ksh. 1,398</td>
-                          <td className="p-3 font-bold text-slate-900">Ksh. 1,418</td>
-                          <td className="p-3">Ksh. 1,463</td>
+                          <td className="p-3">Ksh. {Math.round((data.sunkCost + data.targetProfitTier1 + activeSaleable * 600) / activeSaleable).toLocaleString()}</td>
+                          <td className="p-3 font-bold text-slate-900">Ksh. {Math.round((data.sunkCost + data.targetProfitTier2 + activeSaleable * 600) / activeSaleable).toLocaleString()}</td>
+                          <td className="p-3">Ksh. {Math.round((data.sunkCost + data.targetProfitTier3 + activeSaleable * 600) / activeSaleable).toLocaleString()}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -295,12 +533,12 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                   <div className="space-y-3 text-xs text-slate-700">
                     <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
                       <strong className="text-emerald-950 block mb-1">Target Action Rule:</strong>
-                      Keep remaining costs <span className="text-emerald-900 font-bold">R ≤ 500/bird</span> and target <span className="text-emerald-900 font-bold">Ksh. 1,300–1,350 per bird</span> farm-gate.
+                      Keep remaining costs <span className="text-emerald-900 font-bold">R ≤ {data.remainingCostR}/bird</span> and target <span className="text-emerald-900 font-bold">Ksh. {activePricePerBird}–{activePricePerBird + 50} per bird</span> farm-gate.
                     </div>
 
                     <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
                       <strong className="text-emerald-950 block mb-1">Dressed Premium Option:</strong>
-                      Selling dressed (gutted & chilled) commands a <span className="text-emerald-900 font-bold">+10–20% premium</span> (Ksh. 1,450–1,650/bird) to offset processing bags & ice.
+                      Selling dressed (gutted & chilled) commands a <span className="text-emerald-900 font-bold">+10–20% premium</span> (Ksh. {activePricePerBird + 150}–{activePricePerBird + 350}/bird) to offset processing bags & ice.
                     </div>
 
                     <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
@@ -332,10 +570,10 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                     Starter Bag Inventory & Coverage Analysis
                   </span>
                   <h3 className="text-xl font-bold text-emerald-950 font-serif">
-                    You have {starterBagsOnHand} Bags of Starter Feed ({starterKgOnHand} kg)
+                    You have {data.starterBagsOnHand} Bags of Starter Feed ({data.starterKgOnHand} kg)
                   </h3>
                   <p className="text-xs text-slate-700">
-                    At {currentLive} birds, typical starter consumption for weeks 1–4 is <strong className="text-slate-900">~610 kg</strong>. Your {starterKgOnHand} kg covers <strong className="text-amber-900 font-bold">~13–16 days</strong> of starter.
+                    At {data.currentLive} birds, typical starter consumption for weeks 1–4 is <strong className="text-slate-900">~610 kg</strong>. Your {data.starterKgOnHand} kg covers <strong className="text-amber-900 font-bold">~{data.starterDaysCovered} days</strong> of starter.
                   </p>
                 </div>
 
@@ -353,13 +591,13 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
               <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-xs">
                 <h3 className="text-base font-bold text-emerald-950 font-serif flex items-center gap-2">
                   <Wheat className="w-5 h-5 text-emerald-700" />
-                  1.1 Feed Nutrition Specs (Buy or Mill Targets)
+                  1.1 Feed Nutrition Specs & Supplier ({data.feedSupplier})
                 </h3>
 
                 <div className="space-y-3 text-xs">
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                     <div className="flex justify-between font-bold text-emerald-950">
-                      <span>Starter (0–4 Wks)</span>
+                      <span>Starter (0–4 Wks) — Ksh {data.costStarterBag.toLocaleString()} / 50kg</span>
                       <span className="text-emerald-800">20–21% Protein</span>
                     </div>
                     <p className="text-slate-600 mt-1">2,900–3,000 kcal/kg, coccidiostat included.</p>
@@ -367,7 +605,7 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
 
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                     <div className="flex justify-between font-bold text-emerald-950">
-                      <span>Grower (5–14 Wks)</span>
+                      <span>Grower (5–14 Wks) — Ksh {data.costGrowerBag.toLocaleString()} / 50kg</span>
                       <span className="text-emerald-800">17–18% Protein</span>
                     </div>
                     <p className="text-slate-600 mt-1">2,800–2,900 kcal/kg. Balanced skeletal growth.</p>
@@ -375,18 +613,10 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
 
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                     <div className="flex justify-between font-bold text-emerald-950">
-                      <span>Finisher (15–20 Wks - Meat Path)</span>
+                      <span>Finisher (15–20 Wks - Meat Path) — Ksh {data.costFinisherBag.toLocaleString()} / 50kg</span>
                       <span className="text-emerald-800">15–16% Protein</span>
                     </div>
-                    <p className="text-slate-600 mt-1">2,900–3,000 kcal/kg. Maximizes dressed weight (1.3–1.6 kg).</p>
-                  </div>
-
-                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                    <div className="flex justify-between font-bold text-emerald-950">
-                      <span>Layer (≥18 Wks - Egg Path)</span>
-                      <span className="text-emerald-800">16–18% Protein</span>
-                    </div>
-                    <p className="text-slate-600 mt-1">2,700–2,800 kcal/kg, Calcium 3.5–4.0% for shell strength.</p>
+                    <p className="text-slate-600 mt-1">2,900–3,000 kcal/kg. Target FCR {data.targetFCR}.</p>
                   </div>
                 </div>
               </div>
@@ -395,7 +625,7 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
               <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-xs">
                 <h3 className="text-base font-bold text-emerald-950 font-serif flex items-center gap-2">
                   <Scale className="w-5 h-5 text-amber-500" />
-                  1.2 Daily Feed Intake Targets (Grams / Bird / Day)
+                  1.2 Daily Feed Intake Targets ({data.currentLive} Birds)
                 </h3>
 
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 text-xs">
@@ -404,24 +634,19 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                       <tr>
                         <th className="p-3">Age Period</th>
                         <th className="p-3">Target Intake</th>
-                        <th className="p-3 text-emerald-900">Total Flock Daily ({currentLive} birds)</th>
+                        <th className="p-3 text-emerald-900">Total Flock Daily</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      <tr><td className="p-2.5 font-medium text-slate-900">Week 1</td><td className="p-2.5">15–20 g</td><td className="p-2.5 font-bold text-slate-900">8.5 – 11.4 kg</td></tr>
-                      <tr><td className="p-2.5 font-medium text-slate-900">Week 2</td><td className="p-2.5">25–35 g</td><td className="p-2.5 font-bold text-slate-900">14.2 – 20.0 kg</td></tr>
-                      <tr><td className="p-2.5 font-medium text-slate-900">Week 3</td><td className="p-2.5">40–50 g</td><td className="p-2.5 font-bold text-slate-900">22.8 – 28.5 kg</td></tr>
-                      <tr><td className="p-2.5 font-medium text-slate-900">Week 4</td><td className="p-2.5">55–65 g</td><td className="p-2.5 font-bold text-slate-900">31.3 – 37.0 kg</td></tr>
-                      <tr className="bg-amber-50/50"><td className="p-2.5 font-medium text-amber-900">Weeks 5–8</td><td className="p-2.5">70–95 g</td><td className="p-2.5 font-bold text-amber-900">39.9 – 54.1 kg</td></tr>
-                      <tr><td className="p-2.5 font-medium text-slate-900">Weeks 9–12</td><td className="p-2.5">95–110 g</td><td className="p-2.5 font-bold text-slate-900">54.1 – 62.7 kg</td></tr>
-                      <tr><td className="p-2.5 font-medium text-slate-900">Weeks 13–16</td><td className="p-2.5">110–125 g</td><td className="p-2.5 font-bold text-slate-900">62.7 – 71.2 kg</td></tr>
-                      <tr className="bg-emerald-50/50"><td className="p-2.5 font-medium text-emerald-950">Weeks 17–20</td><td className="p-2.5">125–140 g</td><td className="p-2.5 font-bold text-emerald-950">71.2 – 79.8 kg</td></tr>
+                      <tr><td className="p-2.5 font-medium text-slate-900">Week 1</td><td className="p-2.5">15–20 g</td><td className="p-2.5 font-bold text-slate-900">{(data.currentLive * 0.0175).toFixed(1)} kg</td></tr>
+                      <tr><td className="p-2.5 font-medium text-slate-900">Week 2</td><td className="p-2.5">25–35 g</td><td className="p-2.5 font-bold text-slate-900">{(data.currentLive * 0.03).toFixed(1)} kg</td></tr>
+                      <tr><td className="p-2.5 font-medium text-slate-900">Week 3</td><td className="p-2.5">40–50 g</td><td className="p-2.5 font-bold text-slate-900">{(data.currentLive * 0.045).toFixed(1)} kg</td></tr>
+                      <tr><td className="p-2.5 font-medium text-slate-900">Week 4</td><td className="p-2.5">55–65 g</td><td className="p-2.5 font-bold text-slate-900">{(data.currentLive * 0.06).toFixed(1)} kg</td></tr>
+                      <tr className="bg-amber-50/50"><td className="p-2.5 font-medium text-amber-900">Weeks 5–8</td><td className="p-2.5">70–95 g</td><td className="p-2.5 font-bold text-amber-900">{(data.currentLive * 0.082).toFixed(1)} kg</td></tr>
+                      <tr><td className="p-2.5 font-medium text-slate-900">Weeks 9–12</td><td className="p-2.5">95–110 g</td><td className="p-2.5 font-bold text-slate-900">{(data.currentLive * 0.102).toFixed(1)} kg</td></tr>
+                      <tr className="bg-emerald-50/50"><td className="p-2.5 font-medium text-emerald-950">Weeks 17–20</td><td className="p-2.5">125–140 g</td><td className="p-2.5 font-bold text-emerald-950">{(data.currentLive * 0.132).toFixed(1)} kg</td></tr>
                     </tbody>
                   </table>
-                </div>
-
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs text-slate-600">
-                  <strong>Total Lifecycle Feed:</strong> Kienyeji require ~6.5–8.0 kg total feed per bird up to 18–20 weeks (meat path).
                 </div>
               </div>
 
@@ -436,31 +661,23 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
               <div>
                 <h3 className="text-lg font-bold text-emerald-950 font-serif flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-emerald-700" />
-                  2.1 Kenya Step-by-Step Vaccination Schedule
+                  2.1 Kenya Step-by-Step Vaccination Schedule (Editable in CMS)
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
                   Standard avian health protection protocol for Improved Kienyeji flocks in Kenya.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { day: 'Day 1', name: "Marek's", route: 'Hatchery Injection', note: 'Just record in log' },
-                  { day: 'Day 7', name: 'Newcastle (Lasota)', route: 'Eye Drop', note: 'Strict warmth' },
-                  { day: 'Day 14', name: 'Gumboro (IBD)', route: 'Drinking Water', note: 'Withhold water 1.5h' },
-                  { day: 'Day 21', name: 'Gumboro Booster', route: 'Drinking Water', note: 'Mix with skim milk' },
-                  { day: 'Day 28', name: 'Newcastle Booster', route: 'Eye Drop / Water', note: 'Lasota / Clone' },
-                  { day: 'Week 6', name: 'Fowl Pox', route: 'Wing Stab', note: 'Double needle' },
-                  { day: 'Weeks 8–10', name: 'Deworming', route: 'Water / Feed', note: 'Repeat every 8-10 wks' },
-                  { day: 'Weeks 16–18', name: 'ND Killed Vaccine', route: 'Injectable (Layers)', note: 'For long term cover' },
-                ].map((vac, idx) => (
-                  <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.vaccinationSchedule.map((vac) => (
+                  <div key={vac.id} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">{vac.day}</span>
+                      <span className="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">{vac.dayOrWeek}</span>
                       <span className="text-slate-500 font-mono text-[11px]">{vac.route}</span>
                     </div>
-                    <div className="text-sm font-bold text-slate-900">{vac.name}</div>
-                    <p className="text-xs text-slate-600">{vac.note}</p>
+                    <div className="text-sm font-bold text-slate-900">{vac.vaccine}</div>
+                    <p className="text-xs text-slate-600">{vac.instructions}</p>
+                    {vac.notes && <p className="text-[11px] text-amber-800 font-medium">{vac.notes}</p>}
                   </div>
                 ))}
               </div>
@@ -490,7 +707,7 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
               <div>
                 <h3 className="text-lg font-bold text-emerald-950 font-serif flex items-center gap-2">
                   <Scale className="w-5 h-5 text-amber-500" />
-                  3) Housing Space & Equipment Requirements ({currentLive} Birds)
+                  3) Housing Space & Equipment Requirements ({data.currentLive} Birds)
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
                   Required feeder and drinker counts calculated for your current flock size.
@@ -498,37 +715,13 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                {/* Space & Litter */}
-                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
-                  <h4 className="font-bold text-emerald-950 text-sm font-serif">3.1 Space & Litter</h4>
-                  <ul className="space-y-2 text-xs text-slate-700">
-                    <li>• <strong>Stocking Density:</strong> 6–8 birds/m² on deep litter.</li>
-                    <li>• <strong>Floor Area Required:</strong> 71 – 95 m² housing space.</li>
-                    <li>• <strong>Litter Depth:</strong> 8–10 cm clean wood shavings. Top up weekly in wet spots.</li>
-                  </ul>
-                </div>
-
-                {/* Feeders Requirement */}
-                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
-                  <h4 className="font-bold text-emerald-950 text-sm font-serif">3.2 Tube Feeders</h4>
-                  <ul className="space-y-2 text-xs text-slate-700">
-                    <li>• <strong>Standard Ratio:</strong> 1 tube feeder per 40 birds.</li>
-                    <li>• <strong>Required Count:</strong> 15 tube feeders minimum (Get <strong className="text-amber-900">18 feeders</strong> to reduce crowding).</li>
-                    <li>• <strong>Linear Trough Alternative:</strong> 0-2 wks: 2-3 cm/bird, 3-6 wks: 5-6 cm/bird, 13+ wks: 10-12 cm/bird.</li>
-                  </ul>
-                </div>
-
-                {/* Drinkers Requirement */}
-                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
-                  <h4 className="font-bold text-emerald-950 text-sm font-serif">3.3 Bell Drinkers</h4>
-                  <ul className="space-y-2 text-xs text-slate-700">
-                    <li>• <strong>Standard Ratio:</strong> 1 drinker per 60 birds.</li>
-                    <li>• <strong>Required Count:</strong> 10 drinkers minimum (Get <strong className="text-emerald-900">12 drinkers</strong>).</li>
-                    <li>• <strong>Water Ratio:</strong> Birds drink <strong className="text-slate-900">2–2.5× feed by weight</strong> (40–50 L water for 20 kg feed).</li>
-                  </ul>
-                </div>
-
+                {data.housingSpecs.map((spec) => (
+                  <div key={spec.id} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
+                    <h4 className="font-bold text-emerald-950 text-sm font-serif">{spec.label}</h4>
+                    <div className="text-lg font-bold text-emerald-900">{spec.value}</div>
+                    <p className="text-xs text-slate-600">{spec.note}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -544,49 +737,24 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                   4) Daily Attendant Routine & Checklist (Job Title: Poultry Attendant)
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  Hours: 6:30 a.m. – 6:30 p.m. | Key Outcomes: Healthy birds, accurate records, zero feed/water outages.
+                  Key Outcomes: Healthy birds, accurate records, zero feed/water outages.
                 </p>
               </div>
 
-              {/* Timetable Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {[
-                  { time: '06:30 – 07:00 AM', title: 'Morning Start', desc: 'Water top-up & drinker rinse. 1st Feed (largest meal).' },
-                  { time: '12:00 – 13:00 PM', title: 'Midday Check', desc: 'Water top-up in hot hours. 2nd Feed. Check ventilation.' },
-                  { time: '16:30 – 17:30 PM', title: 'Late Afternoon', desc: 'Water top-up. 3rd Feed. Observe droppings & bird activity.' },
-                  { time: '18:00 – 18:30 PM', title: 'Evening Closing', desc: 'Rake litter, check crop fill, secure feed store, set rodent traps.' }
-                ].map((slot, idx) => (
-                  <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
-                    <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full">{slot.time}</span>
-                    <div className="text-sm font-bold text-slate-900">{slot.title}</div>
-                    <p className="text-xs text-slate-600">{slot.desc}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.dailySops.map((sop) => (
+                  <div key={sop.id} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full">{sop.time}</span>
+                      {sop.critical && (
+                        <span className="text-[10px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold uppercase">Mandatory</span>
+                      )}
+                    </div>
+                    <div className="text-sm font-bold text-slate-900">{sop.task}</div>
+                    <p className="text-xs text-slate-600">{sop.details}</p>
                   </div>
                 ))}
               </div>
-
-              {/* Daily Checklist Tasks */}
-              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
-                <h4 className="font-bold text-emerald-950 text-sm font-serif">Daily Mandatory Checklist Items</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-700">
-                  <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                    <span>1. Open house & count mortalities; record immediately in log sheet.</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                    <span>2. Shake feeders to prevent caking and adjust hanging height to back level.</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                    <span>3. Rake damp litter; spot-top with fresh dry wood shavings.</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                    <span>4. Refresh footbath solution daily outside house door.</span>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         )}
@@ -598,42 +766,11 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
               <div>
                 <h3 className="text-lg font-bold text-emerald-950 font-serif flex items-center gap-2">
                   <PhoneCall className="w-5 h-5 text-amber-500" />
-                  6) Marketing & Presales Pitch Script Generator
+                  5) Marketing & Presales Pitch Script Generator
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
                   Use this simple call/text pitch script when reaching out to butcheries, hotels, WhatsApp groups, and churches.
                 </p>
-              </div>
-
-              {/* Pitch Customizer Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <div>
-                  <label className="text-xs text-slate-700 font-semibold block mb-1">Farm Location:</label>
-                  <input 
-                    type="text"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                    className="w-full bg-white border border-slate-200 text-slate-900 rounded-xl p-2 text-xs focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-700 font-semibold block mb-1">Target Intro Price (Ksh):</label>
-                  <input 
-                    type="number"
-                    value={introPrice}
-                    onChange={(e) => setIntroPrice(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-200 text-slate-900 rounded-xl p-2 text-xs focus:outline-none focus:border-emerald-600 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-700 font-semibold block mb-1">Delivery Radius (km):</label>
-                  <input 
-                    type="text"
-                    value={deliveryRadius}
-                    onChange={(e) => setDeliveryRadius(e.target.value)}
-                    className="w-full bg-white border border-slate-200 text-slate-900 rounded-xl p-2 text-xs focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
               </div>
 
               {/* Pitch Script Output Box */}
@@ -650,11 +787,11 @@ export default function BusinessPlanHub({ onClose }: BusinessPlanHubProps) {
                 </div>
 
                 <p className="text-sm font-mono text-slate-800 bg-white p-4 rounded-xl leading-relaxed border border-slate-200">
-                  "{pitchScript}"
+                  "{data.pitchScript}"
                 </p>
 
                 <div className="text-xs text-slate-600 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-amber-500" />
+                  <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0" />
                   <span><strong>Presales & Deposit Strategy:</strong> Offer a Ksh. 50–100 per bird deposit for dressed orders (locks buyer commitment and funds processing paper/bags).</span>
                 </div>
               </div>

@@ -114,6 +114,55 @@ export interface Review {
   avatarColor: string;
   verifiedBuyer: boolean;
   buyerType?: BuyerType;
+  location?: string;
+}
+
+export interface ProductionSpecs {
+  eggsPerWeek?: string;
+  hardiness?: string;
+  climateAdaptability?: string;
+  feedConversionRatio?: string;
+  matureWeight?: string;
+  layOnsetAge?: string;
+  carcassYield?: string;
+  temperatureTolerance?: string;
+  [key: string]: string | undefined;
+}
+
+export interface ProductVariantsConfig {
+  type?: 'live' | 'cut' | 'egg' | 'supply' | 'general';
+  genders?: string[]; // e.g. ['Female (Pullet)', 'Male (Cockerel)', 'Straight Run (Unsexed)']
+  breeds?: string[]; // e.g. ['Improved Kienyeji', 'Kenbro Dual-Purpose', 'Kuroiler', 'Sasso']
+  boneOptions?: string[]; // e.g. ['Bone-In', 'Boneless']
+  skinOptions?: string[]; // e.g. ['Skin-On', 'Skinless']
+  weightBands?: { label: string; weightKg: number; priceDiff?: number }[];
+  eggGrades?: string[]; // e.g. ['Medium (50-55g)', 'Large (55-60g)', 'Jumbo (65g+)']
+  packCounts?: { label: string; count: number; price: number }[];
+  supplySizes?: { label: string; unit: string; price: number }[];
+}
+
+export interface FrequentlyBoughtTogetherConfig {
+  productIds: string[];
+  bundleDiscountPercent: number; // e.g. 10
+}
+
+export interface ShipWeekStatusConfig {
+  currentShipWeek: string;
+  isSoldOutForWeek: boolean;
+  nextAvailableWeek?: string;
+  availableShipWeeks?: string[];
+  allowNotifyMe?: boolean;
+}
+
+export interface BreedDropdownOption {
+  id: string;
+  label: string;
+  breedQuery: string;
+  value?: string;
+  tag?: string;
+  category?: MainCategory | 'all';
+  description?: string;
+  active: boolean;
 }
 
 export interface Product {
@@ -138,6 +187,27 @@ export interface Product {
   wholesaleMinQty?: number;
   unit?: string;
   minOrderQty?: number;
+  
+  // Rich prose & specifications for extensive product pages
+  story?: string;
+  whyItMatters?: string;
+  productionSpecs?: ProductionSpecs;
+  temperament?: string;
+  physicalDescription?: string;
+  eggsPerWeek?: string;
+  matureWeight?: string;
+  hardiness?: string;
+  isSoldOutForWeek?: boolean;
+  currentShipWeek?: string;
+  
+  // Variants & dynamic options
+  variantsConfig?: ProductVariantsConfig;
+  
+  // Frequently bought together pairings
+  frequentlyBoughtTogether?: FrequentlyBoughtTogetherConfig;
+  
+  // Ship-week & out-of-stock notification config
+  shipWeekStatus?: ShipWeekStatusConfig;
   
   // Specific payload types
   liveData?: LiveBirdProductData;
@@ -224,6 +294,7 @@ export interface User {
   email: string;
   name: string;
   avatarEmoji?: string;
+  photoURL?: string;
   role: 'BUYER' | 'FARMER' | 'WHOLESALE' | 'KEEPER' | 'ADMIN';
   buyerType: BuyerType;
   shopSlug?: string;

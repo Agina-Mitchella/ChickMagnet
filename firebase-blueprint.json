@@ -2,7 +2,7 @@
   "entities": {
     "CMSBlock": {
       "title": "CMS Content Block",
-      "description": "Dynamic content block for site customization",
+      "description": "Dynamic content block for site customization, customer-facing copy, and farm plan equations",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -14,6 +14,22 @@
         "lastEditedAt": { "type": "string" }
       },
       "required": ["id", "pageId", "value"]
+    },
+    "FarmPlanMetrics": {
+      "title": "Farm Plan Metrics",
+      "description": "Master farm operational variables, costs, profit targets, feed inventory, and SOPs",
+      "type": "object",
+      "properties": {
+        "sunkCost": { "type": "number" },
+        "initialPlaced": { "type": "number" },
+        "currentLive": { "type": "number" },
+        "mortalityCount": { "type": "number" },
+        "futureBufferPct": { "type": "number" },
+        "remainingCostR": { "type": "number" },
+        "starterBagsOnHand": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["sunkCost", "initialPlaced", "currentLive"]
     },
     "Product": {
       "title": "Product Catalog Item",
@@ -71,7 +87,7 @@
   "firestore": {
     "/cms_blocks/{blockId}": {
       "schema": { "$ref": "#/entities/CMSBlock" },
-      "description": "Global CMS content blocks and site configurations"
+      "description": "Global CMS content blocks, customer-facing content, and farm plan configurations"
     },
     "/cms_audit_logs/{logId}": {
       "schema": { "type": "object" },
@@ -99,15 +115,15 @@
     },
     "/hatchery_batches/{batchId}": {
       "schema": { "$ref": "#/entities/HatcheryBatch" },
-      "description": "Batch traceability records"
+      "description": "Bio-security parent flock and lab traceability clearance records"
     },
     "/admin_audit_logs/{logId}": {
       "schema": { "type": "object" },
-      "description": "Admin activity and audit logs"
+      "description": "Admin operational audit trail"
     },
     "/users/{userId}": {
       "schema": { "type": "object" },
-      "description": "User account profiles"
+      "description": "User profile accounts and preferences"
     }
   }
 }

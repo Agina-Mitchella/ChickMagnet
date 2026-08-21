@@ -1159,7 +1159,7 @@ export default function AdminDashboard({
                   className="bg-slate-50 border border-slate-200 text-emerald-950 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none cursor-pointer"
                 >
                   <option value="all">All Buyer Types</option>
-                  <option value="retail">Retail Buyers</option>
+                  <option value="retail">Homesteader Buyers</option>
                   <option value="wholesale">Wholesale Net-30</option>
                 </select>
               </div>
@@ -2038,7 +2038,7 @@ export default function AdminDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-800 font-bold mb-1">Retail Price (Ksh)</label>
+                  <label className="block text-slate-800 font-bold mb-1">Homesteader Price (Ksh)</label>
                   <input
                     type="number"
                     value={productForm.price}
@@ -2086,18 +2086,110 @@ export default function AdminDashboard({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-bold mb-1">Description</label>
+                <label className="block text-slate-800 font-bold mb-1">Short Summary Description</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={productForm.description}
                   onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
+              {/* Extensive Story & Why It Matters */}
+              <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200 space-y-2.5">
+                <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
+                  <span>📖 Extensive Breed Story & Heritage</span>
+                  <span className="text-[10px] text-emerald-800 uppercase font-mono">Product Page Prose</span>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-700 font-bold mb-0.5">Origin & Heritage Story</label>
+                  <textarea
+                    rows={2}
+                    value={productForm.story || ''}
+                    onChange={(e) => setProductForm({ ...productForm, story: e.target.value })}
+                    placeholder="Describe how and where this breed was developed, its genetic traits..."
+                    className="w-full bg-white border border-slate-200 p-2 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-700 font-bold mb-0.5">Why It Matters (Free-Range/Kenyan Context)</label>
+                  <textarea
+                    rows={2}
+                    value={productForm.whyItMatters || ''}
+                    onChange={(e) => setProductForm({ ...productForm, whyItMatters: e.target.value })}
+                    placeholder="Why this bird thrives in Kenya, feed efficiency, dual-purpose yield..."
+                    className="w-full bg-white border border-slate-200 p-2 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              {/* Biological Specs */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                <div className="text-xs font-bold text-slate-900">📊 Production & Biological Specs</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="block text-[10px] text-slate-600 font-semibold">Eggs Per Week</label>
+                    <input
+                      type="text"
+                      value={productForm.eggsPerWeek || ''}
+                      onChange={(e) => setProductForm({ ...productForm, eggsPerWeek: e.target.value })}
+                      placeholder="e.g. 5–6 / week"
+                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-600 font-semibold">Mature Weight</label>
+                    <input
+                      type="text"
+                      value={productForm.matureWeight || ''}
+                      onChange={(e) => setProductForm({ ...productForm, matureWeight: e.target.value })}
+                      placeholder="e.g. 3.2 - 4.5 kg"
+                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-600 font-semibold">Temperament</label>
+                    <input
+                      type="text"
+                      value={productForm.temperament || ''}
+                      onChange={(e) => setProductForm({ ...productForm, temperament: e.target.value })}
+                      placeholder="e.g. Active forager, hardy"
+                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-600 font-semibold">Hardiness / Adaptation</label>
+                    <input
+                      type="text"
+                      value={productForm.hardiness || ''}
+                      onChange={(e) => setProductForm({ ...productForm, hardiness: e.target.value })}
+                      placeholder="e.g. Extreme heat & rain hardy"
+                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ship-Week Stock Availability */}
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-bold text-amber-950">Ship-Week Status</div>
+                  <div className="text-[11px] text-amber-900">Current Week: {productForm.currentShipWeek || 'Week of Aug 25 - 31'}</div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={productForm.isSoldOutForWeek || false}
+                    onChange={(e) => setProductForm({ ...productForm, isSoldOutForWeek: e.target.checked })}
+                    className="w-4 h-4 text-rose-600 rounded accent-rose-600 cursor-pointer"
+                  />
+                  <span className="font-bold text-slate-800">Sold Out for Ship-Week ("Notify Me" mode)</span>
+                </label>
+              </div>
+
               {/* Product Image Section */}
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-                <label className="block text-slate-900 font-bold">Product Image</label>
+                <label className="block text-slate-900 font-bold">Main Product Image URL</label>
                 <div className="flex gap-3 items-center">
                   <div className="w-16 h-16 rounded-lg bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
                     {productForm.image ? (

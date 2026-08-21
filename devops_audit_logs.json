@@ -1,0 +1,29 @@
+[
+  {
+    "id": "log-1",
+    "timestamp": "2026-08-21T05:10:38.165Z",
+    "action": "SYSTEM_STARTUP",
+    "actor": "SYSTEM",
+    "details": "Sylvan Forest application cluster initialized on port 3000.",
+    "ip": "127.0.0.1",
+    "severity": "INFO"
+  },
+  {
+    "id": "log-2",
+    "timestamp": "2026-08-21T05:40:38.165Z",
+    "action": "DB_CONNECTION_SECURED",
+    "actor": "SYSTEM",
+    "details": "Cloud Firestore client verified. Collections and security rules synchronized.",
+    "ip": "127.0.0.1",
+    "severity": "INFO"
+  },
+  {
+    "id": "log-3",
+    "timestamp": "2026-08-21T06:22:38.165Z",
+    "action": "HELMET_HEADERS_ENFORCED",
+    "actor": "SYSTEM",
+    "details": "Strict CSP and anti-sniffing headers injected.",
+    "ip": "127.0.0.1",
+    "severity": "INFO"
+  }
+]

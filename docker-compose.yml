@@ -13,29 +13,24 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://sol_user:sol_password@postgres:5432/sol_handmades?schema=public
       - REDIS_URL=redis://redis:6379
-      - JWT_PRIVATE_KEY=your_rs256_private_key_here
-      - JWT_PUBLIC_KEY=your_rs256_public_key_here
-      - REFRESH_TOKEN_SECRET=your_refresh_secret
-      - STRIPE_SECRET_KEY=sk_test_mock
-      - STRIPE_WEBHOOK_SECRET=whsec_mock
-      - STRIPE_CONNECT_CLIENT_ID=ca_mock
-      - CLOUDFLARE_R2_ENDPOINT=http://minio:9000
-      - CLOUDFLARE_R2_ACCESS_KEY=minioadmin
-      - CLOUDFLARE_R2_SECRET_KEY=minioadmin
-      - CLOUDFLARE_R2_BUCKET=sol-handmades-bucket
+      - MPESA_ENVIRONMENT=sandbox
+      - MPESA_CONSUMER_KEY=daraja_mock_key
+      - MPESA_CONSUMER_SECRET=daraja_mock_secret
+      - MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+      - MPESA_SHORTCODE=174379
+      - RAILWAY_STORAGE_ENDPOINT=http://minio:9000
+      - RAILWAY_STORAGE_ACCESS_KEY=minioadmin
+      - RAILWAY_STORAGE_SECRET_KEY=minioadmin
+      - RAILWAY_STORAGE_BUCKET=chickmagnet-storage
+      - RAILWAY_VOLUME_MOUNT_PATH=/data/storage
       - RESEND_API_KEY=re_mock
-      - AFRICAS_TALKING_API_KEY=at_key_mock
-      - AFRICAS_TALKING_USERNAME=at_user_mock
       - GOOGLE_CLIENT_ID=google_mock
       - GOOGLE_CLIENT_SECRET=google_secret_mock
-      - APPLE_CLIENT_ID=apple_mock
       - WEBPUSH_PUBLIC_KEY=webpush_pub_mock
       - WEBPUSH_PRIVATE_KEY=webpush_priv_mock
       - FRONTEND_URL=http://localhost:3000
     depends_on:
-      - postgres
       - redis
       - minio
 
@@ -49,18 +44,14 @@ services:
     command: ["node", "dist/worker.cjs"]
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://sol_user:sol_password@postgres:5432/sol_handmades?schema=public
       - REDIS_URL=redis://redis:6379
-      - STRIPE_SECRET_KEY=sk_test_mock
       - RESEND_API_KEY=re_mock
-      - AFRICAS_TALKING_API_KEY=at_key_mock
-      - AFRICAS_TALKING_USERNAME=at_user_mock
-      - CLOUDFLARE_R2_ENDPOINT=http://minio:9000
-      - CLOUDFLARE_R2_ACCESS_KEY=minioadmin
-      - CLOUDFLARE_R2_SECRET_KEY=minioadmin
-      - CLOUDFLARE_R2_BUCKET=sol-handmades-bucket
+      - RAILWAY_STORAGE_ENDPOINT=http://minio:9000
+      - RAILWAY_STORAGE_ACCESS_KEY=minioadmin
+      - RAILWAY_STORAGE_SECRET_KEY=minioadmin
+      - RAILWAY_STORAGE_BUCKET=chickmagnet-storage
+      - RAILWAY_VOLUME_MOUNT_PATH=/data/storage
     depends_on:
-      - postgres
       - redis
       - minio
 

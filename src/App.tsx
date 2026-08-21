@@ -27,6 +27,7 @@ import {
   subscribeOrders,
   saveOrderToFirestore
 } from './services/firestoreSync';
+import { logoutUser, subscribeAuthUser } from './config/firebase';
 import { useCMSBlock } from './utils/cms';
 
 export default function App() {
@@ -114,6 +115,30 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('chickmagnet_cart', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  // Real-time Firebase Auth session and profile sync
+  useEffect(() => {
+    const unsubAuth = subscribeAuthUser((firebaseUser, profileData) => {
+      if (firebaseUser) {
+        const userEmail = firebaseUser.email || '';
+        const isAdminAccount = userEmail.toLowerCase() === 'uxagina@gmail.com' || userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'manyaos7@gmail.com';
+        const userObj: User = {
+          email: userEmail,
+          name: profileData?.displayName || firebaseUser.displayName || (isAdminAccount ? 'Agina (Admin)' : userEmail.split('@')[0] || 'Poultry Member'),
+          role: isAdminAccount ? 'ADMIN' : (profileData?.role || 'BUYER'),
+          buyerType: isAdminAccount ? 'wholesale' : (profileData?.buyerType || 'retail'),
+          avatarEmoji: profileData?.avatarEmoji || (isAdminAccount ? '👑' : '🐣'),
+          photoURL: firebaseUser.photoURL || undefined
+        };
+        setCurrentUser(userObj);
+        localStorage.setItem('chickmagnet_user', JSON.stringify(userObj));
+      }
+    });
+
+    return () => {
+      unsubAuth();
+    };
+  }, []);
 
   // Real-time Firestore sync for Products and Orders
   useEffect(() => {
@@ -262,7 +287,12 @@ export default function App() {
           setAuthMode(mode);
           setAuthModalOpen(true);
         }}
-        onSignOut={() => {
+        onSignOut={async () => {
+          try {
+            await logoutUser();
+          } catch (e) {
+            console.warn('Logout note:', e);
+          }
           setCurrentUser(null);
           localStorage.removeItem('chickmagnet_user');
         }}

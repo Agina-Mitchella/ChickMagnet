@@ -11,7 +11,6 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate || true
 RUN npm run build
 
 # Stage 3: Production runner
@@ -25,7 +24,6 @@ RUN adduser -S expressapp -u 1001
 
 COPY --from=build --chown=expressapp:nodejs /app/package*.json ./
 COPY --from=build --chown=expressapp:nodejs /app/dist ./dist
-COPY --from=build --chown=expressapp:nodejs /app/prisma ./prisma
 
 # Install strictly production dependencies
 RUN npm ci --only=production && npm cache clean --force

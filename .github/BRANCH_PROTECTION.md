@@ -18,7 +18,7 @@ The `main` branch represents the stable production environment for **Sol Handmad
      - ESLint linting
      - Automated unit/integration tests (`vitest`)
      - Secret leak scanning (`TruffleHog`)
-     - Database migration drift validation (`prisma migrate diff`)
+     - Firestore security rules validation
 
 4. **Up-to-Date Branch Enforcement**:
    - Pull request branches must be up to date with `main` before merging.
@@ -38,13 +38,13 @@ The `main` branch represents the stable production environment for **Sol Handmad
 
 1. **Development (`dev`)**:
    - Runs locally or on feature branches using `.env.local`.
-   - Uses test Stripe keys and local Docker containers (PostgreSQL + Redis).
+   - Uses sandbox M-Pesa credentials and local Docker containers (PostgreSQL + Redis).
 
 2. **Preview (`preview`)**:
    - Automatically triggered on every Pull Request to `main`.
    - Deploys preview frontend to a unique Vercel URL.
    - Deploys backend to a Cloud Run preview revision.
-   - Uses test Stripe API keys and isolated preview database schema.
+   - Uses sandbox Daraja APIs and isolated preview database schema.
 
 3. **Production (`production`)**:
    - Automatically triggered only on merge to `main`.

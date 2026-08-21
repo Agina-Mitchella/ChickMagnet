@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, ShieldCheck, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Package, Egg, Layers, HelpCircle, FileText, Activity, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, ShieldCheck, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Package, Egg, Layers, HelpCircle, FileText, Activity, LayoutDashboard, Sparkles, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, BuyerType, MainCategory } from '../types';
 import { useBrandLogo } from '../utils/cms';
+import { INITIAL_BREED_DROPDOWN_OPTIONS } from '../data/products';
 
 interface NavbarProps {
   activeTab: string;
@@ -23,6 +24,8 @@ interface NavbarProps {
   onOpenClaims: () => void;
   onOpenAdmin?: () => void;
   onOpenBusinessPlan?: () => void;
+  selectedBreedFilter?: string;
+  setSelectedBreedFilter?: (breed: string) => void;
 }
 
 export default function Navbar({
@@ -43,9 +46,12 @@ export default function Navbar({
   onOpenWholesale,
   onOpenClaims,
   onOpenAdmin,
-  onOpenBusinessPlan
+  onOpenBusinessPlan,
+  selectedBreedFilter = 'all',
+  setSelectedBreedFilter
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isBreedDropdownOpen, setIsBreedDropdownOpen] = useState(false);
   const brand = useBrandLogo();
 
   const isAdmin = currentUser?.role === 'ADMIN' || 
@@ -61,22 +67,49 @@ export default function Navbar({
     { id: 'farm-supplies', label: 'Farm Supplies', icon: <Layers className="w-4 h-4" />, description: 'Feed, vaccines & equipment' }
   ];
 
+  const handleSelectBreedOption = (optionValue: string, optionCategory?: string) => {
+    if (setSelectedBreedFilter) {
+      setSelectedBreedFilter(optionValue);
+    }
+    if (optionValue === 'all') {
+      setSearchQuery('');
+      if (optionCategory && optionCategory !== 'all') {
+        setSelectedCategory(optionCategory as MainCategory);
+      }
+    } else {
+      // Set breed filter and sync search query for matching
+      setSearchQuery(optionValue);
+      if (optionCategory && optionCategory !== 'all') {
+        setSelectedCategory(optionCategory as MainCategory);
+      }
+    }
+    if (activeTab !== 'shop') {
+      setActiveTab('shop');
+    }
+    setIsBreedDropdownOpen(false);
+  };
+
+  const currentSelectedBreedLabel = INITIAL_BREED_DROPDOWN_OPTIONS.find(
+    o => (o.breedQuery === selectedBreedFilter) || (!o.breedQuery && selectedBreedFilter === 'all') || (searchQuery && o.breedQuery && o.breedQuery.toLowerCase().includes(searchQuery.toLowerCase()))
+  )?.label || 'Browse Heritage Breeds & Categories';
+
   return (
     <header className="sticky top-0 z-40 w-full bg-[#123524] text-amber-50 shadow-md">
       
       {/* Main Header Bar (Row 1) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3 sm:gap-6">
         
-        {/* Logo & Brand Name */}
+        {/* Logo & Brand Name (Location removed as requested) */}
         <div 
           onClick={() => {
             setActiveTab('shop');
             setSelectedCategory('all');
+            setSearchQuery('');
+            if (setSelectedBreedFilter) setSelectedBreedFilter('all');
           }}
           className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 select-none"
         >
           {brand.logoImageUrl ? (
-            /* Clean Logo Image Rendering without square badges or emojis */
             <div className="flex items-center gap-3">
               <img 
                 src={brand.logoImageUrl} 
@@ -88,50 +121,89 @@ export default function Navbar({
                   {brand.brandName || 'ChickMagnet'}
                 </span>
               )}
-              <div className="hidden lg:block border-l border-emerald-800/80 pl-3">
-                <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase font-medium flex items-center gap-1">
-                  <span>📍 Kisii, Kenya</span>
-                  <span>•</span>
-                  <span>Hatchery Marketplace</span>
-                </p>
-              </div>
             </div>
           ) : (
-            /* Clean Text-Only Brand Name when no logo image is set */
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
-                  {brand.brandName || 'ChickMagnet'}
-                </span>
-              </div>
-              <p className="text-[9px] sm:text-[10px] text-emerald-300/90 font-mono tracking-wider uppercase mt-0.5 font-medium flex items-center gap-1">
-                <span>📍 Kisii, Kenya</span>
-                <span>•</span>
-                <span>Hatchery Marketplace</span>
-              </p>
+              <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
+                {brand.brandName || 'ChickMagnet'}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Desktop Search Bar */}
-        <div className="flex-1 max-w-xl hidden sm:block relative">
+        {/* BREED DROPDOWN SELECTOR (Replaces Search Bar) */}
+        <div className="flex-1 max-w-xl relative">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search breeds, fresh cuts, hatching eggs..."
-              className="w-full pl-10 pr-4 py-2 bg-[#0b2217] border border-emerald-800/80 rounded-xl text-xs text-amber-50 placeholder-emerald-400/70 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-400 hover:text-amber-300 p-1 cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
+            <button
+              id="breed-dropdown-trigger"
+              type="button"
+              onClick={() => setIsBreedDropdownOpen(!isBreedDropdownOpen)}
+              className="w-full flex items-center justify-between pl-4 pr-3.5 py-2.5 bg-[#0b2217] border border-emerald-700/80 hover:border-amber-400/80 rounded-xl text-xs text-amber-50 transition-all cursor-pointer shadow-xs"
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                <span className="font-bold text-amber-300 font-mono uppercase tracking-wider text-[10px] shrink-0">Select Breed:</span>
+                <span className="truncate text-slate-100 font-medium">{currentSelectedBreedLabel}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-amber-400 transition-transform shrink-0 ml-2 ${isBreedDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {isBreedDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="absolute left-0 right-0 mt-2 bg-[#0b2217] border-2 border-emerald-700 rounded-2xl shadow-2xl z-50 p-2 text-xs text-emerald-100 max-h-80 overflow-y-auto"
+                >
+                  <div className="px-2 py-1.5 text-[10px] font-mono uppercase text-emerald-400 font-bold border-b border-emerald-900 flex items-center justify-between">
+                    <span>Verified Breeds & Categories</span>
+                    <span>Hatchery Verified</span>
+                  </div>
+
+                  <div className="pt-1.5 space-y-1">
+                    {INITIAL_BREED_DROPDOWN_OPTIONS.map((opt) => {
+                      const optionVal = opt.breedQuery || 'all';
+                      const isSelected = selectedBreedFilter === optionVal || (!selectedBreedFilter && optionVal === 'all');
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSelectBreedOption(optionVal, opt.category)}
+                          className={`w-full text-left px-3 py-2 rounded-xl transition flex items-center justify-between cursor-pointer ${
+                            isSelected 
+                              ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' 
+                              : 'hover:bg-emerald-900/60 text-slate-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-sm">
+                              {opt.category === 'live-birds' ? '🐥' : opt.category === 'fresh-poultry' ? '🍗' : opt.category === 'eggs' ? '🥚' : opt.category === 'farm-supplies' ? '📦' : '🌟'}
+                            </span>
+                            <div>
+                              <div className="font-bold">{opt.label}</div>
+                              {opt.description && (
+                                <div className={`text-[10px] ${isSelected ? 'text-emerald-900 font-medium' : 'text-emerald-300/80 font-normal'}`}>
+                                  {opt.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {opt.category !== 'all' && (
+                            <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full ${
+                              isSelected ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-amber-300'
+                            }`}>
+                              {opt.category}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -164,7 +236,7 @@ export default function Navbar({
                       <div className="font-bold text-amber-300">{currentUser.name}</div>
                       <div className="text-[11px] text-emerald-400 truncate">{currentUser.email}</div>
                       <div className="mt-1 text-[10px] uppercase font-mono bg-emerald-900/60 text-amber-300 px-2 py-0.5 rounded inline-block font-bold">
-                        Account: {currentUser.buyerType || buyerType}
+                        Account: {buyerType === 'retail' ? 'Homesteader' : buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Farmer'}
                       </div>
                     </div>
                     
@@ -230,7 +302,7 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Admin Dashboard Quick Button - Strictly for Admin Role */}
+          {/* Admin Dashboard Quick Button */}
           {onOpenAdmin && isAdmin && (
             <button
               onClick={onOpenAdmin}
@@ -241,7 +313,7 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Farm Business Plan Quick Button - Strictly for Admin Role */}
+          {/* Farm Business Plan Quick Button */}
           {onOpenBusinessPlan && isAdmin && (
             <button
               onClick={onOpenBusinessPlan}
@@ -254,6 +326,7 @@ export default function Navbar({
 
           {/* Cart Button */}
           <button
+            id="header-cart-button"
             onClick={onOpenCart}
             className="relative flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 px-3.5 sm:px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-transform hover:scale-102 cursor-pointer min-h-[40px]"
           >
@@ -265,28 +338,6 @@ export default function Navbar({
               </span>
             )}
           </button>
-        </div>
-      </div>
-
-      {/* Mobile Search Bar Row (Dedicated for small screens) */}
-      <div className="block sm:hidden px-4 pb-3">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Kenbro, Kienyeji, fresh cuts..."
-            className="w-full pl-9 pr-8 py-2 bg-[#0b2217] border border-emerald-800/80 rounded-xl text-xs text-amber-50 placeholder-emerald-400/70 focus:outline-none focus:border-amber-400"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-emerald-400 hover:text-amber-300 p-1"
-            >
-              ✕
-            </button>
-          )}
         </div>
       </div>
 

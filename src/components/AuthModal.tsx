@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Sparkles, Mail, Lock, User as UserIcon, LogIn, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
 import { api } from '../utils/api';
-import { signInWithGoogle } from '../config/firebase';
+import { signInWithGoogle, signInWithEmail, registerWithEmail } from '../config/firebase';
 import { useBrandLogo } from '../utils/cms';
 
 interface AuthModalProps {
@@ -111,11 +111,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     const isAdminAccount = cleanEmail === 'uxagina@gmail.com' || cleanEmail.includes('admin') || cleanEmail === 'manyaos7@gmail.com';
 
     try {
-      const response = await api.auth.login(email);
-      const loggedUser = response.user;
-      if (isAdminAccount) {
-        loggedUser.role = 'ADMIN';
-      }
+      const fbUser = await signInWithEmail(cleanEmail, password);
+      const loggedUser: User = {
+        email: fbUser.email || cleanEmail,
+        name: fbUser.displayName || (isAdminAccount ? 'Agina (Admin)' : cleanEmail.split('@')[0]),
+        avatarEmoji: isAdminAccount ? '👑' : '🐣',
+        role: isAdminAccount ? 'ADMIN' : (targetRole || 'BUYER'),
+        buyerType: isAdminAccount ? 'wholesale' : 'retail'
+      };
       
       onAuthSuccess(loggedUser);
       setSuccessMsg(`Welcome back to ChickMagnet, ${loggedUser.name}.`);
@@ -124,82 +127,16 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         setSuccessMsg(null);
       }, 1000);
     } catch (err: any) {
-      console.warn('Backend connection failed, checking local fallback:', err);
-      
-      const isDemo = cleanEmail === 'user@example.com' && password === 'password';
-      
-      const savedUsersStr = localStorage.getItem('chickmagnet_registered_users');
-      let registeredUsers: any[] = [];
-      if (savedUsersStr) {
-        try {
-          registeredUsers = JSON.parse(savedUsersStr);
-        } catch (e) {
-          console.error('Failed to parse registered users');
-        }
+      console.warn('Firebase Auth sign-in failed:', err);
+      let errMsg = 'Failed to sign in. Please check your email and password.';
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+        errMsg = 'Invalid email or password. If you are a new user, please register first.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errMsg = 'Access temporarily disabled due to many failed attempts. Please try again later.';
+      } else if (err.message) {
+        errMsg = err.message;
       }
-
-      const foundUser = registeredUsers.find(
-        u => u.email.trim().toLowerCase() === cleanEmail && u.password === password
-      );
-
-      if (isAdminAccount) {
-        const adminUser: User = {
-          email: cleanEmail,
-          name: cleanEmail === 'uxagina@gmail.com' ? 'Agina (Admin)' : 'Farm Manager (Admin)',
-          avatarEmoji: '👑',
-          role: 'ADMIN',
-          buyerType: 'wholesale'
-        };
-        onAuthSuccess(adminUser);
-        setSuccessMsg('Welcome back, Admin.');
-        setTimeout(() => {
-          onClose();
-          setSuccessMsg(null);
-        }, 1000);
-      } else if (isDemo) {
-        const demoUser: User = {
-          email: 'demo@example.com',
-          name: 'Demo Farmer',
-          avatarEmoji: '🐣',
-          role: 'BUYER',
-          buyerType: 'retail'
-        };
-        onAuthSuccess(demoUser);
-        setSuccessMsg('Welcome back!');
-        setTimeout(() => {
-          onClose();
-          setSuccessMsg(null);
-        }, 1000);
-      } else if (foundUser) {
-        const loggedUser: User = {
-          email: foundUser.email,
-          name: foundUser.name,
-          avatarEmoji: foundUser.avatarEmoji,
-          role: foundUser.role || targetRole || 'BUYER',
-          buyerType: foundUser.buyerType || 'retail'
-        };
-        onAuthSuccess(loggedUser);
-        setSuccessMsg(`Welcome back, ${loggedUser.name}.`);
-        setTimeout(() => {
-          onClose();
-          setSuccessMsg(null);
-        }, 1000);
-      } else {
-        // Automatically allow login for local testing
-        const fallbackUser: User = {
-          email: cleanEmail,
-          name: cleanEmail.split('@')[0] || 'Member',
-          avatarEmoji: '🐣',
-          role: 'BUYER',
-          buyerType: 'retail'
-        };
-        onAuthSuccess(fallbackUser);
-        setSuccessMsg(`Signed in as ${fallbackUser.name}`);
-        setTimeout(() => {
-          onClose();
-          setSuccessMsg(null);
-        }, 1000);
-      }
+      setError(errMsg);
     }
   };
 
@@ -215,6 +152,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       setError('Please enter your email and password.');
       return;
     }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -224,64 +165,43 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const isAdminAccount = cleanEmail === 'uxagina@gmail.com' || cleanEmail.includes('admin') || cleanEmail === 'manyaos7@gmail.com';
+
     try {
-      const response = await api.auth.register({
-        email,
-        name,
+      const fbUser = await registerWithEmail(
+        cleanEmail,
+        password,
+        name.trim(),
+        selectedEmoji,
+        isAdminAccount ? 'ADMIN' : selectedRole
+      );
+
+      const loggedUser: User = {
+        email: fbUser.email || cleanEmail,
+        name: name.trim(),
         avatarEmoji: selectedEmoji,
-        role: selectedRole,
-        buyerType: 'retail'
-      });
-      const loggedUser = response.user;
+        role: (isAdminAccount ? 'ADMIN' : selectedRole) as any,
+        buyerType: isAdminAccount ? 'wholesale' : 'retail'
+      };
 
       resetForm();
       onAuthSuccess(loggedUser);
       setRegisteredUser(loggedUser);
       setMode('welcome');
     } catch (err: any) {
-      console.warn('Backend registration failed, using local fallback:', err);
-      
-      const savedUsersStr = localStorage.getItem('chickmagnet_registered_users') || '[]';
-      let registeredUsers: any[] = [];
-      try {
-        registeredUsers = JSON.parse(savedUsersStr);
-      } catch (e) {
-        registeredUsers = [];
+      console.warn('Firebase Auth registration error:', err);
+      let errMsg = 'Registration failed. Please try again.';
+      if (err.code === 'auth/email-already-in-use') {
+        errMsg = 'An account with this email already exists. Please sign in instead.';
+      } else if (err.code === 'auth/weak-password') {
+        errMsg = 'Password is too weak. Please use at least 6 characters.';
+      } else if (err.code === 'auth/invalid-email') {
+        errMsg = 'Please enter a valid email address.';
+      } else if (err.message) {
+        errMsg = err.message;
       }
-
-      const emailExists = registeredUsers.some(
-        u => u.email.trim().toLowerCase() === email.trim().toLowerCase()
-      ) || email.trim().toLowerCase() === 'user@example.com';
-
-      if (emailExists) {
-        setError('An account with this email already exists.');
-        return;
-      }
-
-      const newUserRecord = {
-        name: name.trim(),
-        email: email.trim(),
-        password: password,
-        avatarEmoji: selectedEmoji,
-        role: selectedRole,
-        buyerType: 'retail'
-      };
-
-      registeredUsers.push(newUserRecord);
-      localStorage.setItem('chickmagnet_registered_users', JSON.stringify(registeredUsers));
-
-      const loggedUser: User = {
-        email: newUserRecord.email,
-        name: newUserRecord.name,
-        avatarEmoji: newUserRecord.avatarEmoji,
-        role: newUserRecord.role as any,
-        buyerType: 'retail'
-      };
-      
-      resetForm();
-      onAuthSuccess(loggedUser);
-      setRegisteredUser(loggedUser);
-      setMode('welcome');
+      setError(errMsg);
     }
   };
 

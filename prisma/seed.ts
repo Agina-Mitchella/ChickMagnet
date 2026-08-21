@@ -314,8 +314,8 @@ async function main() {
           amount: product.price,
           platformFee: Math.floor(product.price * 0.05),
           netAmount: Math.floor(product.price * 0.95),
-          stripeChargeId: `ch_mock_${i}`
-        }
+          mobileMoneyReference: `MPESA_REC_2026_${i}`
+        } as any
       });
 
       // Add reviews

@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 // 1. tryCatch utility to wrap async controllers and skip repetitive try-catch blocks
@@ -20,22 +19,7 @@ export function slugify(text: string): string {
     .replace(/\-\-+/g, '-');    // Replace multiple - with single -
 }
 
-// 3. Token & Cookie generation helpers
-const JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || 'mock_private_key';
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'mock_refresh_secret';
-
-export function generateAccessToken(payload: { id: string; email: string; role: string; keeperId?: string }): string {
-  // Signs standard JWT
-  return jwt.sign(payload, JWT_PRIVATE_KEY, {
-    algorithm: 'HS256', // Fallback to HS256 for mock setups; RS256 in production
-    expiresIn: '15m'
-  });
-}
-
-export function generateRefreshToken(userId: string): string {
-  return jwt.sign({ id: userId }, REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
-}
-
+// 3. Secure UUID generator
 export function generateSecureUUID(): string {
   return crypto.randomUUID();
 }

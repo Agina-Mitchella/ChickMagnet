@@ -1,5 +1,15 @@
 import { initializeApp, setLogLevel } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
 import { initializeFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
@@ -97,22 +107,88 @@ export const signInWithGoogle = async () => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
     
+    const isAdminAccount = user.email?.toLowerCase() === 'uxagina@gmail.com' || user.email?.toLowerCase().includes('admin') || user.email?.toLowerCase() === 'manyaos7@gmail.com';
+
     if (!userSnap.exists()) {
       await setDoc(userRef, {
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName,
+        displayName: user.displayName || (isAdminAccount ? 'Agina (Admin)' : 'Poultry Farmer'),
+        role: isAdminAccount ? 'ADMIN' : 'BUYER',
+        buyerType: isAdminAccount ? 'wholesale' : 'retail',
+        avatarEmoji: isAdminAccount ? '👑' : '🐣',
         photoURL: user.photoURL,
         createdAt: new Date().toISOString(),
-        wishlist: [],
-        craftedItems: [],
-        cart: []
       });
     }
     
     return user;
   } catch (error) {
     console.error("Error signing in with Google:", error);
+    throw error;
+  }
+};
+
+// Email & Password Sign In Helper
+export const signInWithEmail = async (email: string, pass: string) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    const user = result.user;
+
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      const isAdminAccount = user.email?.toLowerCase() === 'uxagina@gmail.com' || user.email?.toLowerCase().includes('admin') || user.email?.toLowerCase() === 'manyaos7@gmail.com';
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email?.split('@')[0] || 'Member',
+        role: isAdminAccount ? 'ADMIN' : 'BUYER',
+        buyerType: isAdminAccount ? 'wholesale' : 'retail',
+        avatarEmoji: isAdminAccount ? '👑' : '🐣',
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return user;
+  } catch (error) {
+    console.error("Error signing in with email:", error);
+    throw error;
+  }
+};
+
+// Email & Password Registration Helper
+export const registerWithEmail = async (
+  email: string,
+  pass: string,
+  name: string,
+  avatarEmoji: string = '🐣',
+  role: string = 'BUYER'
+) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, pass);
+    const user = result.user;
+
+    await updateProfile(user, {
+      displayName: name
+    });
+
+    const isAdminAccount = email.toLowerCase() === 'uxagina@gmail.com' || email.toLowerCase().includes('admin') || email.toLowerCase() === 'manyaos7@gmail.com';
+    const finalRole = isAdminAccount ? 'ADMIN' : role;
+
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      uid: user.uid,
+      email: user.email,
+      displayName: name,
+      role: finalRole,
+      buyerType: finalRole === 'ADMIN' ? 'wholesale' : 'retail',
+      avatarEmoji: avatarEmoji || '🐣',
+      createdAt: new Date().toISOString(),
+    });
+
+    return user;
+  } catch (error) {
+    console.error("Error registering with email:", error);
     throw error;
   }
 };
@@ -125,4 +201,25 @@ export const logoutUser = async () => {
     console.error("Error signing out:", error);
     throw error;
   }
+};
+
+// Real-time Auth User Listener
+export const subscribeAuthUser = (callback: (user: FirebaseUser | null, profileData?: any) => void) => {
+  return onAuthStateChanged(auth, async (firebaseUser) => {
+    if (firebaseUser) {
+      try {
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          callback(firebaseUser, userSnap.data());
+          return;
+        }
+      } catch (err) {
+        console.warn('Error fetching Firestore user profile on auth change:', err);
+      }
+      callback(firebaseUser, null);
+    } else {
+      callback(null, null);
+    }
+  });
 };

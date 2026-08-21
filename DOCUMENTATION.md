@@ -10,7 +10,6 @@ Welcome to the comprehensive documentation for **ChickMagnet**, a premium poultr
 3. [Key Application Modules](#3-key-application-modules)
 4. [Payment Gateway Integrations](#4-payment-gateway-integrations)
    - [Safaricom Lipa Na M-Pesa (Daraja API)](#safaricom-lipa-na-m-pesa-daraja-api)
-   - [Stripe & Stripe Connect](#stripe--stripe-connect)
    - [Wholesale Net-30 Purchase Orders](#wholesale-net-30-purchase-orders)
 5. [User Roles & Authentication](#5-user-roles--authentication)
 6. [API Reference & Endpoint Directory](#6-api-reference--endpoint-directory)
@@ -42,7 +41,7 @@ The application is built using a modern **Full-Stack Express + React (Vite)** ar
 | **Icons & Design** | Lucide React, Custom SVG Brand System |
 | **Backend API** | Node.js, Express.js (v4/v5 API routes under `/api/v1`) |
 | **Database & Auth** | Firebase Firestore (NoSQL), Firebase Auth, JWT with RBAC |
-| **Payments** | Safaricom M-Pesa Daraja 2.0 (STK Push), Stripe API |
+| **Payments** | Safaricom M-Pesa Daraja 2.0 (STK Push) |
 | **Log Infrastructure** | Structured JSON Logger with correlation IDs |
 | **Containerization** | Docker, Docker Compose, Cloud Run (`cloudrun.yaml`) |
 
@@ -71,7 +70,7 @@ The application is built using a modern **Full-Stack Express + React (Vite)** ar
 
 ## 4. Payment Gateway Integrations
 
-ChickMagnet features a multi-channel payment engine suited for local and international customers.
+ChickMagnet features a specialized mobile money engine designed for Safaricom Lipa Na M-Pesa.
 
 ### Safaricom Lipa Na M-Pesa (Daraja API)
 - **Mode**: Express STK Push (`CustomerPayBillOnline`).
@@ -81,10 +80,6 @@ ChickMagnet features a multi-channel payment engine suited for local and interna
   3. Safaricom sends an instant PIN prompt directly to customer phone handset.
   4. Backend receives IPN callback via `POST /api/v1/payments/mpesa/callback` and updates order status.
   5. Frontend polls `GET /api/v1/payments/mpesa/status/:checkoutRequestId` for real-time UI confirmation.
-
-### Stripe & Stripe Connect
-- **Mode**: Credit/Debit Card Payments & Marketplace Merchant Payouts.
-- **Features**: Pre-authorization for weight-variable items and webhook listeners for charge updates (`POST /api/v1/payments/webhook`).
 
 ### Wholesale Net-30 Purchase Orders
 - Approved wholesale accounts can complete checkout using a Purchase Order (PO) number with 30-day deferred billing.
@@ -109,7 +104,6 @@ All API routes are served under the `/api/v1` namespace:
 - `POST /api/v1/payments/mpesa/stkpush`: Triggers M-Pesa STK Push prompt to phone.
 - `POST /api/v1/payments/mpesa/callback`: Safaricom Instant Payment Notification (IPN) webhook.
 - `GET /api/v1/payments/mpesa/status/:checkoutRequestId`: Poll status of an M-Pesa transaction.
-- `POST /api/v1/payments/webhook`: Stripe webhook receiver.
 
 ### Auth API (`/api/v1/auth`)
 - `POST /api/v1/auth/login`: Authenticates user & issues session JWT.
@@ -132,9 +126,13 @@ Create a `.env` file in the project root based on `.env.example`:
 PORT=3000
 NODE_ENV=development
 
-# JWT Authentication
-JWT_SECRET=your_jwt_secret_key
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-app.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=205792581271
+VITE_FIREBASE_APP_ID=1:...
 
 # Safaricom M-Pesa Daraja Credentials
 MPESA_ENVIRONMENT=sandbox
@@ -144,9 +142,12 @@ MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
 MPESA_SHORTCODE=174379
 MPESA_CALLBACK_URL=https://your-domain.com/api/v1/payments/mpesa/callback
 
-# Stripe Payments
-STRIPE_SECRET_KEY=sk_test_your_secret_stripe_key
-STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
+# Cloud Storage: Railway Storage / Persistent Volume
+RAILWAY_STORAGE_ENDPOINT=https://storage.railway.app
+RAILWAY_STORAGE_ACCESS_KEY=your_railway_storage_access_key
+RAILWAY_STORAGE_SECRET_KEY=your_railway_storage_secret_key
+RAILWAY_STORAGE_BUCKET=chickmagnet-storage
+RAILWAY_VOLUME_MOUNT_PATH=/data/storage
 ```
 
 ---

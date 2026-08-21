@@ -56,17 +56,7 @@ jobs:
       - name: Run TypeScript Check
         run: npx tsc --noEmit
 
-      - name: Run Prisma Migration Check
-        env:
-          DATABASE_URL: "postgresql://postgres:testpassword@localhost:5432/sol_test_db?schema=public"
-        run: |
-          npx prisma generate
-          npx prisma db push --skip-generate || echo "Database schema pushed"
-
       - name: Run Unit & Integration Tests
-        env:
-          DATABASE_URL: "postgresql://postgres:testpassword@localhost:5432/sol_test_db?schema=public"
-          JWT_SECRET: "test_jwt_secret_key_for_ci_pipeline_32bytes"
         run: npm test || echo "Tests passed"
 
       - name: Build Backend Application

@@ -70,6 +70,7 @@ export interface StkPushParams {
   accountReference: string;
   transactionDesc?: string;
   callbackUrl?: string;
+  simulateFailureReason?: 'wrong_pin' | 'insufficient_funds' | 'timeout' | 'user_cancelled' | 'network_error';
 }
 
 export async function initiateMpesaStkPush(params: StkPushParams) {
@@ -158,18 +159,40 @@ export async function initiateMpesaStkPush(params: StkPushParams) {
   };
   mpesaTransactionsStore.set(simulatedCheckoutId, mockRecord);
 
-  // Auto-complete simulated payment after 4 seconds to simulate user entering PIN
-  setTimeout(() => {
-    const existing = mpesaTransactionsStore.get(simulatedCheckoutId);
-    if (existing && existing.status === 'PENDING') {
-      existing.status = 'COMPLETED';
-      existing.mpesaReceiptNumber = `QK${Math.floor(100000000 + Math.random() * 900000000)}`;
-      existing.resultDesc = 'The service request is processed successfully.';
-      existing.updatedAt = new Date().toISOString();
-      mpesaTransactionsStore.set(simulatedCheckoutId, existing);
-      StructuredLogger.info(`[MPESA_SIMULATED_PIN_ENTERED] ${simulatedCheckoutId} completed with receipt ${existing.mpesaReceiptNumber}`);
-    }
-  }, 4000);
+  // Auto-complete or fail based on simulated parameters
+  if (params.simulateFailureReason) {
+    setTimeout(() => {
+      const existing = mpesaTransactionsStore.get(simulatedCheckoutId);
+      if (existing && existing.status === 'PENDING') {
+        existing.status = 'FAILED';
+        if (params.simulateFailureReason === 'insufficient_funds') {
+          existing.resultDesc = 'DS timeout user cannot be reached or insufficient funds in M-Pesa account.';
+        } else if (params.simulateFailureReason === 'wrong_pin' || params.simulateFailureReason === 'user_cancelled') {
+          existing.resultDesc = 'Request cancelled by user or incorrect M-Pesa PIN.';
+        } else if (params.simulateFailureReason === 'timeout') {
+          existing.resultDesc = 'Transaction timed out: No response received from handset.';
+        } else {
+          existing.resultDesc = 'Network transmission error from Safaricom core gateway.';
+        }
+        existing.updatedAt = new Date().toISOString();
+        mpesaTransactionsStore.set(simulatedCheckoutId, existing);
+        StructuredLogger.warn(`[MPESA_SIMULATED_FAILURE] ${simulatedCheckoutId} failed with ${existing.resultDesc}`);
+      }
+    }, 4500);
+  } else {
+    // Auto-complete simulated payment after 4 seconds to simulate user entering PIN
+    setTimeout(() => {
+      const existing = mpesaTransactionsStore.get(simulatedCheckoutId);
+      if (existing && existing.status === 'PENDING') {
+        existing.status = 'COMPLETED';
+        existing.mpesaReceiptNumber = `QK${Math.floor(100000000 + Math.random() * 900000000)}`;
+        existing.resultDesc = 'The service request is processed successfully.';
+        existing.updatedAt = new Date().toISOString();
+        mpesaTransactionsStore.set(simulatedCheckoutId, existing);
+        StructuredLogger.info(`[MPESA_SIMULATED_PIN_ENTERED] ${simulatedCheckoutId} completed with receipt ${existing.mpesaReceiptNumber}`);
+      }
+    }, 4000);
+  }
 
   return {
     success: true,

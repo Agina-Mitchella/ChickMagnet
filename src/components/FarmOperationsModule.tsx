@@ -437,34 +437,32 @@ export default function FarmOperationsModule() {
   };
 
   return (
-    <div className="space-y-6 text-slate-100 font-sans">
+    <div className="space-y-6 text-slate-900 font-sans">
       
       {/* Farm Operations Top Bar */}
-      <div className="bg-gradient-to-r from-[#071d12] via-[#0c2e1e] to-slate-900 border border-emerald-700/60 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+              <Activity className="w-3.5 h-3.5 text-emerald-600" />
               Production Command & Operations Module
             </div>
-            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl lg:text-3xl font-extrabold text-emerald-950 tracking-tight font-serif flex items-center gap-3">
               Internal Farm Operations Command
             </h1>
-            <p className="text-emerald-200/80 text-xs mt-1 max-w-2xl">
+            <p className="text-slate-600 text-xs mt-1 max-w-2xl">
               Live flock cost tracking, feed inventory alerts, vaccination schedules, weight sample analytics, daily staff checklists, and B2B sales pipeline — shared directly with customer traceability.
             </p>
           </div>
 
           {/* Batch Selector Switcher */}
-          <div className="bg-slate-900/90 border border-emerald-600/60 p-3 rounded-xl flex items-center gap-3">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex items-center gap-3">
             <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Active Flock Batch</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase block">Active Flock Batch</span>
               <select
                 value={selectedBatchId}
                 onChange={(e) => setSelectedBatchId(e.target.value)}
-                className="bg-slate-800 text-amber-300 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer focus:outline-none focus:border-emerald-500"
+                className="bg-white text-emerald-950 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold cursor-pointer focus:outline-none focus:border-emerald-600"
               >
                 {flocks.map(f => (
                   <option key={f.batchId} value={f.batchId}>
@@ -473,57 +471,57 @@ export default function FarmOperationsModule() {
                 ))}
               </select>
             </div>
-            <div className="border-l border-slate-700 pl-3">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase block">Traceability Sync</span>
-              <span className="text-xs text-white font-mono flex items-center gap-1 font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Live Synced
+            <div className="border-l border-slate-200 pl-3">
+              <span className="text-[10px] text-emerald-800 font-bold uppercase block">Traceability Sync</span>
+              <span className="text-xs text-emerald-900 font-mono flex items-center gap-1 font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Live Synced
               </span>
             </div>
           </div>
         </div>
 
         {/* Executive Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-6 pt-5 border-t border-emerald-800/60">
-          <div className="bg-slate-900/80 border border-emerald-900/80 p-3 rounded-xl">
-            <span className="text-[11px] text-emerald-400 font-bold block">Live Flock Count</span>
-            <div className="text-xl font-extrabold text-white mt-1">
-              {activeLiveCount} <span className="text-xs text-slate-400 font-normal">/ {activeFlock.initialPlaced}</span>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-6 pt-5 border-t border-slate-100">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[11px] text-emerald-800 font-bold block">Live Flock Count</span>
+            <div className="text-xl font-extrabold text-slate-900 mt-1">
+              {activeLiveCount} <span className="text-xs text-slate-500 font-normal">/ {activeFlock.initialPlaced}</span>
             </div>
-            <span className="text-[10px] text-emerald-300/80 block mt-0.5">Mortality: {activeFlock.mortalityCount} ({(activeFlock.mortalityCount / activeFlock.initialPlaced * 100).toFixed(1)}%)</span>
+            <span className="text-[10px] text-slate-600 block mt-0.5">Mortality: {activeFlock.mortalityCount} ({(activeFlock.mortalityCount / activeFlock.initialPlaced * 100).toFixed(1)}%)</span>
           </div>
 
-          <div className="bg-slate-900/80 border border-emerald-900/80 p-3 rounded-xl">
-            <span className="text-[11px] text-amber-400 font-bold block">Sunk Cost to Date</span>
-            <div className="text-xl font-extrabold text-amber-300 mt-1">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[11px] text-emerald-800 font-bold block">Sunk Cost to Date</span>
+            <div className="text-xl font-extrabold text-slate-900 mt-1">
               Ksh. {activeFlock.sunkCostKsh.toLocaleString()}
             </div>
-            <span className="text-[10px] text-slate-400 block mt-0.5">Ksh. {Math.round(activeFlock.sunkCostKsh / activeLiveCount)} / live bird</span>
+            <span className="text-[10px] text-slate-600 block mt-0.5">Ksh. {Math.round(activeFlock.sunkCostKsh / activeLiveCount)} / live bird</span>
           </div>
 
-          <div className="bg-slate-900/80 border border-emerald-900/80 p-3 rounded-xl">
-            <span className="text-[11px] text-emerald-400 font-bold block">Starter Feed Inventory</span>
-            <div className={`text-xl font-extrabold mt-1 ${isStarterFeedLow ? 'text-amber-400' : 'text-emerald-300'}`}>
-              {starterBags} Bags <span className="text-xs text-slate-400">({starterDaysCovered} days)</span>
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[11px] text-emerald-800 font-bold block">Starter Feed Inventory</span>
+            <div className={`text-xl font-extrabold mt-1 ${isStarterFeedLow ? 'text-amber-700' : 'text-slate-900'}`}>
+              {starterBags} Bags <span className="text-xs text-slate-500">({starterDaysCovered} days)</span>
             </div>
-            <span className="text-[10px] text-slate-400 block mt-0.5">
+            <span className="text-[10px] text-slate-600 block mt-0.5">
               {isStarterFeedLow ? '⚠️ REORDER REQUIRED' : 'Normal coverage'}
             </span>
           </div>
 
-          <div className="bg-slate-900/80 border border-emerald-900/80 p-3 rounded-xl">
-            <span className="text-[11px] text-amber-400 font-bold block">Target Sale Price</span>
-            <div className="text-xl font-extrabold text-amber-400 mt-1">
+          <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl">
+            <span className="text-[11px] text-amber-900 font-bold block">Target Sale Price</span>
+            <div className="text-xl font-extrabold text-amber-900 mt-1">
               Ksh. {calcRequiredPricePerBird.toLocaleString()}
             </div>
-            <span className="text-[10px] text-amber-200/80 block mt-0.5">For Ksh. {(calcTargetProfitKsh/1000).toFixed(0)}k net profit</span>
+            <span className="text-[10px] text-amber-800 block mt-0.5">For Ksh. {(calcTargetProfitKsh/1000).toFixed(0)}k net profit</span>
           </div>
 
-          <div className="bg-slate-900/80 border border-emerald-900/80 p-3 rounded-xl">
-            <span className="text-[11px] text-emerald-400 font-bold block">Staff Tasks Done</span>
-            <div className="text-xl font-extrabold text-white mt-1">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <span className="text-[11px] text-emerald-800 font-bold block">Staff Tasks Done</span>
+            <div className="text-xl font-extrabold text-slate-900 mt-1">
               {staffTasks.filter(t => t.completed).length} / {staffTasks.length}
             </div>
-            <span className="text-[10px] text-emerald-300/80 block mt-0.5">
+            <span className="text-[10px] text-slate-600 block mt-0.5">
               {Math.round((staffTasks.filter(t => t.completed).length / staffTasks.length) * 100)}% SOP Completion
             </span>
           </div>
@@ -531,7 +529,7 @@ export default function FarmOperationsModule() {
       </div>
 
       {/* Farm Operations Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         {[
           { id: 'alerts', label: '9) Risk Alerts Red Flags', icon: AlertTriangle, badge: (isStarterFeedLow || isMortalitySpike || isWeightBehind) ? '!' : undefined },
           { id: 'flocks', label: '1) Flock & Cost Tracker', icon: Calculator },
@@ -551,8 +549,8 @@ export default function FarmOperationsModule() {
               onClick={() => setActiveOpsTab(tab.id as any)}
               className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
                 isActive 
-                  ? 'bg-amber-400 text-slate-950 shadow-lg shadow-amber-400/20' 
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-amber-400 text-emerald-950 shadow-xs' 
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <Icon className="w-4 h-4" />

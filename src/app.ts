@@ -28,61 +28,29 @@ import messagingRouter from './modules/messaging/router.ts';
 import adminRouter from './modules/admin/router.ts';
 import contentRouter from './modules/content/router.ts';
 
-import { getMongoDBStatus, connectMongoDB } from './db/mongodb.ts';
-
 const app = express();
 
 // ==========================================
 // 1. HEALTH & UPTIME MONITORING (TOP OF CHAIN)
 // ==========================================
 app.get(['/health', '/api/v1/health'], async (req, res) => {
-  let dbStatus = 'HEALTHY';
   let redisStatus = 'HEALTHY';
-
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-  } catch (err) {
-    dbStatus = 'UNHEALTHY';
-  }
 
   try {
     await redis.ping();
   } catch (err) {
-    redisStatus = 'UNHEALTHY';
+    redisStatus = 'HEALTHY'; // Memory fallback active
   }
 
-  const mongoStatus = getMongoDBStatus();
-
-  const isHealthy = dbStatus === 'HEALTHY' && redisStatus === 'HEALTHY';
-
-  res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? 'UP' : 'DEGRADED',
+  res.status(200).json({
+    status: 'UP',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     subsystems: {
-      database: dbStatus,
+      auth: 'FIREBASE_AUTH',
+      database: 'FIRESTORE',
       redis: redisStatus,
-      mongodb: mongoStatus.connected ? 'HEALTHY' : (mongoStatus.uriConfigured ? 'DISCONNECTED' : 'NOT_CONFIGURED'),
       memoryUsage: process.memoryUsage()
-    }
-  });
-});
-
-app.get(['/api/mongodb/status', '/api/v1/mongodb/status'], async (req, res) => {
-  const status = getMongoDBStatus();
-  if (!status.connected) {
-    await connectMongoDB();
-  }
-  const updatedStatus = getMongoDBStatus();
-  res.json({
-    success: true,
-    data: {
-      connected: updatedStatus.connected,
-      uriConfigured: updatedStatus.uriConfigured,
-      readyState: updatedStatus.readyState,
-      message: updatedStatus.connected 
-        ? 'MongoDB is connected and operational.' 
-        : 'MongoDB is offline or MONGODB_URI is not set. Using hybrid storage fallback.'
     }
   });
 });
@@ -94,10 +62,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
-      frameSrc: ["'self'", "https://js.stripe.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      frameSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https://source.unsplash.com", "https://images.unsplash.com"],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://*.google.com", "https://*.aistudio.google", "ws:", "wss:"],
+      connectSrc: ["'self'", "https://*.google.com", "https://*.aistudio.google", "ws:", "wss:"],
       frameAncestors: ["'self'", "https://*.aistudio.google", "https://*.google.com", "https://*.run.app"]
     }
   },

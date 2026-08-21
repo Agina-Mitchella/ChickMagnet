@@ -83,7 +83,7 @@ model RefreshToken {
 model OAuthAccount {
   id           String   @id @default(uuid())
   userId       String
-  provider     String   // "google" | "apple"
+  provider     String   // "google"
   providerId   String   @unique
   createdAt    DateTime @default(now())
 
@@ -100,7 +100,7 @@ model KeeperProfile {
   shopSlug              String            @unique
   shopName              String
   bio                   String?
-  stripeAccountId       String?
+  mpesaPaybillNumber    String?
   shopStatus            ShopStatus        @default(DRAFT)
   loreMode              LoreMode          @default(WOODLAND)
   awayMode              Boolean           @default(false)
@@ -267,7 +267,7 @@ model Order {
   couponCode             String?
   total                  Int                  // minor units
   currency               String               @default("KES")
-  stripePaymentIntentId  String?
+  mpesaReceiptNumber     String?
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
@@ -365,7 +365,7 @@ model Payout {
   keeperId         String
   amount           Int          // minor units
   currency         String       @default("KES")
-  stripeTransferId String?
+  mpesaReference   String?
   status           PayoutStatus @default(PENDING)
   periodStart      DateTime
   periodEnd        DateTime
@@ -381,16 +381,16 @@ enum PayoutStatus {
 }
 
 model Transaction {
-  id             String          @id @default(uuid())
-  orderId        String
-  type           TransactionType
-  amount         Int             // minor units
-  platformFee    Int             // minor units
-  netAmount      Int             // minor units
-  stripeChargeId String?
-  createdAt      DateTime        @default(now())
+  id                    String          @id @default(uuid())
+  orderId               String
+  type                  TransactionType
+  amount                Int             // minor units
+  platformFee           Int             // minor units
+  netAmount             Int             // minor units
+  mobileMoneyReference  String?
+  createdAt             DateTime        @default(now())
 
-  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order                 Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 enum TransactionType {
@@ -833,11 +833,9 @@ model Address {
 model SavedPaymentMethod {
   id                   String   @id @default(uuid())
   userId               String
-  stripePaymentMethodId String   @unique
-  last4                String
-  brand                String
-  expMonth             Int
-  expYear              Int
+  provider             String   @default("MPESA") // "MPESA"
+  phoneNumber          String
+  accountName          String?
   isDefault            Boolean  @default(false)
   createdAt            DateTime @default(now())
 

@@ -7,10 +7,10 @@ This document details operational procedures and step-by-step response playbooks
 ## 🚨 Emergency Contacts & Quick Reference
 
 - **Admin Dashboard**: `/admin` (or `/admin/devops`)
-- **Status Page**: `https://sol-alpha-gules.vercel.app/status`
-- **Google Cloud Console**: `https://console.cloud.google.com/run?project=sol-handmades-prod`
-- **Stripe Dashboard**: `https://dashboard.stripe.com`
-- **Vercel Dashboard**: `https://vercel.com/sol-handmades`
+- **Status Page**: `https://chickmagnet.app/status`
+- **Google Cloud Console**: `https://console.cloud.google.com/run?project=chickmagnet-prod`
+- **Safaricom Daraja Portal**: `https://developer.safaricom.co.ke`
+- **Vercel Dashboard**: `https://vercel.com/chickmagnet`
 
 ---
 
@@ -87,27 +87,27 @@ This document details operational procedures and step-by-step response playbooks
 
 ---
 
-## Playbook 3: Payment Processing Failures / Webhook Errors
+## Playbook 3: Mobile Money Processing Failures / STK Push Timeouts
 
 ### Symptoms
-- Orders remain in `PENDING` status despite buyer payment confirmation.
-- Stripe webhook failures reported in Stripe Dashboard.
+- Orders remain in `PENDING` status despite buyer entering PIN.
+- Safaricom Daraja callback timeouts.
 
 ### Execution Procedure
 
-1. **Verify Stripe Platform Status**:
-   - Check [Stripe Status Page](https://status.stripe.com).
+1. **Verify Safaricom Daraja Service Status**:
+   - Check Safaricom Daraja sandbox/production API response codes.
+   - Verify network latency to M-Pesa endpoints (`api.safaricom.co.ke`).
 
-2. **Inspect Webhook Logs in Stripe Dashboard**:
-   - Navigate to `Stripe Dashboard -> Developers -> Webhooks -> Event Delivery`.
-   - Inspect failed webhook attempts for HTTP 400 or 500 error codes.
+2. **Inspect Webhook Callback Logs**:
+   - Query logs for `[MPESA_WEBHOOK_RECEIVED]`.
+   - Inspect failed callback attempts for missing payload signatures or timeout errors.
 
-3. **Re-send Failed Webhook Events**:
-   - In Stripe Dashboard, click **Resend Event** for any unhandled `payment_intent.succeeded` events.
-   - The backend handles webhooks idempotently using Redis (`stripe_processed_event:<id>`), so duplicate events will not double-charge or create duplicate orders.
+3. **Verify Transaction Status via Manual Poll**:
+   - If callback was delayed, invoke `GET /api/v1/payments/mpesa/status/:checkoutRequestId`.
 
 4. **Temporary Checkout Pause**:
-   - If Stripe is experiencing a global outage, toggle checkout off in Admin Settings to prevent buyers from submitting failed attempts.
+   - If Safaricom is undergoing scheduled maintenance, display announcement banner via Admin CMS.
 
 ---
 
@@ -120,17 +120,13 @@ This document details operational procedures and step-by-step response playbooks
 
 1. **Rotate Secret Manager Credentials Immediately**:
    - Access Google Cloud Secret Manager and issue new versions for:
-     - `JWT_PRIVATE_KEY` / `JWT_SECRET`
-     - `DATABASE_URL`
-     - `STRIPE_SECRET_KEY` & `STRIPE_WEBHOOK_SECRET`
+     - `MPESA_CONSUMER_KEY` & `MPESA_CONSUMER_SECRET` & `MPESA_PASSKEY`
      - `REDIS_PASSWORD`
+     - `RESEND_API_KEY`
 
-2. **Invalidate ALL Active User Sessions**:
-   - Changing `JWT_SECRET` / `JWT_PRIVATE_KEY` instantly invalidates all issued access tokens.
-   - Purge all refresh tokens in PostgreSQL and Redis:
-   ```sql
-   DELETE FROM "RefreshToken";
-   ```
+2. **Invalidate Active User Sessions & Purge Cache**:
+   - Invalidate Firebase Auth sessions via Firebase Console or Admin SDK if required.
+   - Purge Redis cache:
    ```bash
    redis-cli -h $REDIS_HOST FLUSHALL
    ```
@@ -152,11 +148,11 @@ This document details operational procedures and step-by-step response playbooks
 ## 🔄 Quarterly 90-Day Secret Rotation Procedure
 
 1. Schedule secret rotation during low-traffic window (e.g., 03:00 UTC).
-2. Generate new asymmetric RSA keypair or strong 64-byte random string.
+2. Generate new API credentials for external integrations (M-Pesa, Resend, Redis).
 3. Update Google Cloud Secret Manager with secret version:
    ```bash
-   gcloud secrets versions add JWT_SECRET --data-file=new_secret.txt
+   gcloud secrets versions add MPESA_PASSKEY --data-file=new_secret.txt
    ```
 4. Deploy updated Cloud Run revision referencing the new secret version.
 5. Verify application health check `/health` passes.
-6. Verify auth flow via `/api/v1/auth/login`.
+6. Verify auth flow and payment endpoints.

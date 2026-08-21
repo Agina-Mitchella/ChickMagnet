@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../config/firebase';
 
-export type CMSBlockType = 'text' | 'heading' | 'image' | 'button' | 'toggle' | 'datetime';
+export type CMSBlockType = 'text' | 'heading' | 'image' | 'button' | 'toggle' | 'datetime' | 'json';
 
 export interface CMSHistoryEntry {
   id: string;
@@ -28,34 +28,184 @@ export interface CMSBlock {
 export interface CMSPageMeta {
   id: string;
   title: string;
-  category: 'page' | 'global' | 'system' | 'email';
+  category: 'page' | 'global' | 'farm_plan' | 'system';
 }
 
 export const CMS_PAGES: CMSPageMeta[] = [
-  { id: 'global', title: 'Global Settings', category: 'global' },
-  { id: 'home-shop', title: 'Home / Shop', category: 'page' },
-  { id: 'about-us', title: 'About Us (Our Story)', category: 'page' },
-  { id: 'lore', title: 'Lore & Heritage', category: 'page' },
-  { id: 'new-arrivals', title: 'New Arrivals', category: 'page' },
-  { id: 'featured-drops', title: 'Featured Drops', category: 'page' },
-  { id: 'seasonal-events', title: 'Seasonal Events', category: 'page' },
-  { id: 'custom-orders', title: 'Custom Orders', category: 'page' },
-  { id: 'send-gift', title: 'Send a Gift', category: 'page' },
-  { id: 'journal', title: 'Journal (Field Notes)', category: 'page' },
-  { id: 'maker-stories', title: 'Maker Stories', category: 'page' },
-  { id: 'help-faqs', title: 'Help — FAQs', category: 'page' },
-  { id: 'help-shipping', title: 'Help — Shipping & Returns', category: 'page' },
-  { id: 'help-contact', title: 'Help — Contact Us', category: 'page' },
-  { id: 'help-privacy', title: 'Help — Privacy Policy', category: 'page' },
-  { id: 'help-terms', title: 'Help — Terms of Service', category: 'page' },
-  { id: 'page-404', title: '404 Page', category: 'system' },
-  { id: 'maintenance-page', title: 'Maintenance Page', category: 'system' },
-  { id: 'order-confirmation', title: 'Order Confirmation Screen', category: 'system' },
-  { id: 'email-templates', title: 'Email Templates', category: 'email' },
+  { id: 'global', title: 'Global Settings & Branding', category: 'global' },
+  { id: 'storefront', title: 'Homepage & Hero Banner', category: 'page' },
+  { id: 'value-props', title: 'Value Propositions & Pillars', category: 'page' },
+  { id: 'about-lore', title: 'About Us & Lore', category: 'page' },
+  { id: 'quality-guarantees', title: 'Quality & Biosecurity Guarantees', category: 'page' },
+  { id: 'faqs', title: 'Frequently Asked Questions (FAQs)', category: 'page' },
+  { id: 'wholesale-portal', title: 'Wholesale & B2B Portal', category: 'page' },
+  { id: 'traceability', title: 'Traceability & Claims', category: 'page' },
+  { id: 'footer-contact', title: 'Footer & Contact Info', category: 'page' },
+  { id: 'farm-plan-financials', title: 'Farm Plan: Financials & Pricing', category: 'farm_plan' },
+  { id: 'farm-plan-feed', title: 'Farm Plan: Feed & Inventory', category: 'farm_plan' },
+  { id: 'farm-plan-vaccines', title: 'Farm Plan: Vaccination Schedule', category: 'farm_plan' },
+  { id: 'farm-plan-housing', title: 'Farm Plan: Housing & Equipment', category: 'farm_plan' },
+  { id: 'farm-plan-sops', title: 'Farm Plan: Attendant SOPs', category: 'farm_plan' },
+  { id: 'farm-plan-marketing', title: 'Farm Plan: Sales & Pitch', category: 'farm_plan' },
+];
+
+export const INITIAL_FAQS = [
+  {
+    id: 'faq-1',
+    q: 'How does ChickMagnet guarantee 100% Live Arrival for Day-Old Chicks?',
+    a: 'Chicks are packed in specially ventilated, temperature-insulated transport boxes with extra thermal bedding and nutrient gel. In the rare event of mortality, our 24-48 hour Live Arrival Guarantee provides instant credit or replacement.',
+    category: 'Live Chick Transport'
+  },
+  {
+    id: 'faq-2',
+    q: 'What bio-security measures are taken at partner hatcheries?',
+    a: 'All partner hatcheries undergo monthly blood tests and bio-security audits by certified veterinary officers (DVS & KEBS). Every batch is assigned a unique Batch ID detailing parent flock health, vaccination history, and lay dates.',
+    category: 'Biosecurity & Quality'
+  },
+  {
+    id: 'faq-3',
+    q: 'How does Wholesale Net-30 work for commercial buyers?',
+    a: 'Verified HORECA businesses (hotels, butcheries, institutions) can apply for Net-30 credit terms. Once approved, standing recurring orders are dispatched automatically with 30-day payment invoicing.',
+    category: 'Commercial Wholesale'
+  },
+  {
+    id: 'faq-4',
+    q: 'How are fresh dressed poultry weights handled for billing?',
+    a: 'Fresh dressed birds vary slightly in scale weight. Cards or mobile money payments are pre-authorized, and final billing is automatically adjusted down to the exact packed scale weight at cold-chain packing.',
+    category: 'Ordering & Billing'
+  }
+];
+
+export const INITIAL_VACCINE_SCHEDULE = [
+  {
+    id: 'vax-1',
+    dayOrWeek: 'Day 1',
+    vaccine: "Marek's HVT In-Ovo + NCD/IB Spray",
+    route: 'Subcutaneous / Spray at Hatchery',
+    instructions: 'Administered at partner hatchery facility prior to box sealing.',
+    notes: 'Mandatory bio-security clearance before dispatch.'
+  },
+  {
+    id: 'vax-2',
+    dayOrWeek: 'Day 7',
+    vaccine: 'Gumboro (IBD) Intermediate Plus',
+    route: 'Drinking Water (with Skim Milk Stabilizer)',
+    instructions: 'Withdraw water for 1.5 hours prior. Mix vaccine with 2g/L skim milk.',
+    notes: 'Ensure all birds consume within 2 hours.'
+  },
+  {
+    id: 'vax-3',
+    dayOrWeek: 'Day 14',
+    vaccine: 'Gumboro (IBD) 2nd Booster',
+    route: 'Drinking Water',
+    instructions: 'Repeat intermediate plus strain booster for high maternal antibody protection.',
+    notes: 'Crucial for 98%+ flock livability.'
+  },
+  {
+    id: 'vax-4',
+    dayOrWeek: 'Day 21',
+    vaccine: 'Newcastle (Lasota) + Infectious Bronchitis',
+    route: 'Ocular Drop / Drinking Water',
+    instructions: 'Eye drop preferred for 100% individual coverage, or clean unchlorinated water.',
+    notes: 'Provides solid respiratory immunity.'
+  },
+  {
+    id: 'vax-5',
+    dayOrWeek: 'Day 28',
+    vaccine: 'Deworming (Levamisole) + Multi-Vitamins',
+    route: 'Drinking Water',
+    instructions: 'Full 24-hour treatment followed by 3 days of stress-pack vitamins.',
+    notes: 'Prepares digestive tract for rapid grower transition.'
+  },
+  {
+    id: 'vax-6',
+    dayOrWeek: 'Week 6 (Day 42)',
+    vaccine: 'Fowl Pox + Fowl Typhoid',
+    route: 'Wing Web Puncture / Intramuscular',
+    instructions: 'Wing web stab applicator for Fowl Pox; 0.5ml breast IM for Typhoid.',
+    notes: 'Lifetime protection for adult layers & kienyeji growers.'
+  }
+];
+
+export const INITIAL_HOUSING_SPECS = [
+  {
+    id: 'spec-1',
+    label: 'Brooder Floor Space',
+    value: '300 sq ft (28 m²)',
+    note: 'Initial brooding density of 20 chicks/m², expanding to 10 birds/m² by week 3.'
+  },
+  {
+    id: 'spec-2',
+    label: 'Feeder Ratio',
+    value: '1 Tube Feeder per 35-40 birds',
+    note: '15-16 standard 10kg feeders distributed evenly.'
+  },
+  {
+    id: 'spec-3',
+    label: 'Drinker Ratio',
+    value: '1 Bell Drinker per 45-50 birds',
+    note: '12 automatic bell drinkers with fresh water line.'
+  },
+  {
+    id: 'spec-4',
+    label: 'Brooding Temperature',
+    value: 'Week 1: 35°C → Week 4: 21°C',
+    note: 'Drop temperature 3°C weekly until ambient temperature is reached.'
+  },
+  {
+    id: 'spec-5',
+    label: 'Litter Management',
+    value: '5-8 cm Dry Pine Shavings',
+    note: 'Turn litter every 2 days; rake out wet drinker spots immediately.'
+  },
+  {
+    id: 'spec-6',
+    label: 'Biosecurity Footbath',
+    value: '2% Virkon-S / Formalin Solution',
+    note: 'Mandatory shoe dip at pen entrance, refreshed twice weekly.'
+  }
+];
+
+export const INITIAL_DAILY_SOPS = [
+  {
+    id: 'sop-1',
+    time: '06:00 AM',
+    task: 'Morning Vitality Check & Ventilation Inspection',
+    details: 'Step through footbath, inspect flock activity, record any overnight mortalities, open side curtains for fresh air flow.',
+    critical: true
+  },
+  {
+    id: 'sop-2',
+    time: '06:30 AM',
+    task: 'Drinker Sanitization & Fresh Feed Top-Up',
+    details: 'Thoroughly scrub all bell drinkers, refill with fresh water (add vitamins/electrolytes if scheduled), distribute morning starter/grower feed.',
+    critical: true
+  },
+  {
+    id: 'sop-3',
+    time: '12:00 PM',
+    task: 'Midday Temperature & Litter Rake',
+    details: 'Check brooder thermometer, adjust curtains to prevent heat stress, rake around waterers to keep shavings bone-dry.',
+    critical: false
+  },
+  {
+    id: 'sop-4',
+    time: '05:30 PM',
+    task: 'Evening Feed Check & Curtains Draw',
+    details: 'Top up feeders for nighttime intake, draw curtains to maintain warmth, ensure brooding heat sources are active.',
+    critical: true
+  },
+  {
+    id: 'sop-5',
+    time: '09:00 PM',
+    task: 'Night Brooder Heat & Distribution Check',
+    details: 'Verify chicks are evenly ringed under heat lamps (no piling/chilling), lock predator-proof double doors.',
+    critical: true
+  }
 ];
 
 export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
-  // GLOBAL BRANDING & LOGO
+  // 1. GLOBAL SETTINGS & BRANDING
   {
     id: 'global_logo_type',
     pageId: 'global',
@@ -102,7 +252,6 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     label: 'Platform Brand Name',
     type: 'heading',
     value: 'ChickMagnet',
-    readOnly: false,
     lastEditedBy: 'System Core',
     lastEditedAt: '2026-08-05 00:00',
     history: [],
@@ -112,1047 +261,909 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     pageId: 'global',
     label: 'Platform Tagline',
     type: 'text',
-    value: 'Handmade by African makers. Made for you.',
-    characterLimit: 80,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-20 14:22',
-    history: [
-      {
-        id: 'h1',
-        timestamp: '2026-07-10 11:00',
-        adminName: 'Solar Elder',
-        oldValue: 'African artisan creations for global homes.',
-        newValue: 'Handmade by African makers. Made for you.',
-      },
-    ],
+    value: 'Direct-from-Hatchery Day-Old Chicks, Bio-Secure Poultry & Wholesale Cold-Chain',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
   },
   {
-    id: 'global_footer_closing',
+    id: 'global_announcement_bar',
     pageId: 'global',
-    label: 'Footer Closing Line',
+    label: 'Header Top Announcement Bar',
     type: 'text',
-    value: 'Built with care. Shipped from makers\' hands.',
-    characterLimit: 90,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-22 10:15',
+    value: '🚚 Daily Climate-Controlled Dispatches across Kenya • 100% Live Arrival & Bio-Secure Certified • Call/WhatsApp: +254 700 123 456',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'global_newsletter_title',
+    id: 'global_contact_phone',
     pageId: 'global',
-    label: 'Newsletter Section Name',
-    type: 'heading',
-    value: 'The Sol Letter',
-    characterLimit: 40,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-22 10:15',
+    label: 'Support Phone Number',
+    type: 'text',
+    value: '+254 700 123 456',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'global_newsletter_body',
+    id: 'global_contact_email',
     pageId: 'global',
-    label: 'Newsletter Body Text',
+    label: 'Support Email Address',
     type: 'text',
-    value: 'Whispers from rural workshops, seasonal drop alerts, and stories of slow craft.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-22 10:15',
+    value: 'info@chickmagnet.co.ke',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'global_newsletter_button',
+    id: 'global_contact_location',
     pageId: 'global',
-    label: 'Newsletter Button Label',
-    type: 'button',
-    value: 'Join the Guild',
-    characterLimit: 25,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-22 10:15',
+    label: 'Headquarters Physical Location',
+    type: 'text',
+    value: 'Kisii Hub, Kisii-Kilgoris Road, Kenya',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'global_sol_credits_name',
+    id: 'global_emergency_vet_phone',
     pageId: 'global',
-    label: 'Sol Credits Name',
+    label: 'Emergency Veterinary Hotline',
     type: 'text',
-    value: 'Sol Credits',
-    characterLimit: 25,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-22 10:15',
+    value: '+254 722 999 888',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'global_decorative_symbol',
+    id: 'global_vet_license',
     pageId: 'global',
-    label: 'Decorative Symbol',
+    label: 'Regulatory License & Certifications',
     type: 'text',
-    value: '✦',
-    characterLimit: 5,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-22 10:15',
+    value: 'DVS-NAI-9921 / KEBS/PV-88392/2025',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // HOME / SHOP
+  // 2. STOREFRONT HOMEPAGE & HERO BANNER
   {
-    id: 'home_hero_heading',
-    pageId: 'home-shop',
-    label: 'Shop hero — main heading',
+    id: 'hero_headline',
+    pageId: 'storefront',
+    label: 'Hero Main Headline',
     type: 'heading',
-    value: 'Handmade with care. Shipped from African makers.',
-    characterLimit: 90,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-25 16:30',
+    value: 'Your Favorite Marketplace for Premium Poultry & Hatchery Supplies',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'home_hero_subheading',
-    pageId: 'home-shop',
-    label: 'Shop hero — subheading',
+    id: 'hero_subhead',
+    pageId: 'storefront',
+    label: 'Hero Sub-headline Description',
     type: 'text',
-    value: 'Explore our curated collection of artisan creations, from hand-carved terracotta to organic botanical oils.',
-    characterLimit: 180,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-25 16:30',
+    value: 'Bio-secure vaccinated day-old chicks with 100% Live Arrival Guarantee, fresh dressed whole birds, premium feeds, and dedicated HORECA procurement across East Africa.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'home_hero_cta_label',
-    pageId: 'home-shop',
-    label: 'Shop hero — CTA button label',
+    id: 'hero_badge_text',
+    pageId: 'storefront',
+    label: 'Hero Badge Chip Text',
+    type: 'text',
+    value: '100% NPIP Bio-Secure Verified Stock',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'hero_primary_cta',
+    pageId: 'storefront',
+    label: 'Hero Primary CTA Button Text',
     type: 'button',
-    value: 'Explore Catalog',
-    characterLimit: 30,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-25 16:30',
+    value: 'Explore Verified Catalog',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'home_event_banner_toggle',
-    pageId: 'home-shop',
-    label: 'Seasonal event banner — toggle show/hide',
-    type: 'toggle',
-    value: true,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-25 16:30',
+    id: 'hero_image_url',
+    pageId: 'storefront',
+    label: 'Hero Banner Image URL',
+    type: 'image',
+    value: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'home_community_ticker_toggle',
-    pageId: 'home-shop',
-    label: 'Community feed ticker — toggle show/hide',
-    type: 'toggle',
-    value: true,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-25 16:30',
-    history: [],
-  },
-  {
-    id: 'home_featured_heading',
-    pageId: 'home-shop',
-    label: 'Featured section heading',
+    id: 'catalog_section_title',
+    pageId: 'storefront',
+    label: 'Catalog Section Title',
     type: 'heading',
-    value: 'Featured Artisan Creations',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-25 16:30',
+    value: 'All Poultry & Farm Listings',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'retail_tab_label',
+    pageId: 'storefront',
+    label: 'Retail Tab Switcher Label',
+    type: 'text',
+    value: 'Retail & Homesteaders',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'wholesale_tab_label',
+    pageId: 'storefront',
+    label: 'Wholesale Tab Switcher Label',
+    type: 'text',
+    value: 'Commercial Wholesale (Net-30)',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // ABOUT US
+  // 3. VALUE PROPOSITIONS & GUARANTEE PILLARS (4 CARDS)
   {
-    id: 'about_heading',
-    pageId: 'about-us',
-    label: 'About page — main heading',
-    type: 'heading',
-    value: 'Our Story & Roots',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_opening_paragraph',
-    pageId: 'about-us',
-    label: 'About page — opening paragraph',
+    id: 'feature_1_icon',
+    pageId: 'value-props',
+    label: 'Pillar 1 Icon / Emoji',
     type: 'text',
-    value: 'Sol Handmades was born out of deep reverence for African craftsmanship and slow-made treasures. We bridge master artisans in rural workshops directly to appreciative global homes.',
-    characterLimit: 300,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
+    value: '🐥',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'about_root1_heading',
-    pageId: 'about-us',
-    label: 'Root 1 — heading',
+    id: 'feature_1_title',
+    pageId: 'value-props',
+    label: 'Pillar 1 Title',
     type: 'heading',
-    value: '1. Direct-from-Maker Integrity',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
+    value: '100% Live Arrival Guarantee',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'about_root1_body',
-    pageId: 'about-us',
-    label: 'Root 1 — body text',
+    id: 'feature_1_desc',
+    pageId: 'value-props',
+    label: 'Pillar 1 Description',
     type: 'text',
-    value: 'Every item on Sol is crafted by verified independent artisans, preserving ancient techniques and fair prices.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_root2_heading',
-    pageId: 'about-us',
-    label: 'Root 2 — heading',
-    type: 'heading',
-    value: '2. Transparent Provenance',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_root2_body',
-    pageId: 'about-us',
-    label: 'Root 2 — body text',
-    type: 'text',
-    value: 'We trace materials to their sustainable origins—from Limpopo clay pits to coastal botanical gardens.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_root3_heading',
-    pageId: 'about-us',
-    label: 'Root 3 — heading',
-    type: 'heading',
-    value: '3. Community-First Commerce',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_root3_body',
-    pageId: 'about-us',
-    label: 'Root 3 — body text',
-    type: 'text',
-    value: 'Over 85% of revenue returns directly to makers and their local workshop guilds.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_spotlight_heading',
-    pageId: 'about-us',
-    label: 'Maker spotlight section heading',
-    type: 'heading',
-    value: 'Voices of the Workshop Guilds',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
-    history: [],
-  },
-  {
-    id: 'about_closing_paragraph',
-    pageId: 'about-us',
-    label: 'Closing invitation paragraph',
-    type: 'text',
-    value: 'Join us in honoring the hands that shape our physical world.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-18 09:12',
+    value: 'Ventilated, temperature-stabilized vehicles designed specifically for day-old chicks, reducing transit stress and mortality.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // LORE & HERITAGE
   {
-    id: 'lore_main_heading',
-    pageId: 'lore',
-    label: 'Lore page — main banner heading',
+    id: 'feature_2_icon',
+    pageId: 'value-props',
+    label: 'Pillar 2 Icon / Emoji',
+    type: 'text',
+    value: '❄️',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'feature_2_title',
+    pageId: 'value-props',
+    label: 'Pillar 2 Title',
     type: 'heading',
-    value: 'The Lore of Golden Hour',
-    characterLimit: 80,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
+    value: 'Cold-Chain Precision (0-4°C)',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'lore_opening_quote',
-    pageId: 'lore',
-    label: 'Lore page — main opening quote',
+    id: 'feature_2_desc',
+    pageId: 'value-props',
+    label: 'Pillar 2 Description',
     type: 'text',
-    value: 'Between the fading sun and the cream-misted moon lies a magical hour. Here, our fingers weave marigolds and tree saps into relics that bring comforting warmth to mortal homes.',
-    characterLimit: 300,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_palette_title',
-    pageId: 'lore',
-    label: 'Palette section — title',
-    type: 'heading',
-    value: 'Why Orange & Cream?',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_palette_body_1',
-    pageId: 'lore',
-    label: 'Palette section — paragraph 1',
-    type: 'text',
-    value: 'We selected the palette of warm sun-ripened orange and velvety rich cream because they carry the healing properties of forest hearths. Orange brings the active warmth of Solstice fires, dried citrus, and amber resins. Cream represents the soothing protection of fresh thistledown silk, wild chamomile, and misted pine sap.',
-    characterLimit: 400,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_palette_body_2',
-    pageId: 'lore',
-    label: 'Palette section — paragraph 2 (sustainability)',
-    type: 'text',
-    value: 'Every single product listed on our shelves is harvested responsibly. We do not fell trees; we only carve wood that has surrendered willingly to the forest floor.',
-    characterLimit: 300,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_guild_seal',
-    pageId: 'lore',
-    label: 'Guild covenant seal label',
-    type: 'text',
-    value: 'Blessed under Golden Harvest Spell Laws',
-    characterLimit: 80,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_locations_heading',
-    pageId: 'lore',
-    label: 'Locations section — title',
-    type: 'heading',
-    value: 'Our Fairy Sols & Sacred Groves',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_location_1_name',
-    pageId: 'lore',
-    label: 'Location 1 — Name',
-    type: 'text',
-    value: 'High Oak Sanctuary',
-    characterLimit: 40,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_location_1_desc',
-    pageId: 'lore',
-    label: 'Location 1 — Description',
-    type: 'text',
-    value: 'Nestled in high oaks, famous for glassblowing and weaving marigold filaments under cozy lamps.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_location_2_name',
-    pageId: 'lore',
-    label: 'Location 2 — Name',
-    type: 'text',
-    value: 'Emberglow Orchards',
-    characterLimit: 40,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_location_2_desc',
-    pageId: 'lore',
-    label: 'Location 2 — Description',
-    type: 'text',
-    value: 'Home of sweet candied citrus shards and windchimes crafted with fired clay bells.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_location_3_name',
-    pageId: 'lore',
-    label: 'Location 3 — Name',
-    type: 'text',
-    value: 'Sylvan Slumber Sol',
-    characterLimit: 40,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
-    history: [],
-  },
-  {
-    id: 'lore_location_3_desc',
-    pageId: 'lore',
-    label: 'Location 3 — Description',
-    type: 'text',
-    value: 'A peaceful foggy meadow where thistlesilk and sleep chamomile eye veils are stitched at twilight.',
-    characterLimit: 200,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-27 10:00',
+    value: 'Air-chilled fresh dressed poultry (0-4°C) and frozen cuts (-18°C) delivered with scale-weight accuracy and cold-chain integrity.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // NEW ARRIVALS
   {
-    id: 'new_arrivals_heading',
-    pageId: 'new-arrivals',
-    label: 'New Arrivals — main heading',
-    type: 'heading',
-    value: 'Fresh from the Workshops',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-15 12:00',
+    id: 'feature_3_icon',
+    pageId: 'value-props',
+    label: 'Pillar 3 Icon / Emoji',
+    type: 'text',
+    value: '📜',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'new_arrivals_subtext',
-    pageId: 'new-arrivals',
-    label: 'New Arrivals — subtext',
+    id: 'feature_3_title',
+    pageId: 'value-props',
+    label: 'Pillar 3 Title',
+    type: 'heading',
+    value: 'Bio-Secure Batch Traceability',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'feature_3_desc',
+    pageId: 'value-props',
+    label: 'Pillar 3 Description',
     type: 'text',
-    value: 'Be the first to explore brand new handcrafted creations uploaded by master makers this week.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-15 12:00',
+    value: 'Every hatch and slaughter lot features a unique Batch ID detailing vaccination records, farm location, lay dates, and lab clearances.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // FEATURED DROPS
   {
-    id: 'featured_drops_heading',
-    pageId: 'featured-drops',
-    label: 'Featured Drops — main heading',
+    id: 'feature_4_icon',
+    pageId: 'value-props',
+    label: 'Pillar 4 Icon / Emoji',
+    type: 'text',
+    value: '🏢',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'feature_4_title',
+    pageId: 'value-props',
+    label: 'Pillar 4 Title',
     type: 'heading',
-    value: 'Limited Edition Drops',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-15 12:00',
+    value: 'HORECA & B2B Net-30',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'feature_4_desc',
+    pageId: 'value-props',
+    label: 'Pillar 4 Description',
+    type: 'text',
+    value: 'Dedicated commercial procurement for hotels, restaurants, and butcheries with standing recurring contracts and automated invoicing.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // SEASONAL EVENTS
+  // 4. ABOUT US & LORE STORY
   {
-    id: 'seasonal_events_heading',
-    pageId: 'seasonal-events',
-    label: 'Seasonal Events — main heading',
+    id: 'about_hero_badge',
+    pageId: 'about-lore',
+    label: 'About Hero Badge',
+    type: 'text',
+    value: '📍 Headquartered in Kisii, Kenya • KEBS & DVS Bio-Secure Certified',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'about_hero_title',
+    pageId: 'about-lore',
+    label: 'About Hero Title',
     type: 'heading',
-    value: 'Sol Solstice & Seasonal Festivals',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-15 12:00',
+    value: "ChickMagnet: Kisii's Premier Modern Poultry & Hatchery Hub",
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'about_hero_body',
+    pageId: 'about-lore',
+    label: 'About Main Narrative Text',
+    type: 'text',
+    value: 'Based in Kisii, Kenya, ChickMagnet connects vetted commercial hatcheries, smallholder poultry farmers, and top HORECA buyers across East Africa. From day-old chick climate transport originating from our Kisii hatchery facilities to chilled dressed chicken weight-tolerance packing, every transaction is backed by batch traceability and bio-security clearance.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // CUSTOM ORDERS
+  // 5. QUALITY & BIOSECURITY GUARANTEES
   {
-    id: 'custom_orders_heading',
-    pageId: 'custom-orders',
-    label: 'Custom Orders — page heading',
-    type: 'heading',
-    value: 'Bespoke & Custom Commissions',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
-    history: [],
-  },
-  {
-    id: 'custom_orders_subtitle',
-    pageId: 'custom-orders',
-    label: 'Custom Orders — page subtitle',
+    id: 'quality_section_badge',
+    pageId: 'quality-guarantees',
+    label: 'Quality Section Badge',
     type: 'text',
-    value: 'Collaborate directly with master artisans to bring your unique vision to life.',
-    characterLimit: 180,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: 'Unified Assurance Policy',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'custom_step1_heading',
-    pageId: 'custom-orders',
-    label: 'How it works — Step 1 heading',
+    id: 'quality_section_title',
+    pageId: 'quality-guarantees',
+    label: 'Quality Section Title',
     type: 'heading',
-    value: '1. Share Your Vision',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: 'Quality, Biosecurity & Live Arrival Guarantees',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'custom_step1_body',
-    pageId: 'custom-orders',
-    label: 'How it works — Step 1 body text',
+    id: 'quality_section_subtitle',
+    pageId: 'quality-guarantees',
+    label: 'Quality Section Subtitle',
     type: 'text',
-    value: 'Describe your desired piece, dimensions, and preferred materials to the maker.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: 'Consolidated standards governing live chick transit, hatchery bio-security, KEBS/DVS certifications, and climate transport schedules.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'custom_step2_heading',
-    pageId: 'custom-orders',
-    label: 'How it works — Step 2 heading',
+    id: 'quality_live_guarantee_title',
+    pageId: 'quality-guarantees',
+    label: 'Live Arrival Guarantee Title',
     type: 'heading',
-    value: '2. Receive Artisan Proposal',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: '48-Hour Live Arrival Guarantee',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'custom_step2_body',
-    pageId: 'custom-orders',
-    label: 'How it works — Step 2 body text',
+    id: 'quality_live_guarantee_body',
+    pageId: 'quality-guarantees',
+    label: 'Live Arrival Guarantee Policy Text',
     type: 'text',
-    value: 'The maker will review your request, provide a timeline, and send a custom quote.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: 'We guarantee 100% viable live arrival for all day-old chick and pullet shipments. If any loss occurs during transit or within 24–48 hours of box opening, submit photo evidence to receive immediate account credit or replacement stock.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'custom_step3_heading',
-    pageId: 'custom-orders',
-    label: 'How it works — Step 3 heading',
+    id: 'quality_coldchain_title',
+    pageId: 'quality-guarantees',
+    label: 'Cold-Chain Guarantee Title',
     type: 'heading',
-    value: '3. Handcrafted for You',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: 'Cold-Chain Integrity (0–4°C)',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'custom_step3_body',
-    pageId: 'custom-orders',
-    label: 'How it works — Step 3 body text',
+    id: 'quality_coldchain_body',
+    pageId: 'quality-guarantees',
+    label: 'Cold-Chain Policy Text',
     type: 'text',
-    value: 'Once approved, your piece is created with careful devotion and shipped directly.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-21 11:45',
+    value: 'Fresh dressed whole broilers and kienyeji chickens are chilled immediately after veterinary inspection. Scale weights are recorded at packing, ensuring exact billing down to the gram.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'quality_biosecurity_title',
+    pageId: 'quality-guarantees',
+    label: 'Biosecurity Standards Title',
+    type: 'heading',
+    value: 'Biosecurity & NPIP / DVS Standards',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'quality_biosecurity_body',
+    pageId: 'quality-guarantees',
+    label: 'Biosecurity Standards Policy Text',
+    type: 'text',
+    value: 'Parent flocks undergo monthly serological testing for Salmonella pullorum, Avian Influenza, and Mycoplasma. Hatched chicks receive in-ovo Marek\'s and spray Newcastle vaccines before leaving bio-isolated facilities.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'quality_weight_accuracy_title',
+    pageId: 'quality-guarantees',
+    label: 'Tare-Weight Accuracy Title',
+    type: 'heading',
+    value: 'Tare-Weight Accuracy & Auto Reconcile',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'quality_weight_accuracy_body',
+    pageId: 'quality-guarantees',
+    label: 'Tare-Weight Accuracy Policy Text',
+    type: 'text',
+    value: 'Pre-authorized digital card/M-Pesa payments are adjusted down upon final dispatch weighing, guaranteeing you only pay for the exact grams delivered.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // SEND A GIFT
+  // 6. FAQS DATA (JSON)
   {
-    id: 'gift_heading',
-    pageId: 'send-gift',
-    label: 'Send a Gift — page heading',
-    type: 'heading',
-    value: 'Send a Handcrafted Gift',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_subtitle',
-    pageId: 'send-gift',
-    label: 'Send a Gift — page subtitle',
-    type: 'text',
-    value: 'Curate a thoughtful present wrapped in natural linen and sealed with an artisan wax stamp.',
-    characterLimit: 180,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_step1_heading',
-    pageId: 'send-gift',
-    label: 'Gift Step 1 — heading',
-    type: 'heading',
-    value: '1. Choose a Treasure',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_step1_body',
-    pageId: 'send-gift',
-    label: 'Gift Step 1 — body text',
-    type: 'text',
-    value: 'Select a piece from any verified maker shop.',
-    characterLimit: 120,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_step2_heading',
-    pageId: 'send-gift',
-    label: 'Gift Step 2 — heading',
-    type: 'heading',
-    value: '2. Personalize Your Note',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_step2_body',
-    pageId: 'send-gift',
-    label: 'Gift Step 2 — body text',
-    type: 'text',
-    value: 'Add a custom calligraphy message or audio scroll.',
-    characterLimit: 120,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_step3_heading',
-    pageId: 'send-gift',
-    label: 'Gift Step 3 — heading',
-    type: 'heading',
-    value: '3. Direct Delivery',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
-    history: [],
-  },
-  {
-    id: 'gift_step3_body',
-    pageId: 'send-gift',
-    label: 'Gift Step 3 — body text',
-    type: 'text',
-    value: 'Delivered in eco-friendly packaging with tracking for peace of mind.',
-    characterLimit: 120,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-19 14:00',
+    id: 'faqs_data_json',
+    pageId: 'faqs',
+    label: 'Structured FAQs List (JSON)',
+    type: 'json',
+    value: JSON.stringify(INITIAL_FAQS),
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // JOURNAL / FIELD NOTES
+  // 7. WHOLESALE & B2B PORTAL
   {
-    id: 'journal_heading',
-    pageId: 'journal',
-    label: 'Journal — main heading',
+    id: 'wholesale_portal_title',
+    pageId: 'wholesale-portal',
+    label: 'Wholesale Portal Title',
     type: 'heading',
-    value: 'Field Notes & Workshop Chronicles',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-12 10:00',
-    history: [],
-  },
-
-  // MAKER STORIES
-  {
-    id: 'maker_stories_heading',
-    pageId: 'maker-stories',
-    label: 'Maker Stories — main heading',
-    type: 'heading',
-    value: 'Stories of the Hands Behind the Craft',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-12 10:00',
-    history: [],
-  },
-
-  // HELP - FAQS
-  {
-    id: 'help_faqs_heading',
-    pageId: 'help-faqs',
-    label: 'Help FAQs — main heading',
-    type: 'heading',
-    value: 'Frequently Asked Questions',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-10 16:00',
-    history: [],
-  },
-
-  // HELP - SHIPPING
-  {
-    id: 'help_shipping_heading',
-    pageId: 'help-shipping',
-    label: 'Shipping & Returns — main heading',
-    type: 'heading',
-    value: 'Shipping & Returns Policy',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-10 16:00',
-    history: [],
-  },
-
-  // HELP - CONTACT
-  {
-    id: 'help_contact_heading',
-    pageId: 'help-contact',
-    label: 'Contact Us — main heading',
-    type: 'heading',
-    value: 'Connect with Guild Care',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-10 16:00',
-    history: [],
-  },
-
-  // HELP - PRIVACY
-  {
-    id: 'help_privacy_heading',
-    pageId: 'help-privacy',
-    label: 'Privacy Policy — main heading',
-    type: 'heading',
-    value: 'Privacy & Data Protection Policy',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-10 16:00',
-    history: [],
-  },
-
-  // HELP - TERMS
-  {
-    id: 'help_terms_heading',
-    pageId: 'help-terms',
-    label: 'Terms of Service — main heading',
-    type: 'heading',
-    value: 'Terms & Conditions of Service',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-10 16:00',
-    history: [],
-  },
-
-  // 404 PAGE
-  {
-    id: 'p404_heading',
-    pageId: 'page-404',
-    label: '404 — Heading',
-    type: 'heading',
-    value: 'Path Lost in the Woodland',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-14 11:30',
+    value: 'ChickMagnet Wholesale & HORECA Portal',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'p404_subtext',
-    pageId: 'page-404',
-    label: '404 — Subtext',
+    id: 'wholesale_portal_subtitle',
+    pageId: 'wholesale-portal',
+    label: 'Wholesale Portal Subtitle',
     type: 'text',
-    value: 'The page or creation you are searching for has wandered beyond our map.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-14 11:30',
+    value: 'Net-30 Invoiced Accounts • Standing Order Subscriptions • Bulk Tier Savings',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'p404_cta1',
-    pageId: 'page-404',
-    label: '404 — CTA button label 1',
-    type: 'button',
-    value: 'Return to Home',
-    characterLimit: 30,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-14 11:30',
+    id: 'wholesale_credit_limit_amount',
+    pageId: 'wholesale-portal',
+    label: 'Approved Commercial Credit Limit (Ksh)',
+    type: 'text',
+    value: '500,000',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'p404_cta2',
-    pageId: 'page-404',
-    label: '404 — CTA button label 2',
-    type: 'button',
-    value: 'Explore Catalog',
-    characterLimit: 30,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-14 11:30',
-    history: [],
-  },
-  {
-    id: 'p404_cta3',
-    pageId: 'page-404',
-    label: '404 — CTA button label 3',
-    type: 'button',
-    value: 'Contact Guild Support',
-    characterLimit: 30,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-14 11:30',
+    id: 'wholesale_terms_summary',
+    pageId: 'wholesale-portal',
+    label: 'Wholesale Terms Summary',
+    type: 'text',
+    value: 'Net-30 Invoicing Terms Active • 0% Interest',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // MAINTENANCE PAGE
+  // 8. TRACEABILITY & CLAIMS PORTAL
   {
-    id: 'maint_heading',
-    pageId: 'maintenance-page',
-    label: 'Maintenance — Heading',
+    id: 'traceability_portal_title',
+    pageId: 'traceability',
+    label: 'Traceability Portal Title',
     type: 'heading',
-    value: 'Under Sylvan Care',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-16 08:00',
+    value: 'Bio-Secure Batch Traceability & Lab Clearance Portal',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'maint_subheading',
-    pageId: 'maintenance-page',
-    label: 'Maintenance — Subheading / message',
+    id: 'traceability_portal_subtitle',
+    pageId: 'traceability',
+    label: 'Traceability Portal Subtitle',
     type: 'text',
-    value: 'Our platform is undergoing scheduled maintenance to polish the workshop gears.',
-    characterLimit: 180,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-16 08:00',
+    value: 'Inspect parent flock origins, vaccination logbooks, hatch dates, temperature telemetry, and government veterinary certifications for any batch.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'maint_return_time',
-    pageId: 'maintenance-page',
-    label: 'Maintenance — Estimated return time',
+    id: 'claims_portal_title',
+    pageId: 'traceability',
+    label: 'Mortality Claims Portal Title',
+    type: 'heading',
+    value: 'Mortality Claim & Live Arrival Assurance Protocol',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'claims_portal_subtitle',
+    pageId: 'traceability',
+    label: 'Mortality Claims Portal Subtitle',
     type: 'text',
-    value: 'Expected back online: Today at 06:00 PM EAT',
-    characterLimit: 60,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-16 08:00',
+    value: 'Submit transit loss documentation within 24-48 hours of dispatch for instant credit review or replacement fulfillment.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // ORDER CONFIRMATION SCREEN
+  // 9. FOOTER & CONTACT INFO
   {
-    id: 'order_confirmed_heading',
-    pageId: 'order-confirmation',
-    label: 'Order confirmation — main heading',
+    id: 'footer_contact_headline',
+    pageId: 'footer-contact',
+    label: 'Footer Contact Us Headline',
     type: 'heading',
-    value: 'Order confirmed!',
-    characterLimit: 50,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-23 15:10',
+    value: 'Contact Us',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'order_confirmed_maker_subtext',
-    pageId: 'order-confirmation',
-    label: 'Order confirmation — maker notification subtext',
+    id: 'footer_contact_description',
+    pageId: 'footer-contact',
+    label: 'Footer Contact Description',
     type: 'text',
-    value: 'We have dispatched a notification scroll to the maker\'s workshop.',
-    characterLimit: 150,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-23 15:10',
+    value: 'Have inquiries about day-old chick availability, custom incubator setups, or commercial wholesale orders in Kisii? Get in touch with us directly.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'order_confirmed_credits_message',
-    pageId: 'order-confirmation',
-    label: 'Order confirmation — Sol Credits earn message',
+    id: 'footer_contact_name',
+    pageId: 'footer-contact',
+    label: 'Footer Contact Person Name',
     type: 'text',
-    value: 'You earned 150 Sol Credits on this purchase!',
-    characterLimit: 120,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-23 15:10',
+    value: 'Steve Logarn Ositu',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'order_confirmed_button_label',
-    pageId: 'order-confirmation',
-    label: 'Order confirmation — back to market button label',
-    type: 'button',
-    value: 'Return to Shop',
-    characterLimit: 30,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-23 15:10',
+    id: 'footer_contact_location',
+    pageId: 'footer-contact',
+    label: 'Footer Location Label',
+    type: 'text',
+    value: 'Kisii, Kenya',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'footer_phone',
+    pageId: 'footer-contact',
+    label: 'Footer Direct Phone Number',
+    type: 'text',
+    value: '254700356023',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'footer_email',
+    pageId: 'footer-contact',
+    label: 'Footer Direct Email',
+    type: 'text',
+    value: 'manyaos7@gmail.com',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'footer_copyright_notice',
+    pageId: 'footer-contact',
+    label: 'Footer Copyright Notice Text',
+    type: 'text',
+    value: 'ChickMagnet Hatchery Ltd (Kisii, Kenya). All rights reserved.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
 
-  // EMAIL TEMPLATES
+  // 10. FARM PLAN MASTER PARAMETERS & FINANCIALS
   {
-    id: 'email_receipt_subject',
-    pageId: 'email-templates',
-    label: 'Order Receipt Email — Subject line',
+    id: 'fp_farm_title',
+    pageId: 'farm-plan-financials',
+    label: 'Farm Plan Command Title',
     type: 'heading',
-    value: 'Your Sol Handmades Order Receipt #[Order_ID]',
-    characterLimit: 90,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
+    value: '600-Flock Improved Kienyeji Operational Command',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'email_receipt_heading',
-    pageId: 'email-templates',
-    label: 'Order Receipt Email — Heading',
-    type: 'heading',
-    value: 'Thank you for supporting African artisans!',
-    characterLimit: 80,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
-    history: [],
-  },
-  {
-    id: 'email_receipt_body',
-    pageId: 'email-templates',
-    label: 'Order Receipt Email — Body text',
+    id: 'fp_farm_subtitle',
+    pageId: 'farm-plan-financials',
+    label: 'Farm Plan Command Subtitle',
     type: 'text',
-    value: 'Your order has been received and confirmed by the maker.',
-    characterLimit: 250,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
+    value: 'Real-time target pricing matrix, feed inventory SOP, vaccination calendar, and daily attendant checklists based on your master farm plan.',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'email_receipt_cta',
-    pageId: 'email-templates',
-    label: 'Order Receipt Email — CTA button label',
-    type: 'button',
-    value: 'View Order Tracking',
-    characterLimit: 35,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
-    history: [],
-  },
-  {
-    id: 'email_receipt_footer',
-    pageId: 'email-templates',
-    label: 'Order Receipt Email — Footer closing line',
+    id: 'fp_farm_location',
+    pageId: 'farm-plan-financials',
+    label: 'Farm Location Name',
     type: 'text',
-    value: 'Warm regards, The Sol Handmades Team',
-    characterLimit: 100,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
+    value: 'Naivasha Farm',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'email_maker_welcome_subject',
-    pageId: 'email-templates',
-    label: 'Maker Welcome Email — Subject line',
-    type: 'heading',
-    value: 'Welcome to Sol Handmades Guild!',
-    characterLimit: 80,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
-    history: [],
-  },
-  {
-    id: 'email_maker_welcome_heading',
-    pageId: 'email-templates',
-    label: 'Maker Welcome Email — Heading',
-    type: 'heading',
-    value: 'Your Maker Studio is Active',
-    characterLimit: 80,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
-    history: [],
-  },
-  {
-    id: 'email_maker_welcome_body',
-    pageId: 'email-templates',
-    label: 'Maker Welcome Email — Body text',
+    id: 'fp_initial_placed',
+    pageId: 'farm-plan-financials',
+    label: 'Initial Placed Flock Count (birds)',
     type: 'text',
-    value: 'You can now publish your creations and receive orders from global buyers.',
-    characterLimit: 250,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
+    value: '600',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
   {
-    id: 'email_maker_welcome_cta',
-    pageId: 'email-templates',
-    label: 'Maker Welcome Email — CTA button label',
-    type: 'button',
-    value: 'Open Maker Dashboard',
-    characterLimit: 35,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
-    history: [],
-  },
-  {
-    id: 'email_maker_welcome_footer',
-    pageId: 'email-templates',
-    label: 'Maker Welcome Email — Footer closing line',
+    id: 'fp_current_live',
+    pageId: 'farm-plan-financials',
+    label: 'Current Live Birds Count',
     type: 'text',
-    value: 'We are honored to have you in our community.',
-    characterLimit: 100,
-    lastEditedBy: 'Solar Elder',
-    lastEditedAt: '2026-07-24 17:00',
+    value: '570',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
     history: [],
   },
+  {
+    id: 'fp_mortality_count',
+    pageId: 'farm-plan-financials',
+    label: 'Mortality Count to Date',
+    type: 'text',
+    value: '30',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_sunk_cost',
+    pageId: 'farm-plan-financials',
+    label: 'Sunk Cash Invested (Ksh)',
+    type: 'text',
+    value: '346788',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_future_buffer_pct',
+    pageId: 'farm-plan-financials',
+    label: 'Future Mortality Buffer (%)',
+    type: 'text',
+    value: '5',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_remaining_cost_r',
+    pageId: 'farm-plan-financials',
+    label: 'Remaining Cost R per Bird (Ksh)',
+    type: 'text',
+    value: '500',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_target_profit_tier_1',
+    pageId: 'farm-plan-financials',
+    label: 'Profit Target Tier 1 (Ksh)',
+    type: 'text',
+    value: '69000',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_target_profit_tier_2',
+    pageId: 'farm-plan-financials',
+    label: 'Profit Target Tier 2 (Ksh)',
+    type: 'text',
+    value: '80000',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_target_profit_tier_3',
+    pageId: 'farm-plan-financials',
+    label: 'Profit Target Tier 3 (Ksh)',
+    type: 'text',
+    value: '104000',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_active_profit_target',
+    pageId: 'farm-plan-financials',
+    label: 'Selected Active Profit Target (Ksh)',
+    type: 'text',
+    value: '80000',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+
+  // 11. FARM PLAN FEED & INVENTORY
+  {
+    id: 'fp_starter_bags_on_hand',
+    pageId: 'farm-plan-feed',
+    label: 'Starter Feed 50kg Bags on Hand',
+    type: 'text',
+    value: '5.5',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_starter_kg_per_bag',
+    pageId: 'farm-plan-feed',
+    label: 'Kg per Feed Bag',
+    type: 'text',
+    value: '50',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_starter_daily_intake_kg',
+    pageId: 'farm-plan-feed',
+    label: 'Daily Feed Intake per Bird (kg)',
+    type: 'text',
+    value: '0.035',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_feed_supplier',
+    pageId: 'farm-plan-feed',
+    label: 'Feed Brand & Supplier Name',
+    type: 'text',
+    value: 'Ungwa Bio-Feeds Starter & ChickMagnet Grower',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_cost_starter_bag',
+    pageId: 'farm-plan-feed',
+    label: 'Cost per 50kg Starter Bag (Ksh)',
+    type: 'text',
+    value: '3600',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_cost_grower_bag',
+    pageId: 'farm-plan-feed',
+    label: 'Cost per 50kg Grower Bag (Ksh)',
+    type: 'text',
+    value: '3100',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_cost_finisher_bag',
+    pageId: 'farm-plan-feed',
+    label: 'Cost per 50kg Finisher Bag (Ksh)',
+    type: 'text',
+    value: '2950',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_target_fcr',
+    pageId: 'farm-plan-feed',
+    label: 'Target Feed Conversion Ratio (FCR)',
+    type: 'text',
+    value: '2.1',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+
+  // 12. FARM PLAN MARKETING & PITCH
+  {
+    id: 'fp_harvest_days',
+    pageId: 'farm-plan-marketing',
+    label: 'Harvesting Schedule Days',
+    type: 'text',
+    value: 'Friday and Saturday',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_weight_min',
+    pageId: 'farm-plan-marketing',
+    label: 'Minimum Dressed Weight (kg)',
+    type: 'text',
+    value: '1.3',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_weight_max',
+    pageId: 'farm-plan-marketing',
+    label: 'Maximum Dressed Weight (kg)',
+    type: 'text',
+    value: '1.6',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_delivery_radius_km',
+    pageId: 'farm-plan-marketing',
+    label: 'Delivery Radius (km)',
+    type: 'text',
+    value: '25',
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_pitch_script_template',
+    pageId: 'farm-plan-marketing',
+    label: 'Sales Pitch Template Script',
+    type: 'text',
+    value: "Hi, we're supplying improved kienyeji birds from {location}. We harvest every {harvest_days}, dressed or live. Average dressed weight is {weight_min}–{weight_max} kg, with excellent flavor and consistent quality. Intro price is Ksh. {price} per bird. Can I book you for 50–100 birds? We deliver within {radius} km.",
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+
+  // 13. FARM PLAN SCHEDULES (JSON)
+  {
+    id: 'fp_vaccination_schedule_json',
+    pageId: 'farm-plan-vaccines',
+    label: 'Vaccination & Health Schedule (JSON)',
+    type: 'json',
+    value: JSON.stringify(INITIAL_VACCINE_SCHEDULE),
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_housing_specs_json',
+    pageId: 'farm-plan-housing',
+    label: 'Housing & Equipment Specifications (JSON)',
+    type: 'json',
+    value: JSON.stringify(INITIAL_HOUSING_SPECS),
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  },
+  {
+    id: 'fp_daily_sops_json',
+    pageId: 'farm-plan-sops',
+    label: 'Attendant Daily SOPs & Timetable (JSON)',
+    type: 'json',
+    value: JSON.stringify(INITIAL_DAILY_SOPS),
+    lastEditedBy: 'System Core',
+    lastEditedAt: '2026-08-05 00:00',
+    history: [],
+  }
 ];
 
-const STORAGE_KEY = 'sol_cms_data_v1';
-const AUDIT_LOG_KEY = 'sol_cms_audit_logs';
+const LOCAL_STORAGE_KEY = 'chickmagnet_cms_blocks';
 
-let memoryCmsBlocks: CMSBlock[] | null = null;
-
-// Initialize Firestore real-time listener for CMS blocks
-if (typeof window !== 'undefined') {
-  onSnapshot(collection(db, 'cms_blocks'), async (snapshot) => {
-    try {
-      if (snapshot.empty) {
-        console.log('Seeding initial CMS blocks to Firestore...');
-        for (const block of DEFAULT_CMS_BLOCKS) {
-          await setDoc(doc(db, 'cms_blocks', block.id), block);
-        }
-        memoryCmsBlocks = DEFAULT_CMS_BLOCKS;
-        saveStoredCMSData(DEFAULT_CMS_BLOCKS);
-      } else {
-        const fetched = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CMSBlock));
-        const existingIds = new Set(fetched.map(b => b.id));
-        const missing = DEFAULT_CMS_BLOCKS.filter(b => !existingIds.has(b.id));
-        memoryCmsBlocks = [...fetched, ...missing];
-        saveStoredCMSData(memoryCmsBlocks);
-        window.dispatchEvent(new CustomEvent('sol_cms_updated', { detail: { realtime: true } }));
-      }
-    } catch (err) {
-      console.error('CMS Firestore Listener error:', err);
-    }
-  }, (err) => {
-    handleFirestoreError(err, OperationType.GET, 'cms_blocks');
-  });
-}
-
-export function getStoredCMSData(): CMSBlock[] {
-  if (memoryCmsBlocks) return memoryCmsBlocks;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_CMS_BLOCKS;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return DEFAULT_CMS_BLOCKS;
-    
-    // Merge any missing default blocks in case new ones were introduced
-    const existingIds = new Set(parsed.map((b: any) => b.id));
-    const missing = DEFAULT_CMS_BLOCKS.filter(b => !existingIds.has(b.id));
-    return [...parsed, ...missing];
-  } catch {
-    return DEFAULT_CMS_BLOCKS;
-  }
-}
-
-export function compressImageDataUrl(dataUrl: string, maxWidth = 500, maxHeight = 250): Promise<string> {
+export const compressImageDataUrl = (dataUrl: string, maxWidth: number = 600, maxHeight: number = 300): Promise<string> => {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !dataUrl.startsWith('data:image/') || dataUrl.startsWith('data:image/svg+xml')) {
-      resolve(dataUrl);
-      return;
-    }
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       let width = img.width;
       let height = img.height;
-      if (width > maxWidth || height > maxHeight) {
-        const ratio = Math.min(maxWidth / width, maxHeight / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
+
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
       }
+      if (height > maxHeight) {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -1162,224 +1173,143 @@ export function compressImageDataUrl(dataUrl: string, maxWidth = 500, maxHeight 
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-
-      // Strip light/white solid background to ensure transparent logo rendering
-      try {
-        const imgData = ctx.getImageData(0, 0, width, height);
-        const data = imgData.data;
-
-        // Sample corner pixels to check if image has a light/white solid canvas background
-        const cornerIndices = [
-          0,
-          (width - 1) * 4,
-          (height - 1) * width * 4,
-          ((height - 1) * width + (width - 1)) * 4
-        ];
-        let lightCorners = 0;
-        cornerIndices.forEach(idx => {
-          if (data[idx] > 200 && data[idx + 1] > 200 && data[idx + 2] > 200) {
-            lightCorners++;
-          }
-        });
-
-        // If corners are white/light, convert white/near-white pixels to transparent
-        if (lightCorners >= 2) {
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-
-            if (a > 0 && r > 215 && g > 215 && b > 215) {
-              const avg = (r + g + b) / 3;
-              if (avg > 235) {
-                data[i + 3] = 0; // Transparent
-              } else {
-                const alphaFactor = (235 - avg) / 20;
-                data[i + 3] = Math.round(a * Math.max(0, alphaFactor));
-              }
-            }
-          }
-          ctx.putImageData(imgData, 0, 0);
-        }
-      } catch (err) {
-        console.warn('Canvas background removal note:', err);
-      }
-
-      // Export as PNG or WEBP to preserve transparency (never JPEG)
-      let compressed = canvas.toDataURL('image/webp', 0.90);
-      if (!compressed.startsWith('data:image/webp')) {
-        compressed = canvas.toDataURL('image/png');
-      }
-      resolve(compressed);
+      resolve(canvas.toDataURL('image/webp', 0.85));
     };
-    img.onerror = () => resolve(dataUrl);
+    img.onerror = () => {
+      resolve(dataUrl);
+    };
     img.src = dataUrl;
   });
-}
+};
 
-export function saveStoredCMSData(blocks: CMSBlock[]) {
+export const getStoredCMSData = (): CMSBlock[] => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks));
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!saved) return DEFAULT_CMS_BLOCKS;
+    const parsed: CMSBlock[] = JSON.parse(saved);
+    
+    // Merge defaults to guarantee all new keys are present
+    const merged = [...DEFAULT_CMS_BLOCKS];
+    parsed.forEach((storedBlock) => {
+      const idx = merged.findIndex((b) => b.id === storedBlock.id);
+      if (idx >= 0) {
+        merged[idx] = { ...merged[idx], ...storedBlock };
+      } else {
+        merged.push(storedBlock);
+      }
+    });
+    return merged;
   } catch (e) {
-    console.warn('LocalStorage quota issue saving CMS data, cleaning history & retrying...', e);
-    try {
-      // Create a lightweight copy without large history or image strings to fit in quota
-      const lightBlocks = blocks.map(b => ({
-        ...b,
-        history: (b.history || []).map(h => ({
-          ...h,
-          oldValue: typeof h.oldValue === 'string' && h.oldValue.length > 150 ? '[Image Data]' : h.oldValue,
-          newValue: typeof h.newValue === 'string' && h.newValue.length > 150 ? '[Image Data]' : h.newValue,
-        })).slice(0, 2)
-      }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lightBlocks));
-    } catch (e2) {
-      console.warn('Could not save to localStorage, maintaining in-memory state:', e2);
-    }
+    console.error('Failed to parse CMS blocks from localStorage', e);
+    return DEFAULT_CMS_BLOCKS;
   }
-}
+};
 
-export function getCMSValue(blockId: string, fallback: string): string {
-  const blocks = getStoredCMSData();
-  const block = blocks.find(b => b.id === blockId);
-  if (!block || block.value === undefined || block.value === null) return fallback;
-  return String(block.value);
-}
+export const saveStoredCMSData = (blocks: CMSBlock[]) => {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(blocks));
+    window.dispatchEvent(new Event('sol_cms_updated'));
+  } catch (e) {
+    console.error('Failed to save CMS blocks to localStorage', e);
+  }
+};
 
-export function getCMSToggle(blockId: string, fallback: boolean): boolean {
-  const blocks = getStoredCMSData();
-  const block = blocks.find(b => b.id === blockId);
-  if (!block || typeof block.value !== 'boolean') return fallback;
-  return block.value;
-}
-
-export function updateCMSBlock(
+export const updateCMSBlock = async (
   blockId: string,
   newValue: string | boolean,
-  adminName: string = 'Solar Elder'
-): { success: boolean; updatedBlock?: CMSBlock; message?: string } {
-  const blocks = getStoredCMSData();
-  const index = blocks.findIndex(b => b.id === blockId);
+  adminName: string = 'Admin'
+) => {
+  const currentBlocks = getStoredCMSData();
+  const blockIndex = currentBlocks.findIndex((b) => b.id === blockId);
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
 
-  if (index === -1) {
-    return { success: false, message: 'Content block not found.' };
-  }
+  let updatedBlock: CMSBlock;
 
-  const block = blocks[index];
-
-  if (block.readOnly) {
-    return { success: false, message: 'This system block is read-only.' };
-  }
-
-  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
-  const oldValue = block.value;
-
-  const sanitizeForLog = (val: string | boolean) => {
-    if (typeof val === 'string' && val.length > 200) {
-      if (val.startsWith('data:image/')) return '[Image Data URL]';
-      return val.slice(0, 150) + '...';
-    }
-    return val;
-  };
-
-  // Add history item
-  const newHistoryItem: CMSHistoryEntry = {
-    id: 'h_' + Date.now(),
-    timestamp,
-    adminName,
-    oldValue: sanitizeForLog(oldValue),
-    newValue: sanitizeForLog(newValue),
-  };
-
-  const updatedHistory = [newHistoryItem, ...(block.history || [])].slice(0, 5);
-
-  const updatedBlock: CMSBlock = {
-    ...block,
-    value: newValue,
-    lastEditedBy: adminName,
-    lastEditedAt: timestamp,
-    history: updatedHistory,
-  };
-
-  blocks[index] = updatedBlock;
-  memoryCmsBlocks = blocks;
-  saveStoredCMSData(blocks);
-
-  // Write directly to Firestore cloud database!
-  setDoc(doc(db, 'cms_blocks', blockId), updatedBlock).catch(err => {
-    handleFirestoreError(err, OperationType.WRITE, `cms_blocks/${blockId}`);
-  });
-
-  // Sync with backend API if needed
-  if (typeof window !== 'undefined') {
-    fetch('/api/v1/content/blocks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ block: updatedBlock, blocks })
-    }).catch(err => console.warn('CMS backend sync notice:', err));
-
-    // Dispatch custom event so rest of application refreshes real-time
-    window.dispatchEvent(
-      new CustomEvent('sol_cms_updated', {
-        detail: { blockId, newValue, adminName, timestamp },
-      })
-    );
-  }
-
-  // Record audit log entry to Firestore
-  try {
-    const logId = 'log_' + Date.now();
-    const logData = {
-      id: logId,
-      blockId,
-      label: block.label,
+  if (blockIndex >= 0) {
+    const existing = currentBlocks[blockIndex];
+    const historyEntry: CMSHistoryEntry = {
+      id: 'h_' + Date.now(),
+      timestamp: now,
       adminName,
-      timestamp,
-      oldValue: sanitizeForLog(oldValue),
-      newValue: sanitizeForLog(newValue),
+      oldValue: existing.value,
+      newValue,
     };
-    setDoc(doc(db, 'cms_audit_logs', logId), logData).catch(err => {
-      handleFirestoreError(err, OperationType.WRITE, `cms_audit_logs/${logId}`);
-    });
-
-    try {
-      const rawLogs = localStorage.getItem(AUDIT_LOG_KEY);
-      const logs = rawLogs ? JSON.parse(rawLogs) : [];
-      logs.unshift(logData);
-      localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs.slice(0, 20)));
-    } catch (storageErr) {
-      console.warn('LocalStorage quota issue for audit logs, keeping latest log item:', storageErr);
-      try {
-        localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify([logData]));
-      } catch {
-        // Silently ignore if browser storage is completely full
-      }
-    }
-  } catch (e) {
-    console.warn('CMS audit log recording note:', e);
+    updatedBlock = {
+      ...existing,
+      value: newValue,
+      lastEditedBy: adminName,
+      lastEditedAt: now,
+      history: [historyEntry, ...(existing.history || [])].slice(0, 20),
+    };
+    currentBlocks[blockIndex] = updatedBlock;
+  } else {
+    // Create new block
+    updatedBlock = {
+      id: blockId,
+      pageId: 'global',
+      label: blockId,
+      type: typeof newValue === 'boolean' ? 'toggle' : 'text',
+      value: newValue,
+      lastEditedBy: adminName,
+      lastEditedAt: now,
+      history: [
+        {
+          id: 'h_' + Date.now(),
+          timestamp: now,
+          adminName,
+          oldValue: '',
+          newValue,
+        },
+      ],
+    };
+    currentBlocks.push(updatedBlock);
   }
 
-  return { success: true, updatedBlock };
-}
+  saveStoredCMSData(currentBlocks);
 
-export function restoreCMSHistory(
-  blockId: string,
-  historyEntryId: string,
-  adminName: string = 'Solar Elder'
-): { success: boolean; restoredValue?: string | boolean; message?: string } {
+  // Sync to Firestore in background
+  try {
+    const blockDocRef = doc(db, 'cms_blocks', blockId);
+    await setDoc(
+      blockDocRef,
+      {
+        id: updatedBlock.id,
+        pageId: updatedBlock.pageId,
+        label: updatedBlock.label,
+        type: updatedBlock.type,
+        value: updatedBlock.value,
+        lastEditedBy: updatedBlock.lastEditedBy,
+        lastEditedAt: updatedBlock.lastEditedAt,
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `cms_blocks/${blockId}`);
+  }
+};
+
+export const getCMSValue = (blockId: string, fallback?: string): string => {
   const blocks = getStoredCMSData();
-  const block = blocks.find(b => b.id === blockId);
-  if (!block) return { success: false, message: 'Block not found' };
+  const found = blocks.find((b) => b.id === blockId);
+  if (found && typeof found.value === 'string') {
+    return found.value;
+  }
+  if (fallback !== undefined) return fallback;
+  const def = DEFAULT_CMS_BLOCKS.find((b) => b.id === blockId);
+  return def && typeof def.value === 'string' ? def.value : '';
+};
 
-  const historyItem = block.history?.find(h => h.id === historyEntryId);
-  if (!historyItem) return { success: false, message: 'History version not found' };
+export const getCMSToggle = (blockId: string, fallback: boolean = false): boolean => {
+  const blocks = getStoredCMSData();
+  const found = blocks.find((b) => b.id === blockId);
+  if (found && typeof found.value === 'boolean') {
+    return found.value;
+  }
+  const def = DEFAULT_CMS_BLOCKS.find((b) => b.id === blockId);
+  return def && typeof def.value === 'boolean' ? def.value : fallback;
+};
 
-  const targetVal = historyItem.oldValue;
-  return updateCMSBlock(blockId, targetVal, adminName + ' (Restore)');
-}
-
-export function useCMSBlock(blockId: string, fallback: string): string {
+export function useCMSBlock(blockId: string, fallback?: string): string {
   const [val, setVal] = useState<string>(() => getCMSValue(blockId, fallback));
 
   useEffect(() => {
@@ -1397,7 +1327,7 @@ export function useCMSBlock(blockId: string, fallback: string): string {
   return val;
 }
 
-export function useCMSToggle(blockId: string, fallback: boolean): boolean {
+export function useCMSToggle(blockId: string, fallback: boolean = false): boolean {
   const [val, setVal] = useState<boolean>(() => getCMSToggle(blockId, fallback));
 
   useEffect(() => {
@@ -1415,6 +1345,292 @@ export function useCMSToggle(blockId: string, fallback: boolean): boolean {
   return val;
 }
 
+// ----------------------------------------------------
+// DYNAMIC FAQS HOOK & HANDLERS
+// ----------------------------------------------------
+export interface FAQItem {
+  id: string;
+  q: string;
+  a: string;
+  category?: string;
+}
+
+export const getStoredFAQs = (): FAQItem[] => {
+  try {
+    const raw = getCMSValue('faqs_data_json');
+    if (!raw) return INITIAL_FAQS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : INITIAL_FAQS;
+  } catch (e) {
+    return INITIAL_FAQS;
+  }
+};
+
+export const saveStoredFAQs = async (faqs: FAQItem[], adminName: string = 'Admin') => {
+  await updateCMSBlock('faqs_data_json', JSON.stringify(faqs), adminName);
+};
+
+export function useDynamicFAQs() {
+  const [faqs, setFaqs] = useState<FAQItem[]>(getStoredFAQs);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setFaqs(getStoredFAQs());
+    };
+    window.addEventListener('sol_cms_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('sol_cms_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const addFaq = async (newFaq: Omit<FAQItem, 'id'>, adminName?: string) => {
+    const item: FAQItem = {
+      ...newFaq,
+      id: 'faq-' + Date.now()
+    };
+    const updated = [...faqs, item];
+    setFaqs(updated);
+    await saveStoredFAQs(updated, adminName);
+  };
+
+  const updateFaq = async (id: string, updatedFields: Partial<FAQItem>, adminName?: string) => {
+    const updated = faqs.map(f => f.id === id ? { ...f, ...updatedFields } : f);
+    setFaqs(updated);
+    await saveStoredFAQs(updated, adminName);
+  };
+
+  const deleteFaq = async (id: string, adminName?: string) => {
+    const updated = faqs.filter(f => f.id !== id);
+    setFaqs(updated);
+    await saveStoredFAQs(updated, adminName);
+  };
+
+  return {
+    faqs,
+    addFaq,
+    updateFaq,
+    deleteFaq
+  };
+}
+
+// ----------------------------------------------------
+// FARM PLAN COMPREHENSIVE DATA MODEL & HOOK
+// ----------------------------------------------------
+export interface FarmPlanData {
+  farmTitle: string;
+  farmSubtitle: string;
+  farmLocation: string;
+  initialPlaced: number;
+  currentLive: number;
+  mortalityCount: number;
+  sunkCost: number;
+  futureBufferPct: number;
+  remainingCostR: number;
+  targetProfitTier1: number;
+  targetProfitTier2: number;
+  targetProfitTier3: number;
+  activeProfitTarget: number;
+  
+  // Computed values
+  conservativeSaleable: number;
+  totalRemainingCost: number;
+  requiredTotalRevenue: number;
+  requiredPricePerBird: number;
+  mortalityPct: number;
+
+  // Feed
+  starterBagsOnHand: number;
+  starterKgPerBag: number;
+  starterDailyIntakeKg: number;
+  starterKgOnHand: number;
+  starterDaysCovered: number;
+  feedSupplier: string;
+  costStarterBag: number;
+  costGrowerBag: number;
+  costFinisherBag: number;
+  targetFCR: number;
+
+  // Marketing & Sales
+  harvestDays: string;
+  weightMin: number;
+  weightMax: number;
+  deliveryRadiusKm: number;
+  pitchScriptTemplate: string;
+  pitchScript: string;
+
+  // Structured Schedules
+  vaccinationSchedule: {
+    id: string;
+    dayOrWeek: string;
+    vaccine: string;
+    route: string;
+    instructions: string;
+    notes: string;
+  }[];
+  housingSpecs: {
+    id: string;
+    label: string;
+    value: string;
+    note: string;
+  }[];
+  dailySops: {
+    id: string;
+    time: string;
+    task: string;
+    details: string;
+    critical: boolean;
+  }[];
+}
+
+export const getStoredFarmPlan = (): FarmPlanData => {
+  const farmTitle = getCMSValue('fp_farm_title', '600-Flock Improved Kienyeji Operational Command');
+  const farmSubtitle = getCMSValue('fp_farm_subtitle', 'Real-time target pricing matrix, feed inventory SOP, vaccination calendar, and daily attendant checklists based on your master farm plan.');
+  const farmLocation = getCMSValue('fp_farm_location', 'Naivasha Farm');
+  
+  const initialPlaced = Number(getCMSValue('fp_initial_placed', '600')) || 600;
+  const currentLive = Number(getCMSValue('fp_current_live', '570')) || 570;
+  const mortalityCount = Number(getCMSValue('fp_mortality_count', '30')) || 30;
+  const sunkCost = Number(getCMSValue('fp_sunk_cost', '346788')) || 346788;
+  const futureBufferPct = Number(getCMSValue('fp_future_buffer_pct', '5')) || 5;
+  const remainingCostR = Number(getCMSValue('fp_remaining_cost_r', '500')) || 500;
+  const targetProfitTier1 = Number(getCMSValue('fp_target_profit_tier_1', '69000')) || 69000;
+  const targetProfitTier2 = Number(getCMSValue('fp_target_profit_tier_2', '80000')) || 80000;
+  const targetProfitTier3 = Number(getCMSValue('fp_target_profit_tier_3', '104000')) || 104000;
+  const activeProfitTarget = Number(getCMSValue('fp_active_profit_target', '80000')) || 80000;
+
+  // Computed calculations
+  const bufferMargin = futureBufferPct / 100;
+  const conservativeSaleable = Math.round(currentLive * (1 - bufferMargin));
+  const totalRemainingCost = conservativeSaleable * remainingCostR;
+  const requiredTotalRevenue = sunkCost + activeProfitTarget + totalRemainingCost;
+  const requiredPricePerBird = conservativeSaleable > 0 ? Math.round(requiredTotalRevenue / conservativeSaleable) : 0;
+  const mortalityPct = initialPlaced > 0 ? Number(((mortalityCount / initialPlaced) * 100).toFixed(1)) : 0;
+
+  // Feed
+  const starterBagsOnHand = Number(getCMSValue('fp_starter_bags_on_hand', '5.5')) || 5.5;
+  const starterKgPerBag = Number(getCMSValue('fp_starter_kg_per_bag', '50')) || 50;
+  const starterDailyIntakeKg = Number(getCMSValue('fp_starter_daily_intake_kg', '0.035')) || 0.035;
+  const starterKgOnHand = starterBagsOnHand * starterKgPerBag;
+  const dailyIntakeFlock = currentLive * starterDailyIntakeKg;
+  const starterDaysCovered = dailyIntakeFlock > 0 ? Math.round(starterKgOnHand / dailyIntakeFlock) : 0;
+
+  const feedSupplier = getCMSValue('fp_feed_supplier', 'Ungwa Bio-Feeds Starter & ChickMagnet Grower');
+  const costStarterBag = Number(getCMSValue('fp_cost_starter_bag', '3600')) || 3600;
+  const costGrowerBag = Number(getCMSValue('fp_cost_grower_bag', '3100')) || 3100;
+  const costFinisherBag = Number(getCMSValue('fp_cost_finisher_bag', '2950')) || 2950;
+  const targetFCR = Number(getCMSValue('fp_target_fcr', '2.1')) || 2.1;
+
+  // Marketing
+  const harvestDays = getCMSValue('fp_harvest_days', 'Friday and Saturday');
+  const weightMin = Number(getCMSValue('fp_weight_min', '1.3')) || 1.3;
+  const weightMax = Number(getCMSValue('fp_weight_max', '1.6')) || 1.6;
+  const deliveryRadiusKm = Number(getCMSValue('fp_delivery_radius_km', '25')) || 25;
+  const pitchScriptTemplate = getCMSValue(
+    'fp_pitch_script_template',
+    "Hi, we're supplying improved kienyeji birds from {location}. We harvest every {harvest_days}, dressed or live. Average dressed weight is {weight_min}–{weight_max} kg, with excellent flavor and consistent quality. Intro price is Ksh. {price} per bird. Can I book you for 50–100 birds? We deliver within {radius} km."
+  );
+
+  const pitchScript = pitchScriptTemplate
+    .replace('{location}', farmLocation)
+    .replace('{harvest_days}', harvestDays)
+    .replace('{weight_min}', weightMin.toString())
+    .replace('{weight_max}', weightMax.toString())
+    .replace('{price}', requiredPricePerBird.toString())
+    .replace('{radius}', deliveryRadiusKm.toString());
+
+  // Schedules JSON parsing
+  let vaccinationSchedule = INITIAL_VACCINE_SCHEDULE;
+  try {
+    const rawVax = getCMSValue('fp_vaccination_schedule_json');
+    if (rawVax) vaccinationSchedule = JSON.parse(rawVax);
+  } catch (e) {}
+
+  let housingSpecs = INITIAL_HOUSING_SPECS;
+  try {
+    const rawHousing = getCMSValue('fp_housing_specs_json');
+    if (rawHousing) housingSpecs = JSON.parse(rawHousing);
+  } catch (e) {}
+
+  let dailySops = INITIAL_DAILY_SOPS;
+  try {
+    const rawSops = getCMSValue('fp_daily_sops_json');
+    if (rawSops) dailySops = JSON.parse(rawSops);
+  } catch (e) {}
+
+  return {
+    farmTitle,
+    farmSubtitle,
+    farmLocation,
+    initialPlaced,
+    currentLive,
+    mortalityCount,
+    sunkCost,
+    futureBufferPct,
+    remainingCostR,
+    targetProfitTier1,
+    targetProfitTier2,
+    targetProfitTier3,
+    activeProfitTarget,
+    conservativeSaleable,
+    totalRemainingCost,
+    requiredTotalRevenue,
+    requiredPricePerBird,
+    mortalityPct,
+    starterBagsOnHand,
+    starterKgPerBag,
+    starterDailyIntakeKg,
+    starterKgOnHand,
+    starterDaysCovered,
+    feedSupplier,
+    costStarterBag,
+    costGrowerBag,
+    costFinisherBag,
+    targetFCR,
+    harvestDays,
+    weightMin,
+    weightMax,
+    deliveryRadiusKm,
+    pitchScriptTemplate,
+    pitchScript,
+    vaccinationSchedule,
+    housingSpecs,
+    dailySops
+  };
+};
+
+export function useFarmPlanData() {
+  const [data, setData] = useState<FarmPlanData>(getStoredFarmPlan);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData(getStoredFarmPlan());
+    };
+    window.addEventListener('sol_cms_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('sol_cms_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const updateField = async (blockKey: string, value: string | number | boolean | object, adminName: string = 'Admin') => {
+    const strVal = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    await updateCMSBlock(blockKey, strVal, adminName);
+    setData(getStoredFarmPlan());
+  };
+
+  return {
+    data,
+    updateField,
+    refresh: () => setData(getStoredFarmPlan())
+  };
+}
+
+// ----------------------------------------------------
+// BRAND LOGO & PLATFORM HEADER
+// ----------------------------------------------------
 export interface BrandLogoConfig {
   logoType: 'emoji' | 'image';
   logoDisplayMode?: 'image_only' | 'image_with_text' | 'emoji_with_text';
@@ -1448,23 +1664,23 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
 
 export const updateBrandLogo = async (config: Partial<BrandLogoConfig>, adminName: string = 'Admin') => {
   if (config.logoType !== undefined) {
-    updateCMSBlock('global_logo_type', config.logoType, adminName);
+    await updateCMSBlock('global_logo_type', config.logoType, adminName);
   }
   if (config.logoDisplayMode !== undefined) {
-    updateCMSBlock('global_logo_display_mode', config.logoDisplayMode, adminName);
+    await updateCMSBlock('global_logo_display_mode', config.logoDisplayMode, adminName);
   }
   if (config.logoEmoji !== undefined) {
-    updateCMSBlock('global_logo_emoji', config.logoEmoji, adminName);
+    await updateCMSBlock('global_logo_emoji', config.logoEmoji, adminName);
   }
   if (config.logoImageUrl !== undefined) {
     let finalUrl = config.logoImageUrl;
     if (finalUrl && finalUrl.startsWith('data:image/')) {
       finalUrl = await compressImageDataUrl(finalUrl, 500, 250);
     }
-    updateCMSBlock('global_logo_image_url', finalUrl, adminName);
+    await updateCMSBlock('global_logo_image_url', finalUrl, adminName);
   }
   if (config.brandName !== undefined) {
-    updateCMSBlock('global_platform_name', config.brandName, adminName);
+    await updateCMSBlock('global_platform_name', config.brandName, adminName);
   }
   window.dispatchEvent(new Event('chickmagnet_brand_updated'));
 };

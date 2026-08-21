@@ -16,7 +16,6 @@ export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: Foote
     { label: 'Frequently Asked Questions (FAQs)', action: () => onNavigate?.('about', 'faqs') },
     { label: 'Shop All Catalog', action: () => onNavigate?.('shop') },
     { label: 'Quality & Guarantees', action: () => onNavigate?.('about', 'quality-guarantees') },
-    { label: '👑 Admin Dashboard & CMS', action: () => onOpenAdmin ? onOpenAdmin() : onNavigate?.('profile') },
   ];
 
   return (
