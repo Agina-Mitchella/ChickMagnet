@@ -1,10 +1,10 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: sol-handmades-api
+  name: chickmagnet-api
   labels:
     cloud.googleapis.com/location: europe-west2
-    app: sol-handmades
+    app: chickmagnet
 spec:
   template:
     metadata:
@@ -16,7 +16,7 @@ spec:
       containerConcurrency: 80
       timeoutSeconds: 30
       containers:
-        - image: europe-west2-docker.pkg.dev/sol-handmades-prod/sol-handmades/backend:latest
+        - image: europe-west2-docker.pkg.dev/gen-lang-client-0655097153/chickmagnet/backend:latest
           resources:
             limits:
               memory: 512Mi

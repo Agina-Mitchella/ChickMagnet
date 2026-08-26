@@ -448,15 +448,14 @@ export function getResend(): Resend | null {
   return resendClient;
 }
 
-// 4. Railway Storage & Persistent Volume Configuration
-export const railwayStorageConfig = {
-  endpoint: process.env.RAILWAY_STORAGE_ENDPOINT || process.env.STORAGE_ENDPOINT || 'http://localhost:9000',
-  accessKeyId: process.env.RAILWAY_STORAGE_ACCESS_KEY || process.env.STORAGE_ACCESS_KEY || 'railway_access_key',
-  secretAccessKey: process.env.RAILWAY_STORAGE_SECRET_KEY || process.env.STORAGE_SECRET_KEY || 'railway_secret_key',
-  bucket: process.env.RAILWAY_STORAGE_BUCKET || process.env.STORAGE_BUCKET || 'chickmagnet-storage',
-  volumeMountPath: process.env.RAILWAY_VOLUME_MOUNT_PATH || '/data/storage',
-  publicUrl: process.env.RAILWAY_STORAGE_PUBLIC_URL || process.env.STORAGE_PUBLIC_URL || '',
+// 4. Cloud Storage & Persistent Volume Configuration
+export const storageConfig = {
+  endpoint: process.env.STORAGE_ENDPOINT || 'http://localhost:9000',
+  accessKeyId: process.env.STORAGE_ACCESS_KEY || 'storage_access_key',
+  secretAccessKey: process.env.STORAGE_SECRET_KEY || 'storage_secret_key',
+  bucket: process.env.STORAGE_BUCKET || 'chickmagnet-storage',
+  volumeMountPath: process.env.STORAGE_VOLUME_MOUNT_PATH || '/data/storage',
+  publicUrl: process.env.STORAGE_PUBLIC_URL || '',
 };
 
-export const storageConfig = railwayStorageConfig;
-export const r2Config = railwayStorageConfig; // Backward compatibility alias
+export const r2Config = storageConfig; // Backward compatibility alias

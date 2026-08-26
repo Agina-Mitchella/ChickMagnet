@@ -235,11 +235,9 @@ async function main() {
         },
         savedPaymentMethods: {
           create: {
-            stripePaymentMethodId: `pm_mock_${i}`,
-            last4: `424${i}`,
-            brand: 'visa',
-            expMonth: 12,
-            expYear: 2028,
+            provider: 'MPESA',
+            phoneNumber: `25471234567${i}`,
+            accountName: `Buyer ${i} Account`,
             isDefault: true
           }
         }
@@ -274,7 +272,7 @@ async function main() {
         transactionFee: 200,
         total: Math.floor(product.price * 1.05) + 200,
         currency: 'KES',
-        stripePaymentIntentId: `pi_mock_${i}`,
+        mpesaReceiptNumber: `QKJ${i}982711`,
         items: {
           create: {
             productId: product.id,

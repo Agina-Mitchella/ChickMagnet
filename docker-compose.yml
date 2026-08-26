@@ -19,16 +19,14 @@ services:
       - MPESA_CONSUMER_SECRET=daraja_mock_secret
       - MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
       - MPESA_SHORTCODE=174379
-      - RAILWAY_STORAGE_ENDPOINT=http://minio:9000
-      - RAILWAY_STORAGE_ACCESS_KEY=minioadmin
-      - RAILWAY_STORAGE_SECRET_KEY=minioadmin
-      - RAILWAY_STORAGE_BUCKET=chickmagnet-storage
-      - RAILWAY_VOLUME_MOUNT_PATH=/data/storage
+      - STORAGE_ENDPOINT=http://minio:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+      - STORAGE_BUCKET=chickmagnet-storage
+      - STORAGE_VOLUME_MOUNT_PATH=/data/storage
       - RESEND_API_KEY=re_mock
       - GOOGLE_CLIENT_ID=google_mock
       - GOOGLE_CLIENT_SECRET=google_secret_mock
-      - AFRICASTALKING_USERNAME=sandbox
-      - AFRICASTALKING_API_KEY=mock_at_key
       - FRONTEND_URL=http://localhost:3000
     depends_on:
       - redis
@@ -46,11 +44,11 @@ services:
       - NODE_ENV=development
       - REDIS_URL=redis://redis:6379
       - RESEND_API_KEY=re_mock
-      - RAILWAY_STORAGE_ENDPOINT=http://minio:9000
-      - RAILWAY_STORAGE_ACCESS_KEY=minioadmin
-      - RAILWAY_STORAGE_SECRET_KEY=minioadmin
-      - RAILWAY_STORAGE_BUCKET=chickmagnet-storage
-      - RAILWAY_VOLUME_MOUNT_PATH=/data/storage
+      - STORAGE_ENDPOINT=http://minio:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+      - STORAGE_BUCKET=chickmagnet-storage
+      - STORAGE_VOLUME_MOUNT_PATH=/data/storage
     depends_on:
       - redis
       - minio

@@ -4,6 +4,7 @@ import {
 import { db, handleFirestoreError, OperationType } from '../config/firebase';
 import { Product } from '../types';
 import { INITIAL_PRODUCTS } from '../data/products';
+import { getStoredCMSData, saveStoredCMSData, CMSBlock } from '../utils/cms';
 
 function safeSetLocalStorage(key: string, value: string) {
   try {
@@ -35,27 +36,20 @@ export function subscribeProducts(
           await setDoc(doc(db, 'products', prod.id), prod);
         }
         onUpdate(INITIAL_PRODUCTS);
+        safeSetLocalStorage('chickmagnet_products', JSON.stringify(INITIAL_PRODUCTS));
       } else {
         const initialImageMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip.image]));
-        const items = snapshot.docs.map(d => {
+        const items: Product[] = snapshot.docs.map(d => {
           const data = d.data() as Product;
           return {
             id: d.id,
             ...data,
-            image: initialImageMap.get(d.id) || data.image
+            image: data.image || initialImageMap.get(d.id) || ''
           };
         });
-        // Merge missing initial products if Firestore snapshot is incomplete or missing defaults
-        const existingIds = new Set(items.map(i => i.id));
-        const merged = [...items];
-        for (const prod of INITIAL_PRODUCTS) {
-          if (!existingIds.has(prod.id)) {
-            merged.push(prod);
-            setDoc(doc(db, 'products', prod.id), prod).catch(() => {});
-          }
-        }
-        onUpdate(merged);
-        safeSetLocalStorage('chickmagnet_products', JSON.stringify(merged));
+        onUpdate(items);
+        safeSetLocalStorage('chickmagnet_products', JSON.stringify(items));
+        window.dispatchEvent(new Event('chickmagnet_products_updated'));
       }
     } catch (err) {
       console.error('Error handling products snapshot:', err);
@@ -82,6 +76,7 @@ export async function saveProductToFirestore(product: Product) {
   try {
     await setDoc(doc(db, 'products', product.id), product);
     safeSetLocalStorage('chickmagnet_products_last_update', Date.now().toString());
+    window.dispatchEvent(new Event('chickmagnet_products_updated'));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `products/${product.id}`);
   }
@@ -90,6 +85,7 @@ export async function saveProductToFirestore(product: Product) {
 export async function deleteProductFromFirestore(productId: string) {
   try {
     await deleteDoc(doc(db, 'products', productId));
+    window.dispatchEvent(new Event('chickmagnet_products_updated'));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
   }
@@ -249,6 +245,7 @@ export function subscribeBadges(
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
         safeSetLocalStorage('chickmagnet_admin_badges', JSON.stringify(items));
+        window.dispatchEvent(new Event('chickmagnet_badges_updated'));
       }
     } catch (err) {
       console.error('Badges snapshot error:', err);
@@ -270,6 +267,7 @@ export async function saveBadgeToFirestore(badge: any) {
   try {
     const docId = badge.id || `badge-${Date.now()}`;
     await setDoc(doc(db, 'seller_badges', docId), { ...badge, id: docId });
+    window.dispatchEvent(new Event('chickmagnet_badges_updated'));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `seller_badges/${badge.id}`);
   }
@@ -294,6 +292,7 @@ export function subscribeBatches(
         const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         onUpdate(items);
         safeSetLocalStorage('chickmagnet_admin_batches', JSON.stringify(items));
+        window.dispatchEvent(new Event('chickmagnet_batch_updated'));
       }
     } catch (err) {
       console.error('Batches snapshot error:', err);
@@ -315,6 +314,7 @@ export async function saveBatchToFirestore(batch: any) {
   try {
     const docId = batch.batchId || `batch-${Date.now()}`;
     await setDoc(doc(db, 'hatchery_batches', docId), { ...batch, id: docId, batchId: docId });
+    window.dispatchEvent(new Event('chickmagnet_batch_updated'));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `hatchery_batches/${batch.batchId}`);
   }
@@ -363,4 +363,39 @@ export async function saveAuditLogToFirestore(logItem: any) {
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `admin_audit_logs/${logItem.id}`);
   }
+}
+
+// 8. CMS Blocks Global Realtime Sync
+export function subscribeCMSBlocks() {
+  const collectionRef = collection(db, 'cms_blocks');
+
+  return onSnapshot(collectionRef, (snapshot) => {
+    try {
+      if (!snapshot.empty) {
+        const currentBlocks = getStoredCMSData();
+        const map = new Map(currentBlocks.map(b => [b.id, b]));
+        snapshot.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data && data.id) {
+            const existing = map.get(data.id);
+            map.set(data.id, {
+              id: data.id,
+              pageId: data.pageId || existing?.pageId || 'global',
+              label: data.label || existing?.label || data.id,
+              type: data.type || existing?.type || 'text',
+              value: data.value !== undefined ? data.value : existing?.value,
+              lastEditedBy: data.lastEditedBy || existing?.lastEditedBy,
+              lastEditedAt: data.lastEditedAt || existing?.lastEditedAt,
+              history: data.history || existing?.history || []
+            });
+          }
+        });
+        saveStoredCMSData(Array.from(map.values()));
+      }
+    } catch (err) {
+      console.error('Error syncing CMS blocks snapshot:', err);
+    }
+  }, (error) => {
+    handleFirestoreError(error, OperationType.GET, 'cms_blocks');
+  });
 }

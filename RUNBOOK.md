@@ -24,54 +24,41 @@ This document details operational procedures and step-by-step response playbooks
 
 1. **Check Cloud Run Logs**:
    ```bash
-   gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=sol-handmades-api" --limit 50 --format json
+   gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=chickmagnet-api" --limit 50 --format json
    ```
 
 2. **Verify if Recent Deployment Caused Outage**:
    - If error started immediately after a new deployment, execute an immediate traffic rollback to the previous healthy revision:
    ```bash
-   gcloud run services update-traffic sol-handmades-api \
+   gcloud run services update-traffic chickmagnet-api \
      --region europe-west2 \
      --to-revisions PREV=100
    ```
 
-3. **Check Database Connectivity**:
-   - Verify Cloud SQL instance state:
-   ```bash
-   gcloud sql instances describe sol-postgres-prod
-   ```
-   - Check if database connections are maxed out or refusing connections.
+3. **Check Database & Cache Connectivity**:
+   - Verify Firebase Firestore / Redis connectivity.
 
-4. **Check Redis Connectivity**:
-   - Ping Redis instance via GCP Memorystore or connection string:
+4. **Activate Emergency Maintenance Mode**:
+   - Trigger maintenance mode via administrative API or Admin UI (`/admin`):
    ```bash
-   redis-cli -h $REDIS_HOST -a $REDIS_PASSWORD ping
-   ```
-
-5. **Activate Emergency Maintenance Mode**:
-   - Trigger maintenance mode via administrative API or Admin UI (`/admin`) so buyers receive a graceful explanation screen while engineering investigates:
-   ```bash
-   curl -X POST https://sol-handmades-api.run.app/api/v1/maintenance \
+   curl -X POST https://chickmagnet-api.run.app/api/v1/maintenance \
      -H "Content-Type: application/json" \
      -d '{"isMaintenance": true, "message": "Our market sanctuary is undergoing brief rejuvenation. We will return shortly."}'
    ```
 
 ---
 
-## Playbook 2: Database Connection Refused / Pool Exhausted
+## Playbook 2: Database Connection Refused / Pool Issues
 
 ### Symptoms
-- Logs show `PrismaClientInitializationError: Can't reach database server` or `Error: Too many connections`.
+- Logs show connection errors or high latency.
 
 ### Execution Procedure
 
-1. **Inspect Active Connection Count**:
-   - Check Cloud SQL CPU and connection metrics in Google Cloud Console.
-   
-2. **Restart Cloud Run Container Pool**:
+1. **Restart Cloud Run Container Pool**:
    - Restarting Cloud Run instances cleanly tears down hung connection pools:
    ```bash
-   gcloud run services update sol-handmades-api \
+   gcloud run services update chickmagnet-api \
      --region europe-west2 \
      --update-env-vars RESTART_TRIGGER=$(date +%s)
    ```

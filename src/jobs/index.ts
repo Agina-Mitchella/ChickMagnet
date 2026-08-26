@@ -72,17 +72,12 @@ export type Job = any;
 // 1. QUEUE DEFINITIONS
 // --------------------------------------------------
 export const emailQueue = new Queue('email-queue', { connection: { url: redisUrl } });
-export const smsQueue = new Queue('sms-queue', { connection: { url: redisUrl } });
 export const giftExpiryQueue = new Queue('gift-expiry-queue', { connection: { url: redisUrl } });
 export const payoutQueue = new Queue('payout-queue', { connection: { url: redisUrl } });
 
 // Helper to queue a background job
 export async function queueEmailJob(to: string, subject: string, html: string) {
   await emailQueue.add('send-email', { to, subject, html }, { removeOnComplete: true });
-}
-
-export async function queueSmsJob(to: string, message: string) {
-  await smsQueue.add('send-sms', { to, message }, { removeOnComplete: true });
 }
 
 // --------------------------------------------------
@@ -95,13 +90,6 @@ export function startWorkers() {
   new Worker('email-queue', async (job: Job) => {
     const { to, subject } = job.data;
     console.log(`[JOBS_WORKER]: Dispatching transactional email via Resend to ${to} with subject: "${subject}"`);
-    return { status: 'success' };
-  }, { connection: { url: redisUrl } });
-
-  // Worker for SMS dispatch (Africa's Talking / Safaricom)
-  new Worker('sms-queue', async (job: Job) => {
-    const { to, message } = job.data;
-    console.log(`[JOBS_WORKER]: Dispatching SMS alert via Africa's Talking to ${to}: "${message}"`);
     return { status: 'success' };
   }, { connection: { url: redisUrl } });
 

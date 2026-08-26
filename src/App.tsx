@@ -25,7 +25,8 @@ import {
   saveProductToFirestore,
   deleteProductFromFirestore,
   subscribeOrders,
-  saveOrderToFirestore
+  saveOrderToFirestore,
+  subscribeCMSBlocks
 } from './services/firestoreSync';
 import { logoutUser, subscribeAuthUser } from './config/firebase';
 import { useCMSBlock } from './utils/cms';
@@ -140,7 +141,7 @@ export default function App() {
     };
   }, []);
 
-  // Real-time Firestore sync for Products and Orders
+  // Real-time Firestore sync for Products, Orders, and CMS Blocks
   useEffect(() => {
     const unsubProducts = subscribeProducts((updatedProducts) => {
       setProducts(updatedProducts);
@@ -148,10 +149,12 @@ export default function App() {
     const unsubOrders = subscribeOrders((updatedOrders) => {
       setUserOrders(updatedOrders);
     });
+    const unsubCMS = subscribeCMSBlocks();
 
     return () => {
       unsubProducts();
       unsubOrders();
+      unsubCMS();
     };
   }, []);
 
@@ -545,7 +548,8 @@ export default function App() {
       {/* Product Detail Modal */}
       {selectedProduct && (
         <ProductDetail
-          product={selectedProduct}
+          product={products.find(p => p.id === selectedProduct.id) || selectedProduct}
+          allProducts={products}
           buyerType={buyerType}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={(p, qty, sex) => handleAddToCart(p, qty, sex)}

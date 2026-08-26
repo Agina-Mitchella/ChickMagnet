@@ -41,7 +41,7 @@ The application is built using a modern **Full-Stack Express + React (Vite)** ar
 | **Icons & Design** | Lucide React, Custom SVG Brand System |
 | **Backend API** | Node.js, Express.js (v4/v5 API routes under `/api/v1`) |
 | **Database & Auth** | Firebase Firestore (NoSQL), Firebase Auth |
-| **Notifications** | Transactional Email (Resend) & SMS Alerts (Africa's Talking) |
+| **Notifications** | Transactional Email (Resend) |
 | **Payments** | Safaricom M-Pesa Daraja 2.0 (STK Push) |
 | **Log Infrastructure** | Structured JSON Logger with correlation IDs |
 | **Containerization** | Docker, Docker Compose, Cloud Run (`cloudrun.yaml`) |
@@ -143,12 +143,12 @@ MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
 MPESA_SHORTCODE=174379
 MPESA_CALLBACK_URL=https://your-domain.com/api/v1/payments/mpesa/callback
 
-# Cloud Storage: Railway Storage / Persistent Volume
-RAILWAY_STORAGE_ENDPOINT=https://storage.railway.app
-RAILWAY_STORAGE_ACCESS_KEY=your_railway_storage_access_key
-RAILWAY_STORAGE_SECRET_KEY=your_railway_storage_secret_key
-RAILWAY_STORAGE_BUCKET=chickmagnet-storage
-RAILWAY_VOLUME_MOUNT_PATH=/data/storage
+# Cloud Storage: Persistent Volume / S3-Compatible Storage
+STORAGE_ENDPOINT=http://localhost:9000
+STORAGE_ACCESS_KEY=your_storage_access_key
+STORAGE_SECRET_KEY=your_storage_secret_key
+STORAGE_BUCKET=chickmagnet-storage
+STORAGE_VOLUME_MOUNT_PATH=/data/storage
 ```
 
 ---
@@ -177,6 +177,45 @@ Compiles Vite frontend assets to `dist/` and bundles the backend Express server 
 npm run start
 ```
 Runs the production server via `node dist/server.cjs`.
+
+---
+
+## 9. Firebase Hosting CDN & Cloud Run Reverse Proxy
+
+This setup routes all web traffic (`**`) through Firebase Hosting (Global Anycast CDN & SSL termination) to your containerized Cloud Run backend service.
+
+### `firebase.json` Architecture
+```json
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "chickmagnet-api",
+          "region": "europe-west2"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Deployment Steps:
+1. Ensure Cloud Run service is deployed:
+   ```bash
+   gcloud run deploy chickmagnet-api --region europe-west2 --allow-unauthenticated
+   ```
+2. Deploy Hosting routing configuration:
+   ```bash
+   firebase deploy --only hosting
+   ```
+3. Connect Custom Domain (`chickmagnet.co.ke`) in Firebase Console -> Hosting -> Add Custom Domain.
+4. Set DNS Records at registrar:
+   - **A Record**: `@` -> `199.36.158.100` and `199.36.158.95`
+   - **CNAME**: `www` -> `chickmagnet.co.ke.` (or `gen-lang-client-0655097153.web.app`)
 
 ---
 

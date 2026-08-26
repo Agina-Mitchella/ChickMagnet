@@ -42,6 +42,22 @@ interface ProductDetailProps {
   onOpenTraceabilityWithBatch: (batchId: string) => void;
 }
 
+const getLiveBatchRecord = (bId?: string) => {
+  if (!bId) return null;
+  const key = bId.trim().toUpperCase();
+  const saved = localStorage.getItem('chickmagnet_admin_batches');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        const found = parsed.find((b: any) => b.batchId && b.batchId.trim().toUpperCase() === key);
+        if (found) return found;
+      }
+    } catch {}
+  }
+  return MOCK_BATCH_TRACE_RECORDS[bId] || null;
+};
+
 export default function ProductDetail({
   product,
   allProducts = INITIAL_PRODUCTS,
@@ -150,7 +166,7 @@ export default function ProductDetail({
   // Farm & Batch Data
   const farm = INITIAL_FARMS.find(f => f.id === product.sellerId) || INITIAL_FARMS[0];
   const batchId = product.liveData?.batchId || product.freshData?.batchId || product.processedData?.batchId;
-  const traceRecord = batchId ? MOCK_BATCH_TRACE_RECORDS[batchId] : null;
+  const traceRecord = getLiveBatchRecord(batchId);
 
   // Handler for Frequently Bought Together Bundle Price
   const discountPercent = fbtConfig?.bundleDiscountPercent || 10;
@@ -769,7 +785,7 @@ export default function ProductDetail({
                       className="hover:text-emerald-700 transition flex items-center gap-1.5 cursor-pointer font-semibold"
                     >
                       <Bell className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Get SMS alert for future hatch batches</span>
+                      <span>Get email alert for future hatch batches</span>
                     </button>
 
                     <div className="flex items-center gap-1 text-emerald-700 font-bold">
@@ -1117,27 +1133,16 @@ export default function ProductDetail({
                 <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto" />
                 <div className="text-sm font-bold text-emerald-950">Notification Registered!</div>
                 <p className="text-xs text-emerald-800">
-                  We'll send an automated SMS alert for <strong>{product.name} ({selectedShipWeek})</strong> as soon as stock opens.
+                  We'll send an automated email alert for <strong>{product.name} ({selectedShipWeek})</strong> to {notifyEmail || 'your email'} as soon as this batch opens.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleNotifySubmit} className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1 font-mono">Phone Number (SMS / WhatsApp):</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="0712 345 678"
-                    value={notifyPhone}
-                    onChange={(e) => setNotifyPhone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl font-mono text-slate-900 font-bold focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 font-mono">Email Address (Optional):</label>
+                  <label className="block font-bold text-slate-700 mb-1 font-mono">Email Address:</label>
                   <input
                     type="email"
+                    required
                     placeholder="farmer@example.com"
                     value={notifyEmail}
                     onChange={(e) => setNotifyEmail(e.target.value)}

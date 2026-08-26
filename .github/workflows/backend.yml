@@ -86,7 +86,7 @@ jobs:
 
       - name: Build and Push Docker Image
         env:
-          IMAGE_URI: "${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sol-handmades/backend:${{ github.sha }}"
+          IMAGE_URI: "${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/chickmagnet/backend:${{ github.sha }}"
         run: |
           docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
@@ -94,9 +94,9 @@ jobs:
       - name: Deploy to Cloud Run
         id: deploy
         env:
-          IMAGE_URI: "${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sol-handmades/backend:${{ github.sha }}"
+          IMAGE_URI: "${{ secrets.GCP_REGION || 'europe-west2' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/chickmagnet/backend:${{ github.sha }}"
         run: |
-          gcloud run deploy sol-handmades-api \
+          gcloud run deploy chickmagnet-api \
             --image $IMAGE_URI \
             --region ${{ secrets.GCP_REGION || 'europe-west2' }} \
             --platform managed \
@@ -105,7 +105,7 @@ jobs:
             --max-instances 10 \
             --port 3000
 
-          DEPLOYED_URL=$(gcloud run services describe sol-handmades-api --region ${{ secrets.GCP_REGION || 'europe-west2' }} --format 'value(status.url)')
+          DEPLOYED_URL=$(gcloud run services describe chickmagnet-api --region ${{ secrets.GCP_REGION || 'europe-west2' }} --format 'value(status.url)')
           echo "DEPLOYED_URL=$DEPLOYED_URL" >> $GITHUB_ENV
 
       - name: Run Automated Smoke Tests
@@ -125,7 +125,7 @@ jobs:
         if: failure() && steps.smoke_tests.outcome == 'failure'
         run: |
           echo "Smoke tests failed! Initiating automatic rollback to previous Cloud Run revision..."
-          gcloud run services update-traffic sol-handmades-api \
+          gcloud run services update-traffic chickmagnet-api \
             --region ${{ secrets.GCP_REGION || 'europe-west2' }} \
             --to-revisions PREV=100
           echo "Rollback completed successfully."

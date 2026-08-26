@@ -37,7 +37,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://sol-handmades-api.run.app/api/$1"
+      "destination": "https://chickmagnet-api.run.app/api/$1"
     },
     {
       "source": "/(.*)",
