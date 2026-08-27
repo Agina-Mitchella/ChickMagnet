@@ -101,7 +101,12 @@ export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: Foote
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-emerald-300/70">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
             {brand.logoImageUrl ? (
-              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-9 sm:h-10 max-w-[200px] object-contain drop-shadow" />
+              <img 
+                src={brand.logoImageUrl} 
+                alt={brand.brandName || 'Logo'} 
+                style={{ height: '36px', width: 'auto', maxWidth: '200px', objectFit: 'contain' }}
+                className="h-9 sm:h-10 max-w-[200px] w-auto object-contain shrink-0 drop-shadow" 
+              />
             ) : (
               <span className="font-serif font-black text-amber-400 text-base">{brand.brandName || 'ChickMagnet'}</span>
             )}

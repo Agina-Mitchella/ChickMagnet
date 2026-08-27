@@ -47,20 +47,36 @@ export default function App() {
     if (saved) {
       try {
         const parsed: Product[] = JSON.parse(saved);
-        if (parsed.length > 0) rawProducts = parsed;
+        if (parsed.length > 0) {
+          const parsedMap = new Map(parsed.map(p => [p.id, p]));
+          const combined = [...parsed];
+          for (const initP of INITIAL_PRODUCTS) {
+            if (!parsedMap.has(initP.id)) {
+              combined.push(initP);
+            }
+          }
+          rawProducts = combined;
+        }
       } catch {
         rawProducts = INITIAL_PRODUCTS;
       }
     }
-    const validCategories = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies'];
+    const validCategories = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies', 'processed'];
     const deletedIds = new Set(['prod-improved-kienyeji-mature', 'prod-chick-cobb500']);
-    const initialImageMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip.image]));
+    const initialMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip]));
     return rawProducts
       .filter(p => validCategories.includes(p.category) && !deletedIds.has(p.id))
-      .map(p => ({
-        ...p,
-        image: initialImageMap.get(p.id) || p.image
-      }));
+      .map(p => {
+        const initP = initialMap.get(p.id);
+        return {
+          ...p,
+          image: initP?.image || p.image,
+          description: initP?.description || p.description,
+          tags: initP?.tags || p.tags,
+          variantsConfig: initP?.variantsConfig || p.variantsConfig,
+          badge: initP?.badge || p.badge
+        };
+      });
   });
 
   // CMS Live Blocks

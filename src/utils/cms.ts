@@ -1147,33 +1147,76 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
 
 const LOCAL_STORAGE_KEY = 'chickmagnet_cms_blocks';
 
-export const compressImageDataUrl = (dataUrl: string, maxWidth: number = 600, maxHeight: number = 300): Promise<string> => {
+export const compressImageDataUrl = (dataUrl: string, maxDim: number = 1600): Promise<string> => {
   return new Promise((resolve) => {
+    if (!dataUrl) {
+      resolve(dataUrl);
+      return;
+    }
+
+    // Preserve vector SVGs without canvas conversion to keep perfect scalability
+    if (
+      dataUrl.startsWith('data:image/svg+xml') ||
+      dataUrl.includes('image/svg+xml') ||
+      dataUrl.includes('<svg') ||
+      dataUrl.endsWith('.svg')
+    ) {
+      resolve(dataUrl);
+      return;
+    }
+
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      let width = img.width;
-      let height = img.height;
+      const naturalWidth = img.naturalWidth || img.width;
+      const naturalHeight = img.naturalHeight || img.height;
 
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
+      if (!naturalWidth || !naturalHeight) {
+        resolve(dataUrl);
+        return;
       }
-      if (height > maxHeight) {
-        width = Math.round((width * maxHeight) / height);
-        height = maxHeight;
+
+      // If already within dimensions and under 2MB, avoid recompression
+      if (naturalWidth <= maxDim && naturalHeight <= maxDim && dataUrl.length < 2 * 1024 * 1024) {
+        resolve(dataUrl);
+        return;
       }
+
+      // Proportional scale factor that strictly preserves aspect ratio
+      const scale = Math.min(maxDim / naturalWidth, maxDim / naturalHeight, 1);
+      const targetWidth = Math.max(1, Math.round(naturalWidth * scale));
+      const targetHeight = Math.max(1, Math.round(naturalHeight * scale));
 
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         resolve(dataUrl);
         return;
       }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/webp', 0.85));
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.clearRect(0, 0, targetWidth, targetHeight);
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      const isPng = dataUrl.startsWith('data:image/png');
+      const isJpeg = dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg');
+
+      let mimeType = 'image/png';
+      if (isJpeg) {
+        mimeType = 'image/jpeg';
+      } else if (!isPng) {
+        mimeType = 'image/webp';
+      }
+
+      try {
+        const compressed = canvas.toDataURL(mimeType, mimeType === 'image/jpeg' ? 0.92 : undefined);
+        resolve(compressed);
+      } catch {
+        resolve(dataUrl);
+      }
     };
     img.onerror = () => {
       resolve(dataUrl);
@@ -1674,8 +1717,8 @@ export const updateBrandLogo = async (config: Partial<BrandLogoConfig>, adminNam
   }
   if (config.logoImageUrl !== undefined) {
     let finalUrl = config.logoImageUrl;
-    if (finalUrl && finalUrl.startsWith('data:image/')) {
-      finalUrl = await compressImageDataUrl(finalUrl, 500, 250);
+    if (finalUrl && finalUrl.startsWith('data:image/') && finalUrl.length > 2.5 * 1024 * 1024 && !finalUrl.includes('image/svg+xml')) {
+      finalUrl = await compressImageDataUrl(finalUrl, 1600);
     }
     await updateCMSBlock('global_logo_image_url', finalUrl, adminName);
   }

@@ -39,6 +39,7 @@ export function subscribeProducts(
         safeSetLocalStorage('chickmagnet_products', JSON.stringify(INITIAL_PRODUCTS));
       } else {
         const initialImageMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip.image]));
+        const existingIds = new Set(snapshot.docs.map(d => d.id));
         const items: Product[] = snapshot.docs.map(d => {
           const data = d.data() as Product;
           return {
@@ -47,6 +48,16 @@ export function subscribeProducts(
             image: data.image || initialImageMap.get(d.id) || ''
           };
         });
+
+        // Seed any newly introduced initial products so the catalog is complete
+        const missingInitial = INITIAL_PRODUCTS.filter(ip => !existingIds.has(ip.id));
+        if (missingInitial.length > 0) {
+          for (const missing of missingInitial) {
+            setDoc(doc(db, 'products', missing.id), missing).catch(() => {});
+            items.push(missing);
+          }
+        }
+
         onUpdate(items);
         safeSetLocalStorage('chickmagnet_products', JSON.stringify(items));
         window.dispatchEvent(new Event('chickmagnet_products_updated'));

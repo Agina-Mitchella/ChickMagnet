@@ -114,7 +114,8 @@ export default function Navbar({
               <img 
                 src={brand.logoImageUrl} 
                 alt={brand.brandName || 'Logo'} 
-                className="h-10 sm:h-12 max-w-[220px] sm:max-w-[280px] object-contain group-hover:scale-105 transition-transform drop-shadow-md" 
+                style={{ height: '48px', width: 'auto', maxWidth: '280px', objectFit: 'contain' }}
+                className="h-10 sm:h-12 max-w-[220px] sm:max-w-[280px] w-auto object-contain shrink-0 group-hover:scale-105 transition-transform drop-shadow-md" 
               />
               {brand.logoDisplayMode === 'image_with_text' && (
                 <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">

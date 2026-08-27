@@ -177,8 +177,8 @@ export default function AdminDashboard({
 
   const handleSaveBrandLogo = async () => {
     let finalImageUrl = logoImageUrl;
-    if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
-      finalImageUrl = await compressImageDataUrl(finalImageUrl, 500, 250);
+    if (finalImageUrl && finalImageUrl.startsWith('data:image/') && finalImageUrl.length > 2.5 * 1024 * 1024 && !finalImageUrl.includes('image/svg+xml')) {
+      finalImageUrl = await compressImageDataUrl(finalImageUrl, 1600);
       setLogoImageUrl(finalImageUrl);
     }
     await updateBrandLogo({
@@ -202,22 +202,26 @@ export default function AdminDashboard({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Selected image file is too large. Please select an image under 5MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Selected image file is too large. Please select an image under 8MB.');
       return;
     }
     const reader = new FileReader();
     reader.onloadend = async () => {
       if (typeof reader.result === 'string') {
         const rawDataUrl = reader.result;
-        const compressedDataUrl = await compressImageDataUrl(rawDataUrl, 500, 250);
-        setLogoImageUrl(compressedDataUrl);
+        // Keep raw image data unless it is large (>2.5MB), in which case scale strictly preserving aspect ratio
+        let finalUrl = rawDataUrl;
+        if (file.size > 2.5 * 1024 * 1024 && !file.type.includes('svg')) {
+          finalUrl = await compressImageDataUrl(rawDataUrl, 1600);
+        }
+        setLogoImageUrl(finalUrl);
         setLogoType('image');
         setLogoDisplayMode('image_only');
-        updateBrandLogo({
+        await updateBrandLogo({
           logoType: 'image',
           logoDisplayMode: 'image_only',
-          logoImageUrl: compressedDataUrl,
+          logoImageUrl: finalUrl,
           brandName
         }, currentUser?.name || 'Admin');
         logAction(
@@ -730,7 +734,12 @@ export default function AdminDashboard({
         <div className="p-4 sm:p-5 border-b border-emerald-900 bg-[#062316] text-white flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center gap-3">
             {brand.logoImageUrl ? (
-              <img src={brand.logoImageUrl} alt={brand.brandName || 'Logo'} className="h-8 max-w-[140px] object-contain drop-shadow shrink-0" />
+              <img 
+                src={brand.logoImageUrl} 
+                alt={brand.brandName || 'Logo'} 
+                style={{ height: '32px', width: 'auto', maxWidth: '140px', objectFit: 'contain' }}
+                className="h-8 max-w-[140px] w-auto object-contain drop-shadow shrink-0" 
+              />
             ) : (
               <div className="w-8 h-8 rounded-xl bg-amber-400 text-emerald-950 font-black flex items-center justify-center text-sm shadow-md">
                 CM
@@ -1646,22 +1655,27 @@ export default function AdminDashboard({
                 </div>
 
                 {/* Live Realtime Header Preview Box */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-3 shrink-0 shadow-inner max-w-full overflow-hidden">
-                  <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider mr-1 shrink-0">
+                <div className="bg-[#123524] text-amber-50 border border-emerald-800 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 shadow-md max-w-full overflow-hidden">
+                  <div className="text-[10px] font-mono text-amber-300 font-bold uppercase tracking-wider mr-1 shrink-0">
                     Live Header Preview:
                   </div>
                   <div className="flex items-center gap-2.5">
                     {logoImageUrl ? (
                       <div className="flex items-center gap-2.5">
-                        <img src={logoImageUrl} alt="Logo Preview" className="h-9 max-w-[180px] object-contain drop-shadow-xs" />
+                        <img 
+                          src={logoImageUrl} 
+                          alt="Logo Preview" 
+                          style={{ height: '40px', width: 'auto', maxWidth: '220px', objectFit: 'contain' }}
+                          className="h-10 max-w-[220px] w-auto object-contain shrink-0 drop-shadow-md" 
+                        />
                         {logoDisplayMode === 'image_with_text' && (
-                          <span className="font-serif text-lg font-black text-emerald-950 tracking-tight">
+                          <span className="font-serif text-lg font-black text-amber-400 tracking-tight">
                             {brandName || 'ChickMagnet'}
                           </span>
                         )}
                       </div>
                     ) : (
-                      <span className="font-serif text-lg font-black text-emerald-950 tracking-tight">
+                      <span className="font-serif text-lg font-black text-amber-400 tracking-tight">
                         {brandName || 'ChickMagnet'}
                       </span>
                     )}
@@ -1688,7 +1702,7 @@ export default function AdminDashboard({
                     <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
                       <Upload className="w-7 h-7 text-emerald-800 group-hover:scale-110 transition-transform" />
                       <span className="text-sm font-bold text-slate-900">Click or Drag & Drop Logo Image File</span>
-                      <span className="text-[11px] text-slate-500">Select any graphic file from your computer (Max 3MB)</span>
+                      <span className="text-[11px] text-slate-500">Select any graphic file from your computer (Max 8MB, aspect ratio preserved)</span>
                     </div>
                   </div>
 
@@ -1716,20 +1730,38 @@ export default function AdminDashboard({
                     <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-900 font-bold">Uploaded Image Preview:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLogoImageUrl('');
-                            setLogoType('image');
-                            setLogoDisplayMode('image_only');
-                          }}
-                          className="text-[11px] text-rose-600 hover:text-rose-700 font-bold cursor-pointer"
-                        >
-                          Remove Image
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLogoImageUrl('/logo.svg');
+                              setLogoType('image');
+                              setLogoDisplayMode('image_only');
+                            }}
+                            className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline"
+                          >
+                            Reset to Default SVG
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLogoImageUrl('');
+                              setLogoType('image');
+                              setLogoDisplayMode('image_only');
+                            }}
+                            className="text-[11px] text-rose-600 hover:text-rose-700 font-bold cursor-pointer"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
                       </div>
-                      <div className="h-20 w-full bg-slate-50 rounded-lg p-3 flex items-center justify-center border border-slate-200 overflow-hidden">
-                        <img src={logoImageUrl} alt="Uploaded Brand Logo" className="max-h-full max-w-full object-contain" />
+                      <div className="h-28 w-full bg-slate-100 rounded-lg p-3 flex items-center justify-center border border-slate-200 overflow-hidden">
+                        <img 
+                          src={logoImageUrl} 
+                          alt="Uploaded Brand Logo" 
+                          style={{ maxHeight: '100%', maxWidth: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                          className="max-h-full max-w-full w-auto h-auto object-contain" 
+                        />
                       </div>
                     </div>
                   )}
