@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
-import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo, compressImageDataUrl, getCMSValue } from '../utils/cms';
+import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo, compressImageDataUrl, getCMSValue, DEFAULT_BRAND_LOGO_IMAGE } from '../utils/cms';
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
 import {
@@ -1734,13 +1734,13 @@ export default function AdminDashboard({
                           <button
                             type="button"
                             onClick={() => {
-                              setLogoImageUrl('/logo.svg');
+                              setLogoImageUrl(DEFAULT_BRAND_LOGO_IMAGE);
                               setLogoType('image');
                               setLogoDisplayMode('image_only');
                             }}
                             className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline"
                           >
-                            Reset to Default SVG
+                            Reset to Default Logo
                           </button>
                           <button
                             type="button"

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../config/firebase';
+import defaultLogoImg from '../assets/images/regenerated_image_1787820822648.png';
+
+export const DEFAULT_BRAND_LOGO_IMAGE = defaultLogoImg;
 
 export type CMSBlockType = 'text' | 'heading' | 'image' | 'button' | 'toggle' | 'datetime' | 'json';
 
@@ -241,7 +244,7 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     pageId: 'global',
     label: 'Brand Logo Image (URL or Data URI)',
     type: 'image',
-    value: '/logo.svg',
+    value: defaultLogoImg,
     lastEditedBy: 'System Core',
     lastEditedAt: '2026-08-05 00:00',
     history: [],
@@ -1690,7 +1693,8 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
   const logoImageBlock = blocks.find(b => b.id === 'global_logo_image_url');
   const brandNameBlock = blocks.find(b => b.id === 'global_platform_name');
 
-  const logoImageUrl = (logoImageBlock?.value as string) || '/logo.svg';
+  const rawLogoUrl = logoImageBlock?.value as string;
+  const logoImageUrl = (!rawLogoUrl || rawLogoUrl === '/logo.svg') ? defaultLogoImg : rawLogoUrl;
   const rawType = logoTypeBlock?.value as 'emoji' | 'image' | undefined;
   const logoType = rawType || 'image';
   const rawDisplayMode = logoDisplayModeBlock?.value as 'image_only' | 'image_with_text' | 'emoji_with_text' | undefined;
