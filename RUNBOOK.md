@@ -1,16 +1,15 @@
-# Sol Handmades — Incident Response Runbook
+# Incident Response Runbook
 
-This document details operational procedures and step-by-step response playbooks for platform incidents across the frontend (Vercel) and backend (Google Cloud Run + PostgreSQL + Redis).
+This document details operational procedures and step-by-step response playbooks for platform incidents across static hosting (Firebase Hosting CDN) and services (Firebase Auth, Firestore, M-Pesa).
 
 ---
 
 ## 🚨 Emergency Contacts & Quick Reference
 
 - **Admin Dashboard**: `/admin` (or `/admin/devops`)
-- **Status Page**: `https://chickmagnet.app/status`
-- **Google Cloud Console**: `https://console.cloud.google.com/run?project=chickmagnet-prod`
+- **Status Page**: `https://chickmagnet.co.ke/status`
+- **Firebase Console**: `https://console.firebase.google.com`
 - **Safaricom Daraja Portal**: `https://developer.safaricom.co.ke`
-- **Vercel Dashboard**: `https://vercel.com/chickmagnet`
 
 ---
 
@@ -22,17 +21,14 @@ This document details operational procedures and step-by-step response playbooks
 
 ### Execution Procedure
 
-1. **Check Cloud Run Logs**:
+1. **Check Build & Deployment Status**:
    ```bash
-   gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=chickmagnet-api" --limit 50 --format json
+   firebase hosting:channel:list
    ```
 
-2. **Verify if Recent Deployment Caused Outage**:
-   - If error started immediately after a new deployment, execute an immediate traffic rollback to the previous healthy revision:
+2. **Roll Back Static Site to Previous Release**:
    ```bash
-   gcloud run services update-traffic chickmagnet-api \
-     --region europe-west2 \
-     --to-revisions PREV=100
+   firebase hosting:clone chickmagnet-prod:previous chickmagnet-prod:live
    ```
 
 3. **Check Database & Cache Connectivity**:
@@ -55,19 +51,11 @@ This document details operational procedures and step-by-step response playbooks
 
 ### Execution Procedure
 
-1. **Restart Cloud Run Container Pool**:
-   - Restarting Cloud Run instances cleanly tears down hung connection pools:
-   ```bash
-   gcloud run services update chickmagnet-api \
-     --region europe-west2 \
-     --update-env-vars RESTART_TRIGGER=$(date +%s)
-   ```
+1. **Check Firestore Status**:
+   - Check Google Cloud status dashboard or Firebase Console for Firestore database metrics.
 
-3. **Scale Up Database Connection Limit**:
-   - If traffic surge caused connection exhaustion, adjust PgBouncer or Cloud SQL `max_connections`:
-   ```bash
-   gcloud sql instances patch sol-postgres-prod --database-flags max_connections=200
-   ```
+3. **Verify Security Rules & Indexing**:
+   - Check that firestore.rules and composite indexes are deployed and active.
 
 4. **Notify Status Subscribers**:
    - If downtime exceeds 5 minutes, update status page with incident status `IDENTIFIED`.
@@ -140,6 +128,6 @@ This document details operational procedures and step-by-step response playbooks
    ```bash
    gcloud secrets versions add MPESA_PASSKEY --data-file=new_secret.txt
    ```
-4. Deploy updated Cloud Run revision referencing the new secret version.
-5. Verify application health check `/health` passes.
-6. Verify auth flow and payment endpoints.
+4. Deploy static site or updated environment configuration.
+5. Verify application loads and services pass.
+6. Verify auth flow and checkout endpoints.

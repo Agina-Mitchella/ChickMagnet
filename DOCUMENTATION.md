@@ -44,7 +44,7 @@ The application is built using a modern **Full-Stack Express + React (Vite)** ar
 | **Notifications** | Transactional Email (Resend) |
 | **Payments** | Safaricom M-Pesa Daraja 2.0 (STK Push) |
 | **Log Infrastructure** | Structured JSON Logger with correlation IDs |
-| **Containerization** | Docker, Docker Compose, Cloud Run (`cloudrun.yaml`) |
+| **Hosting & Deployment** | Firebase Static Hosting (SPA Anycast CDN), Vite Static Build (`dist/`) |
 
 ---
 
@@ -180,33 +180,37 @@ Runs the production server via `node dist/server.cjs`.
 
 ---
 
-## 9. Firebase Hosting CDN & Cloud Run Reverse Proxy
+## 9. Firebase Static Hosting (SPA Configuration)
 
-This setup routes all web traffic (`**`) through Firebase Hosting (Global Anycast CDN & SSL termination) to your containerized Cloud Run backend service.
+This setup serves the optimized client-side SPA build directly from the `dist/` directory via Firebase Hosting's Global CDN with single-page application URL rewrites.
 
 ### `firebase.json` Architecture
 ```json
 {
   "hosting": {
     "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
-        "run": {
-          "serviceId": "chickmagnet-api",
-          "region": "europe-west2"
-        }
+        "destination": "/index.html"
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
 ```
 
 ### Deployment Steps:
-1. Ensure Cloud Run service is deployed:
+1. Build the production static asset bundle:
    ```bash
-   gcloud run deploy chickmagnet-api --region europe-west2 --allow-unauthenticated
+   npm run build
    ```
 2. Deploy Hosting routing configuration:
    ```bash
@@ -215,7 +219,7 @@ This setup routes all web traffic (`**`) through Firebase Hosting (Global Anycas
 3. Connect Custom Domain (`chickmagnet.co.ke`) in Firebase Console -> Hosting -> Add Custom Domain.
 4. Set DNS Records at registrar:
    - **A Record**: `@` -> `199.36.158.100` and `199.36.158.95`
-   - **CNAME**: `www` -> `chickmagnet.co.ke.` (or `gen-lang-client-0655097153.web.app`)
+   - **CNAME**: `www` -> `chickmagnet.co.ke.` (or `<project-id>.web.app`)
 
 ---
 

@@ -11,5 +11,4 @@ coverage/
 .github/
 Dockerfile
 docker-compose.yml
-cloudrun.yaml
 vercel.json
