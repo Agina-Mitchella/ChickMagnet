@@ -107,26 +107,9 @@ export default function App() {
   // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('chickmagnet_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.email?.toLowerCase() === 'uxagina@gmail.com' || parsed.email?.toLowerCase().includes('admin') || parsed.email?.toLowerCase() === 'manyaos7@gmail.com') {
-          parsed.role = 'ADMIN';
-        }
-        return parsed;
-      } catch (e) {
-        console.error('Failed to parse saved user', e);
-      }
-    }
-    return {
-      name: 'Agina (Admin)',
-      email: 'uxagina@gmail.com',
-      role: 'ADMIN',
-      buyerType: 'wholesale'
-    };
-  });
+  // Default to null until Firebase Auth initializes
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // Sync Cart to localStorage
   useEffect(() => {
@@ -135,21 +118,41 @@ export default function App() {
 
   // Real-time Firebase Auth session and profile sync
   useEffect(() => {
-    const unsubAuth = subscribeAuthUser((firebaseUser, profileData) => {
+    const unsubAuth = subscribeAuthUser(async (firebaseUser, profileData) => {
       if (firebaseUser) {
+        let customClaims: any = undefined;
+        try {
+          const tokenResult = await firebaseUser.getIdTokenResult();
+          customClaims = tokenResult?.claims;
+        } catch (e) {
+          console.warn('Could not read id token result:', e);
+        }
+
         const userEmail = firebaseUser.email || '';
-        const isAdminAccount = userEmail.toLowerCase() === 'uxagina@gmail.com' || userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'manyaos7@gmail.com';
+        const hasAdminClaim = Boolean(customClaims?.admin === true);
+        const isAdminAccount = hasAdminClaim || 
+          userEmail.toLowerCase() === 'uxagina@gmail.com' || 
+          userEmail.toLowerCase().includes('admin') || 
+          userEmail.toLowerCase() === 'manyaos7@gmail.com' ||
+          profileData?.role?.toUpperCase() === 'ADMIN' ||
+          profileData?.role?.toLowerCase() === 'admin';
+
+        const userRole = isAdminAccount ? 'admin' : (profileData?.role?.toLowerCase() || 'buyer');
+
         const userObj: User = {
           email: userEmail,
           name: profileData?.displayName || firebaseUser.displayName || (isAdminAccount ? 'Agina (Admin)' : userEmail.split('@')[0] || 'Poultry Member'),
-          role: isAdminAccount ? 'ADMIN' : (profileData?.role || 'BUYER'),
-          buyerType: isAdminAccount ? 'wholesale' : (profileData?.buyerType || 'retail'),
+          role: userRole,
+          buyerType: profileData?.buyerType || (isAdminAccount ? 'wholesale' : 'retail'),
           avatarEmoji: profileData?.avatarEmoji || (isAdminAccount ? '👑' : '🐣'),
-          photoURL: firebaseUser.photoURL || undefined
+          photoURL: firebaseUser.photoURL || undefined,
+          customClaims: customClaims
         };
         setCurrentUser(userObj);
-        localStorage.setItem('chickmagnet_user', JSON.stringify(userObj));
+      } else {
+        setCurrentUser(null);
       }
+      setAuthLoading(false);
     });
 
     return () => {
@@ -365,6 +368,7 @@ export default function App() {
           <CheckoutRitual
             cartItems={cartItems}
             buyerType={buyerType}
+            currentUser={currentUser}
             onOrderCompleted={handleOrderCompleted}
             onCancel={() => setIsCheckoutOpen(false)}
           />
@@ -387,7 +391,6 @@ export default function App() {
               if (currentUser) {
                 const updated = { ...currentUser, role: newRole };
                 setCurrentUser(updated);
-                localStorage.setItem('chickmagnet_user', JSON.stringify(updated));
               }
             }}
           />
@@ -617,7 +620,6 @@ export default function App() {
         initialMode={authMode}
         onAuthSuccess={(user) => {
           setCurrentUser(user);
-          localStorage.setItem('chickmagnet_user', JSON.stringify(user));
           setAuthModalOpen(false);
         }}
       />

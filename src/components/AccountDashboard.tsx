@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { User, Package, ShieldCheck, FileText, Activity, Truck, AlertTriangle, Calculator, ChevronRight, CheckCircle2, Clock, Search, ExternalLink, LayoutDashboard, Settings, Crown, Layers } from 'lucide-react';
-import { BuyerType } from '../types';
+import { User as UserIcon, Package, ShieldCheck, FileText, Activity, Truck, AlertTriangle, Calculator, ChevronRight, CheckCircle2, Clock, Search, ExternalLink, LayoutDashboard, Settings, Crown, Layers } from 'lucide-react';
+import { BuyerType, User } from '../types';
 
 interface AccountDashboardProps {
-  currentUser?: { name: string; email: string; buyerType?: BuyerType; role?: string } | null;
+  currentUser?: User | null;
   buyerType: BuyerType;
   userOrders?: any[];
   onOpenTraceability: (batchId?: string) => void;
@@ -60,11 +60,13 @@ export default function AccountDashboard({
     }
   ];
 
-  const userDisplayName = currentUser?.name || 'Agina';
-  const userEmail = currentUser?.email || 'uxagina@gmail.com';
+  const userDisplayName = currentUser?.name || 'Guest Homesteader';
+  const userEmail = currentUser?.email || 'Not signed in';
   const effectiveBuyerType = currentUser?.buyerType || buyerType;
-  const userRole = currentUser?.role || 'ADMIN';
-  const isAdmin = userRole === 'ADMIN' || userEmail.toLowerCase() === 'uxagina@gmail.com' || userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'manyaos7@gmail.com';
+  const userRole = currentUser?.role ? String(currentUser.role).toUpperCase() : 'BUYER';
+  const isAdmin = currentUser?.role === 'admin' || 
+                  currentUser?.role === 'ADMIN' || 
+                  Boolean(currentUser?.customClaims?.admin === true);
 
   // Hatchability Calculator Logic
   const expectedChicks = Math.floor(eggCount * (hatchRate / 100));
@@ -96,7 +98,7 @@ export default function AccountDashboard({
           </div>
 
           <div className="flex items-center gap-3 flex-wrap self-stretch md:self-auto">
-            {onOpenAdmin && (
+            {onOpenAdmin && isAdmin && (
               <button
                 onClick={onOpenAdmin}
                 className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black px-5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:scale-102"
@@ -106,7 +108,7 @@ export default function AccountDashboard({
               </button>
             )}
 
-            {onOpenBusinessPlan && (
+            {onOpenBusinessPlan && isAdmin && (
               <button
                 onClick={onOpenBusinessPlan}
                 className="bg-[#0b2217] hover:bg-emerald-900/80 border border-emerald-500/50 text-emerald-300 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"

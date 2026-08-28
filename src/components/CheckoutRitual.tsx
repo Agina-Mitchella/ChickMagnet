@@ -25,11 +25,12 @@ import {
   Timer,
   ChevronRight
 } from 'lucide-react';
-import { CartItem, BuyerType, FulfillmentType } from '../types';
+import { CartItem, BuyerType, FulfillmentType, User } from '../types';
 
 interface CheckoutRitualProps {
   cartItems: CartItem[];
   buyerType: BuyerType;
+  currentUser?: User | null;
   onOrderCompleted: (orderSummary: any) => void;
   onCancel: () => void;
 }
@@ -101,6 +102,7 @@ export type PaymentFailureReason = 'wrong_pin' | 'insufficient_funds' | 'timeout
 export default function CheckoutRitual({
   cartItems,
   buyerType,
+  currentUser,
   onOrderCompleted,
   onCancel
 }: CheckoutRitualProps) {
@@ -108,12 +110,12 @@ export default function CheckoutRitual({
   const [currentStep, setCurrentStep] = useState<'fulfillment' | 'payment'>('fulfillment');
 
   // Customer Contact Info
-  const [name, setName] = useState('Agina');
-  const [email, setEmail] = useState('uxagina@gmail.com');
-  const [phone, setPhone] = useState('+254 712 345 678');
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState('+254 7');
   const [deliveryZone, setDeliveryZone] = useState('Nairobi Metro - Dagoretti & Naivasha Rd');
   const [isZoneOpen, setIsZoneOpen] = useState(false);
-  const [address, setAddress] = useState('Farm 14, Naivasha Road, Dagoretti');
+  const [address, setAddress] = useState('');
 
   // Account Payment Mode (Homesteaders Upfront Mobile Money vs Commercial Wholesale Net-30)
   const isWholesaleBuyer = buyerType === 'wholesale';
@@ -124,7 +126,7 @@ export default function CheckoutRitual({
   // Mobile Money (M-Pesa) Payment Flow States
   const [paymentSubStep, setPaymentSubStep] = useState<PaymentSubStep>('phone_entry');
   const mobileMoneyProvider: MobileMoneyProvider = 'mpesa';
-  const [mobilePhone, setMobilePhone] = useState('+254 712 345 678');
+  const [mobilePhone, setMobilePhone] = useState('+254 7');
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // STK Push Waiting & Polling State

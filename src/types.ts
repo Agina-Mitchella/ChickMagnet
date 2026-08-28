@@ -295,11 +295,15 @@ export interface User {
   name: string;
   avatarEmoji?: string;
   photoURL?: string;
-  role: 'BUYER' | 'FARMER' | 'WHOLESALE' | 'KEEPER' | 'ADMIN';
+  role: 'BUYER' | 'FARMER' | 'WHOLESALE' | 'KEEPER' | 'ADMIN' | 'admin' | 'buyer' | string;
   buyerType: BuyerType;
   shopSlug?: string;
   shopName?: string;
   shopStatus?: 'draft' | 'pending_payout' | 'launched' | null;
   net30Approved?: boolean;
   creditLimitKsh?: number;
+  customClaims?: {
+    admin?: boolean;
+    [key: string]: any;
+  };
 }

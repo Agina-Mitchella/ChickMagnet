@@ -54,10 +54,9 @@ export default function Navbar({
   const [isBreedDropdownOpen, setIsBreedDropdownOpen] = useState(false);
   const brand = useBrandLogo();
 
-  const isAdmin = currentUser?.role === 'ADMIN' || 
-                  currentUser?.email?.toLowerCase() === 'uxagina@gmail.com' || 
-                  currentUser?.email?.toLowerCase().includes('admin') ||
-                  currentUser?.email?.toLowerCase() === 'manyaos7@gmail.com';
+  const isAdmin = currentUser?.role === 'admin' || 
+                  currentUser?.role === 'ADMIN' || 
+                  Boolean(currentUser?.customClaims?.admin === true);
 
   const categoriesList: { id: MainCategory | 'all'; label: string; icon: React.ReactNode; description: string }[] = [
     { id: 'all', label: 'All Catalog', icon: <ShoppingBag className="w-4 h-4" />, description: 'Browse all live birds, fresh poultry, eggs & farm supplies' },
@@ -219,9 +218,11 @@ export default function Navbar({
                 className="flex items-center gap-1.5 sm:gap-2 bg-[#0b2217] border border-emerald-800/80 px-2.5 sm:px-3 py-2 rounded-xl hover:border-amber-400/60 transition-colors text-xs font-bold text-amber-300 cursor-pointer min-h-[40px]"
               >
                 <span className="w-6 h-6 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-mono text-xs font-black">
-                  {currentUser.name.charAt(0)}
+                  {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                 </span>
-                <span className="hidden md:inline max-w-[140px] truncate">{currentUser.name}</span>
+                <span className="hidden md:inline max-w-[140px] truncate">
+                  {currentUser.name} {isAdmin && '(Admin)'}
+                </span>
                 <ChevronDown className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               </button>
 
@@ -234,7 +235,9 @@ export default function Navbar({
                     className="absolute right-0 mt-2 w-64 bg-[#0b2217] border border-emerald-800 rounded-xl shadow-xl z-50 p-3 text-xs text-emerald-100 max-w-[calc(100vw-32px)]"
                   >
                     <div className="pb-2 mb-2 border-b border-emerald-800">
-                      <div className="font-bold text-amber-300">{currentUser.name}</div>
+                      <div className="font-bold text-amber-300">
+                        {currentUser.name} {isAdmin && '(Admin)'}
+                      </div>
                       <div className="text-[11px] text-emerald-400 truncate">{currentUser.email}</div>
                       <div className="mt-1 text-[10px] uppercase font-mono bg-emerald-900/60 text-amber-300 px-2 py-0.5 rounded inline-block font-bold">
                         Account: {buyerType === 'retail' ? 'Homesteader' : buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Farmer'}
