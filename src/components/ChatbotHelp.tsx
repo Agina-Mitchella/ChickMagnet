@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, ShieldCheck, Truck, HelpCircle, FileText, ArrowRight, Sparkles, RefreshCw, PhoneCall } from 'lucide-react';
+import { X, Send, Bot, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ChatMessage {
@@ -34,7 +34,7 @@ export default function ChatbotHelp({
     {
       id: '1',
       sender: 'bot',
-      text: 'Hello! I am your ChickMagnet Hatchery & Logistics Assistant. How can I help you today?',
+      text: 'Hello. Ask me about breeds, chick preparation, vaccinations, wholesale orders, delivery or M-Pesa payment.',
       timestamp: 'Just now'
     }
   ]);
@@ -51,46 +51,29 @@ export default function ChatbotHelp({
 
   const quickTopics = [
     {
-      id: 'transit',
-      label: '🐥 Live Chick Transit',
-      query: 'How does live day-old chick express transport work?',
-      reply: 'Day-old chicks travel in climate-stabilized, temperature-monitored vehicles equipped with ventilation crates. Dispatch runs every Tuesday, Thursday, and Saturday. Minimum order is 10 chicks per breed to ensure body heat preservation during transit.'
+      id: 'breeds',
+      label: '🐥 Compare Breeds',
+      query: 'What is the difference between Sasso, Kenbro, Kuroiler and Improved Kienyeji?'
     },
     {
-      id: 'guarantee',
-      label: '🚑 24h Mortality Guarantee',
-      query: 'What is the 24-Hour Arrival Guarantee?',
-      reply: 'All live bird shipments are covered by our 24-Hour Arrival Guarantee. If any chick arrives unviable, upload a quick photo in our resolution portal within 24 hours of delivery for instant store credit or refund.',
-      action: {
-        label: 'File Mortality Claim Now',
-        type: 'open_claims' as const
-      }
+      id: 'vaccines',
+      label: '💉 Vaccinations',
+      query: 'Which vaccinations are completed before sale?'
     },
     {
-      id: 'traceability',
-      label: '🔍 Batch ID Traceability',
-      query: 'How do I trace my poultry batch ID?',
-      reply: 'Every box of chicks, hatching eggs, or dressed poultry carries a QR & Batch ID (e.g., BATCH-2026-CHX9). Use our portal to view parent flock vaccination logs, hatch dates, and lab bio-security clearance certificates.',
-      action: {
-        label: 'Open Traceability Portal',
-        type: 'open_traceability' as const
-      }
+      id: 'delivery',
+      label: '🚚 Delivery',
+      query: 'Where do you deliver and how is the delivery fee calculated?'
     },
     {
       id: 'wholesale',
-      label: '🏢 Wholesale Net-30 Terms',
-      query: 'How do commercial farms get Net-30 credit terms?',
-      reply: 'Commercial buyers and institutions with a tax PIN and farm registration can apply for Net-30 credit terms up to Ksh 500,000. Orders ship immediately with PO references.',
-      action: {
-        label: 'Apply for Wholesale Credit',
-        type: 'open_wholesale' as const
-      }
+      label: '🏢 Wholesale Rules',
+      query: 'What are the wholesale minimums and discounts?'
     },
     {
-      id: 'weight',
-      label: 'Scale Weight Holds',
-      query: 'How do scale weight pre-authorizations work for fresh meat?',
-      reply: 'Whole dressed broilers and fresh cuts vary slightly in weight at packing. We pre-authorize a +10% maximum cushion and automatically adjust your final card/M-Pesa bill downward to match actual scale-weighed packed poultry.'
+      id: 'payment',
+      label: '📱 M-Pesa Payment',
+      query: 'How does M-Pesa payment and order confirmation work?'
     }
   ];
 
@@ -110,23 +93,28 @@ export default function ChatbotHelp({
     setIsTyping(true);
 
     setTimeout(() => {
-      let botReplyText = "Thanks for asking! Our hatchery team operates 24/7. You can browse our NPIP-certified catalog or trace batch records anytime using the portal controls.";
+      let botReplyText = "I can help with breeds, chick preparation, age-based vaccinations, wholesale minimums, countrywide delivery and M-Pesa confirmation. For a question about a specific order, contact ChickMagnet directly.";
       let botAction = actionObj;
 
       const lower = text.toLowerCase();
-      if (lower.includes('chick') || lower.includes('transit') || lower.includes('shipping') || lower.includes('live')) {
-        botReplyText = "Live chicks are transported in climate-controlled vans running Tue/Thu/Sat. Heat preservation requires a minimum of 10 chicks per breed.";
+      if (lower.includes('sasso') || lower.includes('kenbro') || lower.includes('kuroiler') || lower.includes('breed') || lower.includes('kienyeji')) {
+        botReplyText = "Sasso, Kenbro and Kuroiler are distinct commercial chicken types commonly grouped with improved kienyeji in Kenya. Sasso is more meat-forward, Kenbro is a balanced free-range all-rounder, Kuroiler is known for active foraging and adaptability, and Improved Kienyeji is the most locally rooted option. Results still depend on feed, housing and flock management.";
       } else if (lower.includes('claim') || lower.includes('dead') || lower.includes('die') || lower.includes('mortality') || lower.includes('guarantee')) {
-        botReplyText = "Our 24-Hour Live Arrival Guarantee covers all chick orders. You can submit a photo evidence claim directly in your order portal for instant credit.";
-        botAction = { label: 'Open 24h Claim Portal', type: 'open_claims' };
-      } else if (lower.includes('trace') || lower.includes('batch') || lower.includes('vaccin') || lower.includes('health')) {
-        botReplyText = "Every batch has full bio-security lineage including Mareks, Newcastle, and Gumboro vaccination logs. Try searching Batch ID: BATCH-2026-CHX9.";
-        botAction = { label: 'Open Traceability Portal', type: 'open_traceability' };
-      } else if (lower.includes('wholesale') || lower.includes('net30') || lower.includes('credit') || lower.includes('po')) {
-        botReplyText = "Wholesale Net-30 terms are available for commercial poultry farms and food distributors with instant credit limits up to Ksh 500,000.";
+        botReplyText = "Report weak, injured or dead chicks to ChickMagnet immediately after delivery. Include your order number, delivery details and clear evidence so the farm can review what happened.";
+        botAction = onOpenClaims ? { label: 'Report a delivery problem', type: 'open_claims' } : undefined;
+      } else if (lower.includes('vaccin') || lower.includes('health')) {
+        botReplyText = "ChickMagnet gives every chicken vaccine due by the selected age and provides the current batch record. The standard programme covers hatchery vaccines on Day 1, boosters around Days 10 to 12 and 18 to 21, Fowl pox at Week 6, Fowl typhoid at Week 8, and a Newcastle booster at Week 18. Future doses after delivery are the buyer’s responsibility and may be adjusted by a veterinary professional.";
+      } else if (lower.includes('wholesale') || lower.includes('discount') || lower.includes('minimum')) {
+        botReplyText = "The wholesale minimum for chicken is 10 birds from one listing: one breed and one age. Different breeds or ages cannot be combined to reach 10. There is no automatic wholesale discount, although ChickMagnet may offer one at its discretion for larger quantities.";
         botAction = { label: 'Explore Wholesale Portal', type: 'open_wholesale' };
-      } else if (lower.includes('pay') || lower.includes('mpesa') || lower.includes('card') || lower.includes('weight')) {
-        botReplyText = "We accept M-Pesa Mobile Money, Visa, Mastercard, and Net-30 Invoices. Scale-weighed packed items are pre-authorized with a +10% cushion and auto-adjusted to exact packed weight.";
+      } else if (lower.includes('deliver') || lower.includes('shipping') || lower.includes('transit') || lower.includes('countrywide')) {
+        botReplyText = "ChickMagnet delivers countrywide. Delivery is quoted separately after the order is reviewed because distance, quantity and handling needs differ. Product availability and the exact delivery date are confirmed after payment.";
+      } else if (lower.includes('pay') || lower.includes('mpesa') || lower.includes('confirmation')) {
+        botReplyText = "Checkout collects the product amount through M-Pesa Send Money. Send the full M-Pesa confirmation message to 0724300781. Manual confirmation takes about 2 to 24 hours. Delivery is quoted separately.";
+      } else if (lower.includes('sex') || lower.includes('male') || lower.includes('female')) {
+        botReplyText = "Chicks are sold unsexed. ChickMagnet cannot guarantee sex, but the farm tries to balance male and female chicks where possible.";
+      } else if (lower.includes('prepare') || lower.includes('brooder') || lower.includes('heat') || lower.includes('housing')) {
+        botReplyText = "Prepare a clean, disinfected and pre-heated brooder before chicks arrive. Provide dry litter, safe heat, fresh air without draughts, chick starter feed, clean water, enough feeder and drinker space, basic chick-care supplies and a written plan for the next vaccines due.";
       }
 
       const botMsg: ChatMessage = {
@@ -215,7 +203,7 @@ export default function ChatbotHelp({
               {quickTopics.map(t => (
                 <button
                   key={t.id}
-                  onClick={() => handleSendMessage(t.query, t.action)}
+                  onClick={() => handleSendMessage(t.query)}
                   className="bg-[#123524] hover:bg-emerald-900 border border-emerald-700/80 text-amber-200 px-2.5 py-1.5 rounded-xl whitespace-nowrap text-[10px] font-bold transition-all cursor-pointer shrink-0"
                 >
                   {t.label}
@@ -278,7 +266,7 @@ export default function ChatbotHelp({
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask about chicks, health logs, shipping..."
+                  placeholder="Ask about breeds, vaccines or delivery..."
                   className="flex-1 bg-[#123524] border border-emerald-700/80 rounded-xl px-3 py-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-amber-400 text-xs"
                 />
                 <button

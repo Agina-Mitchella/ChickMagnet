@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
-import { ShoppingBag, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Egg, FileText, LayoutDashboard, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { User, BuyerType, MainCategory } from '../types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Egg,
+  Feather,
+  FileText,
+  LayoutDashboard,
+  LogIn,
+  Monitor,
+  Moon,
+  Search,
+  ShoppingBag,
+  SlidersHorizontal,
+  Sun,
+  User as UserIcon,
+  Utensils,
+  X,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { BuyerType, MainCategory, Product, User } from '../types';
+import { productMatchesSearch } from '../utils/storefrontProducts';
 import { useBrandLogo } from '../utils/cms';
+import { ColorSchemePreference } from '../utils/colorScheme';
 import poultryChicksImage from '../assets/images/hero_poultry_chicks_1785408878635.jpg';
 import roosterHenImage from '../assets/images/live_rooster_hen_1785409332530.jpg';
 import freshChickenImage from '../assets/images/category-fresh-chicken.jpg';
 import eggsImage from '../assets/images/category-eggs.jpg';
 
-const CATEGORY_ARTWORK: Record<MainCategory | 'all', { src: string; position: string }> = {
+type StorefrontTab = 'shop' | 'about' | 'profile';
+type StorefrontCategory = MainCategory | 'all';
+
+const CATEGORY_ARTWORK: Record<StorefrontCategory, { src: string; position: string }> = {
   all: { src: poultryChicksImage, position: '50% 67%' },
   'live-birds': { src: roosterHenImage, position: '52% 43%' },
   'fresh-poultry': { src: freshChickenImage, position: '50% 48%' },
@@ -17,15 +40,14 @@ const CATEGORY_ARTWORK: Record<MainCategory | 'all', { src: string; position: st
   'farm-supplies': { src: poultryChicksImage, position: '50% 67%' },
 };
 
-function CategoryArtwork({
-  category,
-  icon,
-  compact = false,
-}: {
-  category: MainCategory | 'all';
-  icon?: React.ReactNode;
-  compact?: boolean;
-}) {
+const CATEGORY_OPTIONS = [
+  { id: 'all' as const, label: 'All Products', description: 'Chicken and eggs' },
+  { id: 'live-birds' as const, label: 'Live Chicken', description: 'Chicks and mature chicken' },
+  { id: 'fresh-poultry' as const, label: 'Fresh Chicken', description: 'Whole chicken and cuts' },
+  { id: 'eggs' as const, label: 'Eggs', description: 'Fresh eggs by the tray' },
+];
+
+function CategoryArtwork({ category, compact = false }: { category: StorefrontCategory; compact?: boolean }) {
   const artwork = CATEGORY_ARTWORK[category];
 
   return (
@@ -38,21 +60,16 @@ function CategoryArtwork({
       <img
         src={artwork.src}
         alt=""
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         style={{ objectPosition: artwork.position }}
       />
-      {icon && (
-        <span className="absolute bottom-0.5 right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white/95 text-emerald-950 shadow-sm [&>svg]:h-3 [&>svg]:w-3">
-          {icon}
-        </span>
-      )}
     </span>
   );
 }
 
 interface NavbarProps {
-  activeTab: string;
-  setActiveTab: (tab: any) => void;
+  activeTab: StorefrontTab;
+  setActiveTab: (tab: StorefrontTab) => void;
   cartCount: number;
   onOpenCart: () => void;
   currentUser: User | null;
@@ -60,10 +77,15 @@ interface NavbarProps {
   onSignOut: () => void;
   buyerType: BuyerType;
   setBuyerType: (type: BuyerType) => void;
-  selectedCategory: MainCategory | 'all';
-  setSelectedCategory: (category: MainCategory | 'all') => void;
+  selectedCategory: StorefrontCategory;
+  setSelectedCategory: (category: StorefrontCategory) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  searchableProducts: Product[];
+  onSelectProduct: (product: Product) => void;
+  onApplySearch: () => void;
+  colorScheme: ColorSchemePreference;
+  onColorSchemeChange: (preference: ColorSchemePreference) => void;
   onOpenTraceability: () => void;
   onOpenClaims: () => void;
   onOpenAdmin?: () => void;
@@ -84,39 +106,142 @@ export default function Navbar({
   setSelectedCategory,
   searchQuery,
   setSearchQuery,
-  onOpenTraceability,
-  onOpenClaims,
+  searchableProducts,
+  onSelectProduct,
+  onApplySearch,
+  colorScheme,
+  onColorSchemeChange,
   onOpenAdmin,
-  onOpenBusinessPlan
+  onOpenBusinessPlan,
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const brand = useBrandLogo();
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const desktopSearchButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileSearchButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileSheetRef = useRef<HTMLDivElement>(null);
+  const ColorSchemeIcon = colorScheme === 'light' ? Sun : colorScheme === 'dark' ? Moon : Monitor;
 
   const isAdmin = Boolean(
     currentUser?.customClaims?.admin === true || currentUser?.customClaims?.role === 'ADMIN'
   );
-
-  const categoriesList: { id: MainCategory | 'all'; label: string; icon: React.ReactNode; description: string }[] = [
-    { id: 'all', label: 'All Products', icon: <ShoppingBag />, description: 'Chicken and eggs' },
-    { id: 'live-birds', label: 'Live Chicken', icon: <Feather />, description: 'Chicks and mature chicken' },
-    { id: 'fresh-poultry', label: 'Fresh Chicken', icon: <Utensils />, description: 'Whole chicken and cuts' },
-    { id: 'eggs', label: 'Eggs', icon: <Egg />, description: 'Fresh eggs by the tray' },
-  ];
-  const visibleCategories = categoriesList.filter(
+  const visibleCategories = CATEGORY_OPTIONS.filter(
     category => buyerType !== 'wholesale' || category.id !== 'fresh-poultry'
   );
+  const selectedCategoryLabel = CATEGORY_OPTIONS.find(category => category.id === selectedCategory)?.label
+    ?? 'All Products';
+  const selectedBuyerLabel = buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Retail';
+
+  const matchingProducts = useMemo(() => {
+    return searchableProducts.filter(product => {
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      return matchesCategory && productMatchesSearch(product, searchQuery);
+    });
+  }, [searchableProducts, searchQuery, selectedCategory]);
+  const suggestions = matchingProducts.slice(0, 6);
+
+  const selectCategory = (category: StorefrontCategory) => {
+    setSelectedCategory(category);
+    if (activeTab !== 'shop') setActiveTab('shop');
+  };
+
+  const selectBuyerType = (type: BuyerType) => {
+    setBuyerType(type);
+    if (activeTab !== 'shop') setActiveTab('shop');
+  };
+
+  const chooseProduct = (product: Product) => {
+    setDesktopSearchOpen(false);
+    setMobileSearchOpen(false);
+    onSelectProduct(product);
+  };
+
+  const applySearch = () => {
+    setDesktopSearchOpen(false);
+    setMobileSearchOpen(false);
+    if (activeTab !== 'shop') setActiveTab('shop');
+    onApplySearch();
+  };
+
+  useEffect(() => {
+    if (!desktopSearchOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!desktopSearchRef.current?.contains(event.target as Node)) {
+        setDesktopSearchOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setDesktopSearchOpen(false);
+        desktopSearchButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [desktopSearchOpen]);
+
+  useEffect(() => {
+    if (!mobileSearchOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusTimer = window.setTimeout(() => {
+      mobileSheetRef.current?.querySelector<HTMLElement>('input, button')?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileSearchOpen(false);
+        mobileSearchButtonRef.current?.focus();
+        return;
+      }
+      if (event.key !== 'Tab' || !mobileSheetRef.current) return;
+
+      const focusable = Array.from(
+        mobileSheetRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileSearchOpen]);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-stone-200 bg-[#fffdfa]/95 text-[#173b2a] shadow-[0_10px_35px_rgba(18,53,36,0.08)] backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:gap-5 lg:px-8">
+    <>
+    <header className="sticky top-0 z-40 w-full border-b border-stone-200/80 bg-[#fffdf9]/90 text-[#173b2a] shadow-[0_10px_35px_rgba(18,53,36,0.07)] backdrop-blur-2xl supports-[not_(backdrop-filter:blur(1px))]:bg-[#fffdf9] dark:border-white/10 dark:bg-[#071c13]/92 dark:text-emerald-50 dark:shadow-[0_10px_35px_rgba(0,0,0,0.28)] dark:supports-[not_(backdrop-filter:blur(1px))]:bg-[#071c13]">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-1.5 px-3 py-2.5 min-[360px]:gap-2 min-[360px]:px-4 sm:px-6 sm:py-3 xl:gap-5 xl:px-8">
         <button
           type="button"
           onClick={() => {
             setActiveTab('shop');
-            setSelectedCategory('all');
+            selectCategory('all');
             setSearchQuery('');
           }}
-          className="group flex h-12 shrink-0 items-center rounded-2xl bg-[#123524] px-2.5 shadow-[0_6px_18px_rgba(18,53,36,0.18)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 sm:h-14 sm:px-3"
+          className="group flex h-11 min-w-0 shrink items-center rounded-2xl bg-[#123524] px-2 shadow-[0_6px_18px_rgba(18,53,36,0.18)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 dark:bg-[#123524] dark:focus-visible:ring-offset-[#071c13] sm:h-14 sm:shrink-0 sm:px-3"
           aria-label="Go to all products"
         >
           {brand.logoImageUrl ? (
@@ -124,44 +249,41 @@ export default function Navbar({
               <img
                 src={brand.logoImageUrl}
                 alt={brand.brandName || 'ChickMagnet'}
-                className="h-9 w-auto max-w-[112px] object-contain transition-transform group-hover:scale-[1.03] sm:h-11 sm:max-w-[176px]"
+                className="h-8 w-auto max-w-[84px] object-contain transition-transform group-hover:scale-[1.03] min-[360px]:max-w-[104px] sm:h-11 sm:max-w-[176px]"
               />
-              {brand.logoDisplayMode === 'image_with_text' && (
+              {brand.logoDisplayMode === 'image_with_text' ? (
                 <span className="hidden text-lg font-extrabold tracking-[-0.03em] text-amber-300 xl:inline">
                   {brand.brandName || 'ChickMagnet'}
                 </span>
-              )}
+              ) : null}
             </span>
           ) : (
-            <span className="px-1 text-lg font-extrabold tracking-[-0.03em] text-amber-300 sm:text-xl">
+            <span className="truncate px-1 text-base font-extrabold tracking-[-0.03em] text-amber-300 min-[360px]:text-lg sm:text-xl">
               {brand.brandName || 'ChickMagnet'}
             </span>
           )}
         </button>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex" aria-label="Product categories">
-          {visibleCategories.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
+        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex" aria-label="Product categories">
+          {visibleCategories.map(category => {
+            const selected = selectedCategory === category.id;
             return (
               <button
-                key={cat.id}
+                key={category.id}
                 type="button"
-                aria-pressed={isSelected}
-                onClick={() => {
-                  setSelectedCategory(cat.id);
-                  if (activeTab !== 'shop') setActiveTab('shop');
-                }}
+                aria-pressed={selected}
+                onClick={() => selectCategory(category.id)}
                 className={`group flex min-w-0 items-center gap-2.5 rounded-[1.35rem] border px-2.5 py-2 text-left transition-all ${
-                  isSelected
+                  selected
                     ? 'border-emerald-900 bg-emerald-950 text-white shadow-[0_8px_18px_rgba(6,46,31,0.2)]'
-                    : 'border-transparent bg-white text-[#173b2a] hover:border-stone-200 hover:bg-[#fff8e8] hover:shadow-sm'
+                    : 'border-transparent bg-white/70 text-[#173b2a] hover:border-stone-200 hover:bg-white hover:shadow-sm dark:bg-white/[0.06] dark:text-emerald-50 dark:hover:border-white/15 dark:hover:bg-white/10'
                 }`}
               >
-                <CategoryArtwork category={cat.id} icon={cat.icon} />
+                <CategoryArtwork category={category.id} />
                 <span className="min-w-0 pr-1">
-                  <span className="block whitespace-nowrap text-[13px] font-bold tracking-[-0.01em]">{cat.label}</span>
-                  <span className={`hidden whitespace-nowrap text-[10px] xl:block ${isSelected ? 'text-emerald-100/75' : 'text-stone-500'}`}>
-                    {cat.description}
+                  <span className="block whitespace-nowrap text-[13px] font-bold tracking-[-0.01em]">{category.label}</span>
+                  <span className={`hidden whitespace-nowrap text-[10px] 2xl:block ${selected ? 'text-emerald-100/75' : 'text-stone-500 dark:text-emerald-100/55'}`}>
+                    {category.description}
                   </span>
                 </span>
               </button>
@@ -169,82 +291,91 @@ export default function Navbar({
           })}
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 min-[360px]:gap-2">
+          <label
+            className="relative grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-stone-200 bg-white text-emerald-950 shadow-sm transition-colors hover:border-stone-300 hover:bg-stone-50 focus-within:ring-2 focus-within:ring-amber-400 dark:border-white/12 dark:bg-white/[0.08] dark:text-amber-200 dark:hover:bg-white/[0.13]"
+            title={`Color scheme: ${colorScheme}`}
+          >
+            <span className="sr-only">Color scheme</span>
+            <ColorSchemeIcon className="h-4 w-4" aria-hidden="true" />
+            <select
+              value={colorScheme}
+              onChange={event => onColorSchemeChange(event.target.value as ColorSchemePreference)}
+              aria-label="Color scheme"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            >
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+
           {currentUser ? (
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-2 shadow-sm transition-all hover:border-stone-300 hover:shadow-md sm:pr-3"
+                onClick={() => setProfileOpen(open => !open)}
+                className="flex h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-2 shadow-sm transition-all hover:border-stone-300 hover:shadow-md dark:border-white/12 dark:bg-white/[0.08] dark:text-white dark:hover:bg-white/[0.13] sm:pr-3"
                 aria-expanded={profileOpen}
                 aria-label="Open account menu"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-950 text-sm font-extrabold text-amber-300">
                   {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                 </span>
-                <span className="hidden max-w-[120px] truncate text-xs font-bold md:inline">
-                  {currentUser.name} {isAdmin && '(Admin)'}
-                </span>
+                <span className="hidden max-w-[120px] truncate text-xs font-bold md:inline">{currentUser.name}</span>
                 <ChevronDown className="hidden h-3.5 w-3.5 text-stone-500 sm:block" />
               </button>
 
               <AnimatePresence>
-                {profileOpen && (
+                {profileOpen ? (
                   <motion.div
                     initial={{ opacity: 0, y: 6, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                    className="absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-32px)] rounded-2xl border border-stone-200 bg-white p-3 text-xs text-[#173b2a] shadow-[0_18px_50px_rgba(18,53,36,0.18)]"
+                    className="absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-stone-200 bg-white p-3 text-xs text-[#173b2a] shadow-[0_18px_50px_rgba(18,53,36,0.18)] dark:border-white/12 dark:bg-[#0d281c] dark:text-emerald-50 dark:shadow-[0_18px_50px_rgba(0,0,0,0.4)]"
                   >
-                    <div className="mb-2 border-b border-stone-100 px-2 pb-3">
-                      <div className="font-bold">{currentUser.name} {isAdmin && '(Admin)'}</div>
-                      <div className="truncate pt-0.5 text-[11px] text-stone-500">{currentUser.email}</div>
-                      <div className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-800">
-                        {buyerType === 'retail' ? 'Retail' : buyerType === 'wholesale' ? 'Commercial wholesale' : 'Farmer'}
-                      </div>
+                    <div className="mb-2 border-b border-stone-100 px-2 pb-3 dark:border-white/10">
+                      <div className="font-bold">{currentUser.name} {isAdmin ? '(Admin)' : ''}</div>
+                      <div className="truncate pt-0.5 text-[11px] text-stone-500 dark:text-emerald-100/55">{currentUser.email}</div>
                     </div>
-
                     <button
                       type="button"
                       onClick={() => {
                         setActiveTab('profile');
                         setProfileOpen(false);
                       }}
-                      className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50"
+                      className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50 dark:hover:bg-white/10"
                     >
                       <UserIcon className="h-4 w-4 text-emerald-800" />
-                      <span>My Account & Orders</span>
+                      My Account & Orders
                     </button>
-
-                    {onOpenAdmin && isAdmin && (
+                    {onOpenAdmin && isAdmin ? (
                       <button
                         type="button"
                         onClick={() => {
                           onOpenAdmin();
                           setProfileOpen(false);
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-amber-50"
+                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-amber-50 dark:hover:bg-white/10"
                       >
                         <LayoutDashboard className="h-4 w-4 text-amber-600" />
-                        <span>Admin Dashboard</span>
+                        Admin Dashboard
                       </button>
-                    )}
-
-                    {onOpenBusinessPlan && isAdmin && (
+                    ) : null}
+                    {onOpenBusinessPlan && isAdmin ? (
                       <button
                         type="button"
                         onClick={() => {
                           onOpenBusinessPlan();
                           setProfileOpen(false);
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50"
+                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50 dark:hover:bg-white/10"
                       >
                         <FileText className="h-4 w-4 text-emerald-800" />
-                        <span>Farm Plan</span>
+                        Farm Plan
                       </button>
-                    )}
-
-                    <div className="mt-2 border-t border-stone-100 pt-2">
+                    ) : null}
+                    <div className="mt-2 border-t border-stone-100 pt-2 dark:border-white/10">
                       <button
                         type="button"
                         onClick={() => {
@@ -257,7 +388,7 @@ export default function Navbar({
                       </button>
                     </div>
                   </motion.div>
-                )}
+                ) : null}
               </AnimatePresence>
             </div>
           ) : (
@@ -265,32 +396,10 @@ export default function Navbar({
               type="button"
               onClick={() => onOpenAuth('signin')}
               aria-label="Sign in"
-              className="flex h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-3 text-xs font-bold text-[#173b2a] shadow-sm transition-all hover:border-stone-300 hover:shadow-md"
+                className="flex h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-3 text-xs font-bold text-[#173b2a] shadow-sm transition-all hover:border-stone-300 hover:shadow-md dark:border-white/12 dark:bg-white/[0.08] dark:text-emerald-50 dark:hover:bg-white/[0.13]"
             >
               <LogIn className="h-4 w-4" />
               <span className="hidden sm:inline">Sign In</span>
-            </button>
-          )}
-
-          {onOpenAdmin && isAdmin && (
-            <button
-              type="button"
-              onClick={onOpenAdmin}
-              className="hidden h-11 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100 xl:flex"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>Admin</span>
-            </button>
-          )}
-
-          {onOpenBusinessPlan && isAdmin && (
-            <button
-              type="button"
-              onClick={onOpenBusinessPlan}
-              className="hidden h-11 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-900 transition-colors hover:bg-emerald-100 2xl:flex"
-            >
-              <FileText className="h-4 w-4" />
-              <span>Farm Plan</span>
             </button>
           )}
 
@@ -298,74 +407,342 @@ export default function Navbar({
             id="header-cart-button"
             type="button"
             onClick={onOpenCart}
+            aria-label={`Open cart${cartCount > 0 ? ` with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}` : ''}`}
             className="relative flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-3.5 text-xs font-extrabold text-emerald-950 shadow-[0_6px_16px_rgba(245,158,11,0.25)] transition-all hover:-translate-y-0.5 hover:from-amber-300 hover:to-amber-400 sm:px-4"
           >
             <ShoppingBag className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Cart</span>
-            {cartCount > 0 && (
+            {cartCount > 0 ? (
               <span className="flex min-w-5 items-center justify-center rounded-full bg-emerald-950 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-300">
                 {cartCount}
               </span>
-            )}
+            ) : null}
           </button>
         </div>
       </div>
 
-      <nav className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pb-3 lg:hidden" aria-label="Product categories">
-        {visibleCategories.map((cat) => {
-          const isSelected = selectedCategory === cat.id;
+      <nav className="no-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto px-3 pb-2.5 min-[360px]:px-4 sm:pb-3 xl:hidden" aria-label="Product categories">
+        {visibleCategories.map(category => {
+          const selected = selectedCategory === category.id;
           return (
             <button
-              key={cat.id}
+              key={category.id}
               type="button"
-              aria-pressed={isSelected}
-              onClick={() => {
-                setSelectedCategory(cat.id);
-                if (activeTab !== 'shop') setActiveTab('shop');
-              }}
-              className={`group flex shrink-0 items-center gap-2 rounded-2xl border px-2 py-1.5 text-xs font-bold transition-all ${
-                isSelected
-                  ? 'border-emerald-950 bg-emerald-950 text-white shadow-sm'
-                  : 'border-stone-200 bg-white text-[#173b2a]'
+              aria-pressed={selected}
+              onClick={() => selectCategory(category.id)}
+              className={`group flex shrink-0 snap-start items-center gap-2 rounded-2xl border px-2 py-1.5 text-xs font-bold transition-all ${
+                selected ? 'border-emerald-950 bg-emerald-950 text-white shadow-sm' : 'border-stone-200 bg-white text-[#173b2a] dark:border-white/12 dark:bg-white/[0.07] dark:text-emerald-50'
               }`}
             >
-              <CategoryArtwork category={cat.id} icon={cat.icon} compact />
-              <span className="pr-1 whitespace-nowrap">{cat.label}</span>
+              <CategoryArtwork category={category.id} compact />
+              <span className="whitespace-nowrap pr-1">{category.label}</span>
             </button>
           );
         })}
       </nav>
 
-      <div className="border-t border-stone-100 px-4 pb-3 pt-2 sm:px-6 lg:px-8 lg:pb-4">
-        <div className="relative mx-auto max-w-3xl">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-800" />
-          <label htmlFor="storefront-search" className="sr-only">Search products</label>
-          <input
-            id="storefront-search"
-            type="search"
-            value={searchQuery}
-            onChange={(event) => {
-              setSearchQuery(event.target.value);
-              if (activeTab !== 'shop') setActiveTab('shop');
-            }}
-            placeholder="Search chicken or eggs"
-            className="h-12 w-full rounded-full border border-stone-200 bg-white pl-12 pr-24 text-sm font-semibold text-[#173b2a] shadow-[0_5px_18px_rgba(18,53,36,0.1)] outline-none transition-all placeholder:font-medium placeholder:text-stone-400 hover:border-stone-300 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:h-14 sm:text-base"
-          />
-          {searchQuery ? (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-emerald-950 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-900"
-            >
-              Clear
-            </button>
-          ) : (
-            <span className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-xs font-bold text-stone-500 sm:block">
-              Chicken & eggs
-            </span>
-          )}
+      <div ref={desktopSearchRef} className="relative hidden border-t border-stone-100/80 px-6 pb-4 pt-3 dark:border-white/10 xl:block">
+        <div className="mx-auto flex max-w-4xl items-stretch rounded-full border border-stone-200/90 bg-white/78 p-1.5 shadow-[0_12px_36px_rgba(18,53,36,0.13)] backdrop-blur-2xl dark:border-white/12 dark:bg-white/[0.08] dark:shadow-[0_14px_40px_rgba(0,0,0,0.28)]">
+          <button
+            ref={desktopSearchButtonRef}
+            type="button"
+            onClick={() => setDesktopSearchOpen(true)}
+            aria-expanded={desktopSearchOpen}
+            className="min-w-[190px] rounded-full px-6 py-3 text-left transition-colors hover:bg-stone-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:hover:bg-white/10 dark:focus-visible:ring-amber-300"
+          >
+            <span className="block text-[11px] font-extrabold uppercase tracking-[0.1em] text-emerald-950 dark:text-white">Order type</span>
+            <span className="mt-0.5 block text-sm text-stone-500 dark:text-emerald-100/60">{selectedBuyerLabel}</span>
+          </button>
+          <div className="my-2 w-px bg-stone-200 dark:bg-white/10" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setDesktopSearchOpen(true)}
+            aria-expanded={desktopSearchOpen}
+            className="min-w-[190px] rounded-full px-6 py-3 text-left transition-colors hover:bg-stone-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:hover:bg-white/10 dark:focus-visible:ring-amber-300"
+          >
+            <span className="block text-[11px] font-extrabold uppercase tracking-[0.1em] text-emerald-950 dark:text-white">Products</span>
+            <span className="mt-0.5 block text-sm text-stone-500 dark:text-emerald-100/60">{selectedCategoryLabel}</span>
+          </button>
+          <div className="my-2 w-px bg-stone-200 dark:bg-white/10" aria-hidden="true" />
+          <label className="min-w-0 flex-1 rounded-full px-6 py-3 transition-colors hover:bg-stone-100/80 focus-within:bg-stone-100/80 focus-within:ring-2 focus-within:ring-emerald-700 dark:hover:bg-white/10 dark:focus-within:bg-white/10 dark:focus-within:ring-amber-300">
+            <span className="block text-[11px] font-extrabold uppercase tracking-[0.1em] text-emerald-950 dark:text-white">Search</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onFocus={() => setDesktopSearchOpen(true)}
+              onChange={event => {
+                setSearchQuery(event.target.value);
+                if (activeTab !== 'shop') setActiveTab('shop');
+              }}
+              onKeyDown={event => {
+                if (event.key === 'Enter') applySearch();
+              }}
+              placeholder="Product, breed, cut, age or unit"
+              className="mt-0.5 w-full bg-transparent text-sm text-stone-700 outline-none placeholder:text-stone-400 dark:text-emerald-50 dark:placeholder:text-emerald-100/45"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={applySearch}
+            aria-label="Show matching products"
+            className="grid h-14 w-14 shrink-0 place-items-center self-center rounded-full bg-amber-400 text-emerald-950 shadow-[0_8px_20px_rgba(245,158,11,0.32)] transition-transform hover:scale-105 hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
+          >
+            <Search className="h-5 w-5" />
+          </button>
         </div>
+
+        <AnimatePresence>
+          {desktopSearchOpen ? (
+            <motion.div
+              role="dialog"
+              aria-label="Search options"
+              initial={{ opacity: 0, y: -8, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.99 }}
+              transition={{ duration: 0.16 }}
+              className="absolute left-1/2 top-[calc(100%-4px)] z-50 grid w-[min(860px,calc(100vw-48px))] -translate-x-1/2 grid-cols-[0.8fr_0.9fr_1.4fr] gap-4 rounded-[2rem] border border-white/90 bg-white/92 p-5 shadow-[0_26px_80px_rgba(18,53,36,0.2)] backdrop-blur-2xl supports-[not_(backdrop-filter:blur(1px))]:bg-white dark:border-white/12 dark:bg-[#0d281c]/95 dark:shadow-[0_28px_80px_rgba(0,0,0,0.45)] dark:supports-[not_(backdrop-filter:blur(1px))]:bg-[#0d281c]"
+            >
+              <SearchOptions
+                buyerType={buyerType}
+                selectedCategory={selectedCategory}
+                visibleCategories={visibleCategories}
+                suggestions={suggestions}
+                onSelectBuyer={selectBuyerType}
+                onSelectCategory={selectCategory}
+                onSelectProduct={chooseProduct}
+              />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      <div className="border-t border-stone-100/80 px-3 pb-3 pt-2 dark:border-white/10 min-[360px]:px-4 xl:hidden">
+        <button
+          ref={mobileSearchButtonRef}
+          type="button"
+          onClick={() => setMobileSearchOpen(true)}
+          className="flex w-full items-center gap-3 rounded-full border border-stone-200 bg-white px-4 py-3 text-left shadow-[0_7px_22px_rgba(18,53,36,0.11)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:border-white/12 dark:bg-white/[0.08] dark:shadow-[0_8px_26px_rgba(0,0,0,0.26)] dark:focus-visible:ring-amber-300"
+          aria-haspopup="dialog"
+        >
+          <Search className="h-5 w-5 shrink-0 text-emerald-900 dark:text-amber-300" />
+          <span className="min-w-0 flex-1">
+            <strong className="block text-sm text-emerald-950 dark:text-white">Search ChickMagnet</strong>
+            <span className="block truncate text-xs text-stone-500 dark:text-emerald-100/60">
+              {selectedBuyerLabel} · {selectedCategoryLabel}{searchQuery ? ` · ${searchQuery}` : ''}
+            </span>
+          </span>
+          <SlidersHorizontal className="h-4 w-4 shrink-0 text-stone-500 dark:text-emerald-100/60" />
+        </button>
       </div>
     </header>
+
+      <AnimatePresence>
+        {mobileSearchOpen ? (
+          <motion.div
+            className="fixed inset-0 z-[70] flex items-end bg-emerald-950/45 p-0 backdrop-blur-sm xl:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={event => {
+              if (event.target === event.currentTarget) setMobileSearchOpen(false);
+            }}
+          >
+            <motion.div
+              ref={mobileSheetRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mobile-search-title"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 360, damping: 34 }}
+              className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-[#fffdf9] shadow-[0_-20px_60px_rgba(18,53,36,0.25)] dark:bg-[#0b2117] dark:text-emerald-50 dark:shadow-[0_-20px_60px_rgba(0,0,0,0.5)] sm:mx-auto sm:mb-4 sm:max-w-2xl sm:rounded-[2rem]"
+            >
+              <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4 dark:border-white/10">
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-amber-700">ChickMagnet</p>
+                  <h2 id="mobile-search-title" className="text-xl font-extrabold tracking-[-0.03em] text-emerald-950 dark:text-white">Find your products</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileSearchOpen(false);
+                    mobileSearchButtonRef.current?.focus();
+                  }}
+                  aria-label="Close search"
+                  className="grid h-11 w-11 place-items-center rounded-full border border-stone-200 bg-white text-emerald-950 dark:border-white/12 dark:bg-white/[0.08] dark:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+                <section aria-labelledby="mobile-buyer-heading">
+                  <h3 id="mobile-buyer-heading" className="mb-3 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Order type</h3>
+                  <div className="grid grid-cols-2 gap-2 rounded-2xl bg-stone-100 p-1 dark:bg-black/25">
+                    {(['retail', 'wholesale'] as const).map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        aria-pressed={buyerType === type}
+                        onClick={() => selectBuyerType(type)}
+                        className={`rounded-xl px-3 py-3 text-xs font-extrabold transition-all ${
+                          buyerType === type ? 'bg-emerald-950 text-amber-300 shadow-sm' : 'text-stone-600 dark:text-emerald-100/70'
+                        }`}
+                      >
+                        {type === 'retail' ? 'Retail' : 'Commercial Wholesale'}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section aria-labelledby="mobile-products-heading">
+                  <h3 id="mobile-products-heading" className="mb-3 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Products</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {visibleCategories.map(category => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        aria-pressed={selectedCategory === category.id}
+                        onClick={() => selectCategory(category.id)}
+                        className={`rounded-full border px-3.5 py-2 text-xs font-bold ${
+                          selectedCategory === category.id
+                            ? 'border-emerald-950 bg-emerald-950 text-white'
+                            : 'border-stone-200 bg-white text-emerald-950 dark:border-white/12 dark:bg-white/[0.07] dark:text-emerald-50'
+                        }`}
+                      >
+                        {category.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section aria-labelledby="mobile-query-heading">
+                  <h3 id="mobile-query-heading" className="mb-3 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Search</h3>
+                  <label className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 focus-within:border-emerald-700 focus-within:ring-2 focus-within:ring-emerald-700/15 dark:border-white/12 dark:bg-white/[0.07] dark:focus-within:border-amber-300 dark:focus-within:ring-amber-300/15">
+                    <Search className="h-5 w-5 shrink-0 text-emerald-900 dark:text-amber-300" />
+                    <input
+                      type="search"
+                      aria-label="Search"
+                      value={searchQuery}
+                      onChange={event => setSearchQuery(event.target.value)}
+                      placeholder="Breed, cut, age or unit"
+                      className="min-w-0 flex-1 bg-transparent text-sm text-emerald-950 outline-none placeholder:text-stone-400 dark:text-white dark:placeholder:text-emerald-100/45"
+                    />
+                  </label>
+                  <SuggestionList products={suggestions} onSelectProduct={chooseProduct} />
+                </section>
+              </div>
+
+              <div className="border-t border-stone-200 bg-white/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 dark:border-white/10 dark:bg-[#0b2117]/95">
+                <button
+                  type="button"
+                  onClick={applySearch}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 py-4 text-sm font-extrabold text-emerald-950 shadow-[0_10px_24px_rgba(245,158,11,0.28)]"
+                >
+                  Show {matchingProducts.length} {matchingProducts.length === 1 ? 'product' : 'products'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function SearchOptions({
+  buyerType,
+  selectedCategory,
+  visibleCategories,
+  suggestions,
+  onSelectBuyer,
+  onSelectCategory,
+  onSelectProduct,
+}: {
+  buyerType: BuyerType;
+  selectedCategory: StorefrontCategory;
+  visibleCategories: Array<(typeof CATEGORY_OPTIONS)[number]>;
+  suggestions: Product[];
+  onSelectBuyer: (buyer: BuyerType) => void;
+  onSelectCategory: (category: StorefrontCategory) => void;
+  onSelectProduct: (product: Product) => void;
+}) {
+  return (
+    <>
+      <section aria-labelledby="desktop-buyer-heading">
+        <h2 id="desktop-buyer-heading" className="mb-2 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Order type</h2>
+        <div className="space-y-1">
+          {(['retail', 'wholesale'] as const).map(type => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => onSelectBuyer(type)}
+              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-bold ${
+                buyerType === type ? 'bg-emerald-50 text-emerald-950 dark:bg-white/12 dark:text-white' : 'text-stone-600 hover:bg-stone-50 dark:text-emerald-100/70 dark:hover:bg-white/[0.07]'
+              }`}
+            >
+              {type === 'retail' ? 'Retail' : 'Commercial Wholesale'}
+              {buyerType === type ? <Check className="h-4 w-4 text-emerald-800" /> : null}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="desktop-category-heading">
+        <h2 id="desktop-category-heading" className="mb-2 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Products</h2>
+        <div className="space-y-1">
+          {visibleCategories.map(category => (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => onSelectCategory(category.id)}
+              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-bold ${
+                selectedCategory === category.id ? 'bg-emerald-50 text-emerald-950 dark:bg-white/12 dark:text-white' : 'text-stone-600 hover:bg-stone-50 dark:text-emerald-100/70 dark:hover:bg-white/[0.07]'
+              }`}
+            >
+              {category.label}
+              {selectedCategory === category.id ? <Check className="h-4 w-4 text-emerald-800" /> : null}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="desktop-suggestions-heading">
+        <h2 id="desktop-suggestions-heading" className="mb-2 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Products in this selection</h2>
+        <SuggestionList products={suggestions} onSelectProduct={onSelectProduct} />
+      </section>
+    </>
+  );
+}
+
+function SuggestionList({ products, onSelectProduct }: { products: Product[]; onSelectProduct: (product: Product) => void }) {
+  if (products.length === 0) {
+    return <p className="rounded-xl bg-stone-50 px-3 py-4 text-sm text-stone-500 dark:bg-white/[0.06] dark:text-emerald-100/60">No products match this search.</p>;
+  }
+
+  return (
+    <div className="mt-2 space-y-1">
+      {products.map(product => (
+        <button
+          key={product.id}
+          type="button"
+          onClick={() => onSelectProduct(product)}
+          className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:hover:bg-white/[0.07] dark:focus-visible:ring-amber-300"
+        >
+          <img
+            src={product.image}
+            alt=""
+            className="h-11 w-11 shrink-0 rounded-xl object-cover"
+            style={{ objectPosition: product.imagePosition || '50% 50%' }}
+          />
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-sm text-emerald-950 dark:text-white">{product.name}</strong>
+            <span className="block text-xs text-stone-500 dark:text-emerald-100/60">Ksh {product.price.toLocaleString()}{product.unit ? ` /${product.unit}` : ''}</span>
+          </span>
+        </button>
+      ))}
+    </div>
   );
 }

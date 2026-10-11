@@ -40,7 +40,7 @@ export default function CongratsModal({
             Order ID: <strong>{orderSummary.orderId}</strong>
           </p>
           <p className="mx-auto max-w-md text-sm text-emerald-100">
-            Your order will be confirmed after ChickMagnet matches your M-Pesa confirmation message.
+            Your product payment will be checked manually within 2 to 24 hours. ChickMagnet will then confirm availability, the exact delivery date and the separate delivery fee.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export default function CongratsModal({
             <div className="bg-emerald-950/80 border border-emerald-700/60 p-3 rounded-xl flex items-center justify-between gap-2 text-[11px]">
               <div className="flex items-center gap-2 text-emerald-200">
                 <HelpCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Report a problem with a live chicken delivery within 24 hours.</span>
+                <span>Report weak, injured or dead chicks to ChickMagnet immediately after delivery.</span>
               </div>
               {onOpenClaims && (
                 <button
@@ -132,9 +132,10 @@ export default function CongratsModal({
           )}
 
           <div className="flex justify-between pt-2 border-t border-emerald-800 text-sm font-serif">
-            <span className="text-amber-300">Total Order Amount</span>
+            <span className="text-amber-300">Product payment</span>
             <span className="font-bold text-amber-400 text-base">Ksh {orderSummary.grandTotal.toLocaleString()}</span>
           </div>
+          <p className="text-right text-[10px] leading-relaxed text-emerald-300">Delivery is not included and will be quoted separately.</p>
         </div>
 
         <button

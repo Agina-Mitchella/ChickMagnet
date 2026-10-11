@@ -55,29 +55,84 @@ export const CMS_PAGES: CMSPageMeta[] = [
 export const INITIAL_FAQS = [
   {
     id: 'faq-1',
-    q: 'How does ChickMagnet guarantee 100% Live Arrival for Day-Old Chicks?',
-    a: 'Chicks are packed in specially ventilated, temperature-insulated transport boxes with extra thermal bedding and nutrient gel. In the rare event of mortality, our 24-48 hour Live Arrival Guarantee provides instant credit or replacement.',
-    category: 'Live Chick Transport'
+    q: 'What is the difference between Improved Kienyeji, Sasso, Kenbro and Kuroiler?',
+    a: 'In Kenya, Sasso, Kenbro and Kuroiler are often grouped under improved kienyeji because they are improved dual-purpose birds for meat and eggs. They are still distinct types. Improved Kienyeji is the locally rooted option, Sasso is commonly chosen for stronger meat growth, Kenbro is a balanced free-range bird, and Kuroiler is known for active foraging and adaptability in lower-input systems. Results depend on feed, housing and flock management.',
+    category: 'Choosing Live Chicken'
   },
   {
     id: 'faq-2',
-    q: 'What bio-security measures are taken at partner hatcheries?',
-    a: 'All partner hatcheries undergo monthly blood tests and bio-security audits by certified veterinary officers (DVS & KEBS). Every batch is assigned a unique Batch ID detailing parent flock health, vaccination history, and lay dates.',
-    category: 'Biosecurity & Quality'
+    q: 'Are chicks male or female?',
+    a: 'Chicks are sold unsexed, so ChickMagnet cannot guarantee a particular number of male or female birds. The farm team tries to provide a balanced mix where possible.',
+    category: 'Choosing Live Chicken'
   },
   {
     id: 'faq-3',
-    q: 'How does Wholesale Net-30 work for commercial buyers?',
-    a: 'Verified HORECA businesses (hotels, butcheries, institutions) can apply for Net-30 credit terms. Once approved, standing recurring orders are dispatched automatically with 30-day payment invoicing.',
-    category: 'Commercial Wholesale'
+    q: 'Which vaccinations do ChickMagnet birds receive?',
+    a: 'ChickMagnet vaccinates birds according to age. The standard schedule covers the day-old hatchery vaccines, Newcastle and infectious bronchitis at days 10 to 12, Gumboro at days 18 to 21, fowl pox at week 6, fowl typhoid at week 8, and a Newcastle booster at week 18. A bird receives every dose due by its selected age. The buyer is responsible for later doses after delivery and should confirm the continuing schedule with a veterinary or livestock professional.',
+    category: 'Vaccination & Care'
   },
   {
     id: 'faq-4',
-    q: 'How are fresh dressed poultry weights handled for billing?',
-    a: 'Fresh dressed birds vary slightly in scale weight. Cards or mobile money payments are pre-authorized, and final billing is automatically adjusted down to the exact packed scale weight at cold-chain packing.',
-    category: 'Ordering & Billing'
+    q: 'What should I prepare before chicks arrive?',
+    a: 'Prepare clean, dry and secure housing before delivery. Day-old and young chicks need a pre-heated brooder, suitable lighting, fresh air without cold draughts, dry litter, chick feed, clean water, feeders and drinkers. Keep basic farm records and arrange the remaining vaccination and veterinary plan. Older birds still need secure housing, ventilation, clean water, suitable feed and a gradual transition into the new flock.',
+    category: 'Vaccination & Care'
+  },
+  {
+    id: 'faq-5',
+    q: 'Does a product shown on the website mean it is available immediately?',
+    a: 'No. Place the order and make the product payment first. ChickMagnet will then confirm the current batch and contact you with the exact delivery date.',
+    category: 'Availability & Delivery'
+  },
+  {
+    id: 'faq-6',
+    q: 'Can I mix breeds or ages to reach the wholesale minimum?',
+    a: 'No. The minimum is 10 chickens of one breed and one age from the same product listing. Different breeds or age groups cannot be combined to reach that minimum.',
+    category: 'Commercial Wholesale'
+  },
+  {
+    id: 'faq-7',
+    q: 'Do wholesale orders receive a discount?',
+    a: 'There is no automatic wholesale discount. ChickMagnet may offer a discount at its discretion depending on the quantity ordered.',
+    category: 'Commercial Wholesale'
+  },
+  {
+    id: 'faq-8',
+    q: 'Where does ChickMagnet deliver and how much does delivery cost?',
+    a: 'ChickMagnet delivers countrywide in Kenya. Delivery is quoted separately after the order is reviewed because the fee depends on distance, order size and the handling required for live birds, chilled products or eggs. The website product total does not include delivery.',
+    category: 'Availability & Delivery'
+  },
+  {
+    id: 'faq-9',
+    q: 'What should I do if chicks arrive weak, injured or dead?',
+    a: 'Report the problem to ChickMagnet immediately after delivery. Keep the affected chicks and order details available so the farm team can review what happened and advise the next step.',
+    category: 'After Delivery'
+  },
+  {
+    id: 'faq-10',
+    q: 'How does ChickMagnet keep dressed chicken and cuts fresh?',
+    a: 'Fresh chicken and cuts are kept refrigerated. ChickMagnet aims to dress the chicken on the delivery day or one day before delivery, then keeps it cold until handover.',
+    category: 'Fresh Chicken'
+  },
+  {
+    id: 'faq-11',
+    q: 'What happens if my requested product becomes unavailable after payment?',
+    a: 'You can choose a suitable substitute or receive a full refund for the unavailable product.',
+    category: 'Availability & Delivery'
+  },
+  {
+    id: 'faq-12',
+    q: 'How long does M-Pesa confirmation take?',
+    a: 'Manual M-Pesa confirmation usually takes between 2 and 24 hours after you send the full confirmation message to ChickMagnet.',
+    category: 'Payment'
   }
 ];
+
+const LEGACY_FAQ_QUESTIONS = new Set([
+  'How does ChickMagnet guarantee 100% Live Arrival for Day-Old Chicks?',
+  'What bio-security measures are taken at partner hatcheries?',
+  'How does Wholesale Net-30 work for commercial buyers?',
+  'How are fresh dressed poultry weights handled for billing?',
+]);
 
 export const INITIAL_VACCINE_SCHEDULE = [
   {
@@ -833,7 +888,7 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     pageId: 'footer-contact',
     label: 'Footer Direct Email',
     type: 'text',
-    value: 'manyaos7@gmail.com',
+    value: 'logansteve@gmail.com',
     lastEditedBy: 'System Core',
     lastEditedAt: '2026-08-05 00:00',
     history: [],
@@ -1406,7 +1461,12 @@ export const getStoredFAQs = (): FAQItem[] => {
     const raw = getCMSValue('faqs_data_json');
     if (!raw) return INITIAL_FAQS;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_FAQS;
+    if (!Array.isArray(parsed)) return INITIAL_FAQS;
+
+    const isUneditedLegacySet = parsed.length === LEGACY_FAQ_QUESTIONS.size
+      && parsed.every((faq) => typeof faq?.q === 'string' && LEGACY_FAQ_QUESTIONS.has(faq.q));
+
+    return isUneditedLegacySet ? INITIAL_FAQS : parsed;
   } catch (e) {
     return INITIAL_FAQS;
   }

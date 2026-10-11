@@ -1,117 +1,162 @@
 import React from 'react';
-import { ArrowUp, ChevronRight, Phone, Mail } from 'lucide-react';
+import { ArrowUp, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { BuyerType, MainCategory } from '../types';
 import { useBrandLogo } from '../utils/cms';
 
 interface FooterProps {
+  buyerType: BuyerType;
   onNavigate?: (tab: string, sectionId?: string) => void;
-  onOpenSupport?: () => void;
-  onOpenAdmin?: () => void;
+  onSelectCategory: (category: MainCategory | 'all') => void;
 }
 
-export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: FooterProps) {
+const SHOP_LINKS: Array<{ label: string; category: MainCategory | 'all' }> = [
+  { label: 'All Products', category: 'all' },
+  { label: 'Live Chicken', category: 'live-birds' },
+  { label: 'Fresh Chicken', category: 'fresh-poultry' },
+  { label: 'Eggs', category: 'eggs' },
+];
+
+const HELP_LINKS = [
+  { label: 'About ChickMagnet', tab: 'about', sectionId: 'about' },
+  { label: 'Quality Guarantee', tab: 'about', sectionId: 'quality-guarantees' },
+  { label: 'Frequently Asked Questions', tab: 'shop', sectionId: 'faqs' },
+];
+
+export default function Footer({ buyerType, onNavigate, onSelectCategory }: FooterProps) {
   const brand = useBrandLogo();
-  const companyLinks = [
-    { label: 'About ChickMagnet', action: () => onNavigate?.('about', 'about') },
-    { label: 'Contact & Support Team', action: () => onOpenSupport ? onOpenSupport() : onNavigate?.('about', 'faqs') },
-    { label: 'Frequently Asked Questions (FAQs)', action: () => onNavigate?.('about', 'faqs') },
-    { label: 'Shop All Catalog', action: () => onNavigate?.('shop') },
-    { label: 'Ordering Information', action: () => onNavigate?.('about', 'quality-guarantees') },
-  ];
+  const visibleShopLinks = SHOP_LINKS.filter(
+    link => buyerType !== 'wholesale' || link.category !== 'fresh-poultry'
+  );
 
   return (
-    <footer className="w-full bg-[#0b2217] text-emerald-100 font-sans border-t border-emerald-900">
-      <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12">
-        
-        {/* Contact Us Card */}
-        <div className="bg-[#123524] border border-emerald-800 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-xl">
-          <div className="space-y-2 text-center lg:text-left">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/10 text-amber-300 border border-amber-400/30 rounded-full text-xs font-mono font-bold">
-              <Phone className="w-3.5 h-3.5 text-amber-400" /> Direct Contact & Support
-            </span>
-            <h3 className="text-xl sm:text-2xl font-bold text-amber-300 font-serif">
-              Contact Us
-            </h3>
-            <p className="text-xs text-emerald-200/90 max-w-lg">
-              Ask about product availability, retail orders, or commercial wholesale orders.
+    <footer className="w-full border-t border-emerald-900 bg-[#071c13] text-emerald-100">
+      <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 sm:py-16 lg:px-10">
+        <section className="flex flex-col justify-between gap-6 rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl supports-[not_(backdrop-filter:blur(1px))]:bg-[#103525] sm:p-8 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-amber-300">ChickMagnet support</p>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-white sm:text-3xl">Need help with an order?</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-emerald-100/75">
+              Contact us for current product availability and help with retail or commercial wholesale orders.
             </p>
           </div>
-
-          <div className="w-full lg:w-auto bg-[#0b2217] border border-emerald-700/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-xs shadow-inner">
-            <div className="font-bold text-sm text-amber-300">ChickMagnet Support</div>
-
-            <div className="h-px sm:h-10 w-full sm:w-px bg-emerald-800 my-1 sm:my-0" />
-
-            <div className="space-y-2 font-mono text-xs w-full sm:w-auto">
-              <a 
-                href="tel:254700356023" 
-                className="flex items-center gap-2 text-emerald-100 hover:text-amber-300 transition-colors bg-emerald-950/60 hover:bg-emerald-900/80 px-3 py-1.5 rounded-lg border border-emerald-800/80"
-              >
-                <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="font-bold text-amber-300">254700356023</span>
-              </a>
-              <a 
-                href="mailto:manyaos7@gmail.com" 
-                className="flex items-center gap-2 text-emerald-100 hover:text-amber-300 transition-colors bg-emerald-950/60 hover:bg-emerald-900/80 px-3 py-1.5 rounded-lg border border-emerald-800/80"
-              >
-                <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>manyaos7@gmail.com</span>
-              </a>
-            </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <a
+              href="tel:254700356023"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-extrabold text-emerald-950 transition-colors hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <Phone className="h-4 w-4" />
+              254700356023
+            </a>
+            <a
+              href="mailto:logansteve@gmail.com"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+            >
+              <Mail className="h-4 w-4 text-amber-300" />
+              logansteve@gmail.com
+            </a>
           </div>
-        </div>
+        </section>
 
-        {/* Navigation Links */}
-        <div className="max-w-4xl">
-          <div className="flex flex-col space-y-3">
-            <h4 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider border-b border-emerald-800 pb-2">
-              ChickMagnet
-            </h4>
-            <ul className="flex flex-wrap gap-x-8 gap-y-3">
-              {companyLinks.map((item, idx) => (
-                <li key={idx}>
-                  <button
-                    onClick={() => {
-                      item.action();
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="text-sm text-emerald-100 hover:text-amber-300 transition-colors text-left inline-flex items-center gap-2 group cursor-pointer font-medium"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 text-emerald-500 group-hover:text-amber-400 transition-transform group-hover:translate-x-0.5" />
-                    <span>{item.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="border-t border-emerald-900 bg-[#071710] py-6 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-emerald-300/70">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+        <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_0.9fr_1fr]">
+          <section>
             {brand.logoImageUrl ? (
-              <img 
-                src={brand.logoImageUrl} 
-                alt={brand.brandName || 'Logo'} 
-                style={{ height: '36px', width: 'auto', maxWidth: '200px', objectFit: 'contain' }}
-                className="h-9 sm:h-10 max-w-[200px] w-auto object-contain shrink-0 drop-shadow" 
+              <img
+                src={brand.logoImageUrl}
+                alt={brand.brandName || 'ChickMagnet'}
+                className="h-12 w-auto max-w-[210px] object-contain"
               />
             ) : (
-              <span className="font-serif font-black text-amber-400 text-base">{brand.brandName || 'ChickMagnet'}</span>
+              <div className="text-2xl font-black text-amber-300">{brand.brandName || 'ChickMagnet'}</div>
             )}
-            <span>© {new Date().getFullYear()} {brand.brandName || 'ChickMagnet'}. All rights reserved.</span>
-          </div>
+            <p className="mt-5 max-w-sm text-sm leading-6 text-emerald-100/70">
+              Chicken, eggs and poultry products sold directly by ChickMagnet for retail and commercial wholesale orders.
+            </p>
+          </section>
 
+          <FooterColumn title="Shop">
+            {visibleShopLinks.map(link => (
+              <button
+                key={link.category}
+                type="button"
+                onClick={() => onSelectCategory(link.category)}
+                className="text-left text-sm text-emerald-100/75 transition-colors hover:text-amber-300 focus:outline-none focus-visible:text-amber-300"
+              >
+                {link.label}
+              </button>
+            ))}
+          </FooterColumn>
+
+          <FooterColumn title="Help">
+            {HELP_LINKS.map(link => (
+              <a
+                key={link.sectionId}
+                href={link.tab === 'about' ? `/about#${link.sectionId}` : `/#${link.sectionId}`}
+                onClick={(event) => {
+                  if (!onNavigate) return;
+                  event.preventDefault();
+                  onNavigate(link.tab, link.sectionId);
+                }}
+                className="text-left text-sm text-emerald-100/75 transition-colors hover:text-amber-300 focus:outline-none focus-visible:text-amber-300"
+              >
+                {link.label}
+              </a>
+            ))}
+          </FooterColumn>
+
+          <FooterColumn title="Contact">
+            <a href="tel:254700356023" className="text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
+              254700356023
+            </a>
+            <a href="mailto:logansteve@gmail.com" className="break-all text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
+              logansteve@gmail.com
+            </a>
+          </FooterColumn>
+        </div>
+
+        <a
+          href="/about#quality-guarantees"
+          onClick={(event) => {
+            if (!onNavigate) return;
+            event.preventDefault();
+            onNavigate('about', 'quality-guarantees');
+          }}
+          className="flex flex-col gap-4 rounded-[1.75rem] border border-amber-300/25 bg-amber-300/[0.08] p-5 transition-colors hover:bg-amber-300/[0.12] sm:flex-row sm:items-center sm:p-6"
+        >
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-300 text-emerald-950 shadow-lg shadow-black/10">
+            <ShieldCheck className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block text-lg font-black text-white">7-day money-back guarantee</strong>
+            <span className="mt-1 block text-sm leading-6 text-emerald-100/70">
+              We guarantee a full refund if any chicks or products are delivered sick, weak or damaged.
+            </span>
+          </span>
+          <span className="text-sm font-black text-amber-300">Read the guarantee</span>
+        </a>
+      </div>
+
+      <div className="border-t border-white/10 bg-black/10 px-5 py-5 sm:px-8 lg:px-10">
+        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 text-xs text-emerald-100/55 sm:flex-row">
+          <span>© {new Date().getFullYear()} {brand.brandName || 'ChickMagnet'}. All rights reserved.</span>
           <button
+            type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#123524] hover:bg-[#1a4a33] text-amber-300 hover:text-amber-200 rounded-full text-xs font-bold transition-colors cursor-pointer border border-emerald-800"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 font-bold text-amber-300 transition-colors hover:bg-white/[0.1] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
           >
-            <ArrowUp className="w-3.5 h-3.5" />
-            <span>Back to top</span>
+            <ArrowUp className="h-4 w-4" />
+            Back to top
           </button>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="text-xs font-extrabold uppercase tracking-[0.14em] text-amber-300">{title}</h3>
+      <div className="mt-4 flex flex-col items-start gap-3">{children}</div>
+    </section>
   );
 }

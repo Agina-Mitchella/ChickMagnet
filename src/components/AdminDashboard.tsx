@@ -8,7 +8,7 @@ import {
   FileSpreadsheet, XCircle, Check, ArrowUpRight, Layers, Tag, Menu, X, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
+import { Product, ProductGuide, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityRecord, User } from '../types';
 import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo, compressImageDataUrl, getCMSValue, DEFAULT_BRAND_LOGO_IMAGE } from '../utils/cms';
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
@@ -514,6 +514,18 @@ export default function AdminDashboard({
     rating: 4.9,
     reviewsCount: 12
   });
+
+  const updateProductGuide = (update: (guide: ProductGuide) => ProductGuide) => {
+    setProductForm((current) => {
+      const guide = current.productGuide ?? {
+        intro: current.description || '',
+        highlights: [],
+        sections: [],
+      };
+
+      return { ...current, productGuide: update(guide) };
+    });
+  };
 
   const handleSaveProductForm = async () => {
     const category = (productForm.category as MainCategory) || 'live-birds';
@@ -2212,78 +2224,157 @@ export default function AdminDashboard({
                 />
               </div>
 
-              {/* Extensive Story & Why It Matters */}
-              <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200 space-y-2.5">
-                <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
-                  <span>📖 Extensive Breed Story & Heritage</span>
-                  <span className="text-[10px] text-emerald-800 uppercase font-mono">Product Page Prose</span>
-                </div>
+              <div className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5">
                 <div>
-                  <label className="block text-[11px] text-slate-700 font-bold mb-0.5">Origin & Heritage Story</label>
-                  <textarea
-                    rows={2}
-                    value={productForm.story || ''}
-                    onChange={(e) => setProductForm({ ...productForm, story: e.target.value })}
-                    placeholder="Describe how and where this breed was developed, its genetic traits..."
-                    className="w-full bg-white border border-slate-200 p-2 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-emerald-600"
-                  />
+                  <div className="text-sm font-bold text-emerald-950">Detailed product guide</div>
+                  <p className="mt-0.5 text-[11px] leading-4 text-emerald-900/75">
+                    This appears below the buying controls. Keep the overview short, then use sections for the detail buyers may choose to open.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-[11px] text-slate-700 font-bold mb-0.5">Why It Matters (Free-Range/Kenyan Context)</label>
-                  <textarea
-                    rows={2}
-                    value={productForm.whyItMatters || ''}
-                    onChange={(e) => setProductForm({ ...productForm, whyItMatters: e.target.value })}
-                    placeholder="Why this bird thrives in Kenya, feed efficiency, dual-purpose yield..."
-                    className="w-full bg-white border border-slate-200 p-2 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
-              </div>
 
-              {/* Biological Specs */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
-                <div className="text-xs font-bold text-slate-900">📊 Production & Biological Specs</div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <label className="block text-[10px] text-slate-600 font-semibold">Eggs Per Week</label>
-                    <input
-                      type="text"
-                      value={productForm.eggsPerWeek || ''}
-                      onChange={(e) => setProductForm({ ...productForm, eggsPerWeek: e.target.value })}
-                      placeholder="e.g. 5–6 / week"
-                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
-                    />
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Guide overview</label>
+                  <textarea
+                    rows={3}
+                    value={productForm.productGuide?.intro || ''}
+                    onChange={(event) => updateProductGuide((guide) => ({ ...guide, intro: event.target.value }))}
+                    placeholder="Explain what the product is and who it is for in two or three sentences."
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] font-bold text-slate-700">Quick facts</span>
+                    <button
+                      type="button"
+                      onClick={() => updateProductGuide((guide) => ({
+                        ...guide,
+                        highlights: [...(guide.highlights ?? []), { label: '', value: '' }],
+                      }))}
+                      className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-[10px] font-bold text-emerald-900 hover:bg-emerald-50"
+                    >
+                      Add fact
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-600 font-semibold">Mature Weight</label>
-                    <input
-                      type="text"
-                      value={productForm.matureWeight || ''}
-                      onChange={(e) => setProductForm({ ...productForm, matureWeight: e.target.value })}
-                      placeholder="e.g. 3.2 - 4.5 kg"
-                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
-                    />
+                  {(productForm.productGuide?.highlights ?? []).map((highlight, index) => (
+                    <div key={`highlight-${index}`} className="grid grid-cols-[1fr_1.4fr_auto] gap-1.5">
+                      <input
+                        type="text"
+                        aria-label={`Quick fact ${index + 1} label`}
+                        value={highlight.label}
+                        onChange={(event) => updateProductGuide((guide) => ({
+                          ...guide,
+                          highlights: (guide.highlights ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item),
+                        }))}
+                        placeholder="Label"
+                        className="min-w-0 rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-900"
+                      />
+                      <input
+                        type="text"
+                        aria-label={`Quick fact ${index + 1} value`}
+                        value={highlight.value}
+                        onChange={(event) => updateProductGuide((guide) => ({
+                          ...guide,
+                          highlights: (guide.highlights ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item),
+                        }))}
+                        placeholder="Value"
+                        className="min-w-0 rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Remove quick fact ${index + 1}`}
+                        onClick={() => updateProductGuide((guide) => ({
+                          ...guide,
+                          highlights: (guide.highlights ?? []).filter((_, itemIndex) => itemIndex !== index),
+                        }))}
+                        className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-700"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] font-bold text-slate-700">Guide sections</span>
+                    <button
+                      type="button"
+                      onClick={() => updateProductGuide((guide) => ({
+                        ...guide,
+                        sections: [...guide.sections, { title: '', summary: '', bullets: [] }],
+                      }))}
+                      className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-[10px] font-bold text-emerald-900 hover:bg-emerald-50"
+                    >
+                      Add section
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-600 font-semibold">Temperament</label>
-                    <input
-                      type="text"
-                      value={productForm.temperament || ''}
-                      onChange={(e) => setProductForm({ ...productForm, temperament: e.target.value })}
-                      placeholder="e.g. Active forager, hardy"
-                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-600 font-semibold">Hardiness / Adaptation</label>
-                    <input
-                      type="text"
-                      value={productForm.hardiness || ''}
-                      onChange={(e) => setProductForm({ ...productForm, hardiness: e.target.value })}
-                      placeholder="e.g. Extreme heat & rain hardy"
-                      className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900"
-                    />
-                  </div>
+
+                  {(productForm.productGuide?.sections ?? []).map((section, index) => (
+                    <div key={`guide-section-${index}`} className="space-y-2 rounded-xl border border-emerald-100 bg-white p-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          aria-label={`Guide section ${index + 1} heading`}
+                          value={section.title}
+                          onChange={(event) => updateProductGuide((guide) => ({
+                            ...guide,
+                            sections: guide.sections.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item),
+                          }))}
+                          placeholder="Section heading"
+                          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs font-bold text-slate-900"
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Remove guide section ${index + 1}`}
+                          onClick={() => updateProductGuide((guide) => ({
+                            ...guide,
+                            sections: guide.sections.filter((_, itemIndex) => itemIndex !== index),
+                          }))}
+                          className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        aria-label={`Guide section ${index + 1} summary`}
+                        value={section.summary || ''}
+                        onChange={(event) => updateProductGuide((guide) => ({
+                          ...guide,
+                          sections: guide.sections.map((item, itemIndex) => itemIndex === index ? { ...item, summary: event.target.value } : item),
+                        }))}
+                        placeholder="Short explanation"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-900"
+                      />
+                      <textarea
+                        rows={3}
+                        aria-label={`Guide section ${index + 1} bullet points`}
+                        value={(section.bullets ?? []).join('\n')}
+                        onChange={(event) => updateProductGuide((guide) => ({
+                          ...guide,
+                          sections: guide.sections.map((item, itemIndex) => itemIndex === index ? {
+                            ...item,
+                            bullets: event.target.value.split('\n').map((bullet) => bullet.trim()).filter(Boolean),
+                          } : item),
+                        }))}
+                        placeholder={'Optional bullet points, one per line'}
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-900"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Important note</label>
+                  <textarea
+                    rows={2}
+                    value={productForm.productGuide?.note || ''}
+                    onChange={(event) => updateProductGuide((guide) => ({ ...guide, note: event.target.value }))}
+                    placeholder="Add a care, storage or performance qualification only when it is useful."
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                  />
                 </div>
               </div>
 

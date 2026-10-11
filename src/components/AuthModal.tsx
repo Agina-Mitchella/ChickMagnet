@@ -221,14 +221,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white border-2 border-emerald-800 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-auto text-emerald-950"
+        className="bg-white border-2 border-emerald-800 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-auto text-emerald-950 dark:border-white/12 dark:bg-[#0b2117] dark:text-emerald-50"
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
       >
         <button 
           onClick={handleClose}
-          className="absolute top-4 right-4 p-2 text-emerald-800 hover:text-emerald-950 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 p-2 text-emerald-800 hover:text-emerald-950 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer dark:text-emerald-100/70 dark:hover:bg-white/10 dark:hover:text-white"
           aria-label="Close account dialog"
         >
           <X className="w-5 h-5" />
@@ -237,10 +237,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         {mode === 'welcome' ? (
           <div className="text-center py-4 flex flex-col items-center">
             <div className="text-6xl mb-4">{registeredUser?.avatarEmoji || '🐣'}</div>
-            <h3 className="font-serif font-black text-2xl text-emerald-950">
+            <h3 className="font-serif font-black text-2xl text-emerald-950 dark:text-white">
               Welcome to {brand.brandName || 'ChickMagnet'}, {registeredUser?.name}!
             </h3>
-            <p className="text-xs text-emerald-800 mt-2">
+            <p className="text-xs text-emerald-800 mt-2 dark:text-emerald-100/70">
               Your account is ready. You can now shop and keep track of your orders.
             </p>
             <button
@@ -253,15 +253,15 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         ) : (
           <>
             <div className="mb-6 text-center">
-              <h3 id="auth-modal-title" className="px-8 font-serif text-xl font-black text-emerald-950 sm:text-2xl">
+              <h3 id="auth-modal-title" className="px-8 font-serif text-xl font-black text-emerald-950 dark:text-white sm:text-2xl">
                 {mode === 'signin' ? 'Sign in to your account' : 'Create an account'}
               </h3>
 
-              <div className="mt-4 p-1 bg-emerald-50 border border-emerald-200 rounded-xl flex">
+              <div className="mt-4 p-1 bg-emerald-50 border border-emerald-200 rounded-xl flex dark:border-white/12 dark:bg-black/25">
                 <button
                   onClick={() => { setMode('signin'); resetForm(); }}
                   className={`flex-1 text-xs py-2 rounded-lg font-bold transition-all cursor-pointer ${
-                    mode === 'signin' ? 'bg-emerald-800 text-white shadow-xs' : 'text-emerald-800 hover:text-emerald-950'
+                    mode === 'signin' ? 'bg-emerald-800 text-white shadow-xs' : 'text-emerald-800 hover:text-emerald-950 dark:text-emerald-100/70 dark:hover:text-white'
                   }`}
                 >
                   Sign In
@@ -269,7 +269,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                 <button
                   onClick={() => { setMode('register'); resetForm(); }}
                   className={`flex-1 text-xs py-2 rounded-lg font-bold transition-all cursor-pointer ${
-                    mode === 'register' ? 'bg-emerald-800 text-white shadow-xs' : 'text-emerald-800 hover:text-emerald-950'
+                    mode === 'register' ? 'bg-emerald-800 text-white shadow-xs' : 'text-emerald-800 hover:text-emerald-950 dark:text-emerald-100/70 dark:hover:text-white'
                   }`}
                 >
                   Register Account
@@ -294,20 +294,20 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               {mode === 'register' && (
                 <>
                   <div className="space-y-1">
-                    <label htmlFor="register-name" className="block text-xs font-bold text-emerald-950 font-mono">Full name</label>
+                    <label htmlFor="register-name" className="block text-xs font-bold text-emerald-950 font-mono dark:text-emerald-50">Full name</label>
                     <input
                       id="register-name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       autoComplete="name"
-                      className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
+                      className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700 dark:border-white/15 dark:bg-white/[0.07] dark:text-white dark:focus:border-amber-300"
                       required
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-emerald-950 font-mono">Choose Avatar Icon</label>
+                    <label className="block text-xs font-bold text-emerald-950 font-mono dark:text-emerald-50">Choose Avatar Icon</label>
                     <div className="flex gap-2">
                       {AVATAR_SYMBOLS.map(item => (
                         <button
@@ -317,7 +317,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                           aria-label={item.label}
                           aria-pressed={selectedEmoji === item.symbol}
                           className={`text-xl p-2 rounded-xl border-2 flex-1 transition-all cursor-pointer ${
-                            selectedEmoji === item.symbol ? 'border-amber-500 bg-amber-50 scale-105' : 'border-emerald-200 bg-emerald-50/50'
+                            selectedEmoji === item.symbol ? 'border-amber-500 bg-amber-50 scale-105 dark:bg-amber-300/15' : 'border-emerald-200 bg-emerald-50/50 dark:border-white/12 dark:bg-white/[0.06]'
                           }`}
                         >
                           {item.symbol}
@@ -329,7 +329,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               )}
 
               <div className="space-y-1">
-                <label htmlFor="auth-email" className="block text-xs font-bold text-emerald-950 font-mono">Email address</label>
+                <label htmlFor="auth-email" className="block text-xs font-bold text-emerald-950 font-mono dark:text-emerald-50">Email address</label>
                 <input
                   id="auth-email"
                   type="email"
@@ -337,13 +337,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
+                  className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700 dark:border-white/15 dark:bg-white/[0.07] dark:text-white dark:focus:border-amber-300"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="auth-password" className="block text-xs font-bold text-emerald-950 font-mono">Password</label>
+                <label htmlFor="auth-password" className="block text-xs font-bold text-emerald-950 font-mono dark:text-emerald-50">Password</label>
                 <div className="relative">
                   <input
                     id="auth-password"
@@ -352,13 +352,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                     placeholder="••••••••"
-                    className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 pr-11 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
+                    className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 pr-11 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700 dark:border-white/15 dark:bg-white/[0.07] dark:text-white dark:focus:border-amber-300"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((visible) => !visible)}
-                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-emerald-700"
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-emerald-700 dark:text-emerald-100/70"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -368,7 +368,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
 
               {mode === 'register' && (
                 <div className="space-y-1">
-                  <label htmlFor="confirm-password" className="block text-xs font-bold text-emerald-950 font-mono">Confirm password</label>
+                  <label htmlFor="confirm-password" className="block text-xs font-bold text-emerald-950 font-mono dark:text-emerald-50">Confirm password</label>
                   <div className="relative">
                     <input
                       id="confirm-password"
@@ -377,13 +377,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="new-password"
                       placeholder="••••••••"
-                      className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 pr-11 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
+                      className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 pr-11 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700 dark:border-white/15 dark:bg-white/[0.07] dark:text-white dark:focus:border-amber-300"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword((visible) => !visible)}
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-emerald-700"
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-emerald-700 dark:text-emerald-100/70"
                       aria-label={showConfirmPassword ? 'Hide confirmed password' : 'Show confirmed password'}
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -401,7 +401,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                     onChange={(e) => setAcceptTerms(e.target.checked)}
                     className="mt-0.5 accent-emerald-800 rounded cursor-pointer"
                   />
-                  <label htmlFor="accept-terms" className="text-xs text-emerald-900 cursor-pointer">
+                  <label htmlFor="accept-terms" className="text-xs text-emerald-900 cursor-pointer dark:text-emerald-100/75">
                     I agree to the ChickMagnet terms and conditions.
                   </label>
                 </div>

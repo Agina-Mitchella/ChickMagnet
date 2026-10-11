@@ -166,6 +166,24 @@ export interface BreedDropdownOption {
   active: boolean;
 }
 
+export interface ProductGuideHighlight {
+  label: string;
+  value: string;
+}
+
+export interface ProductGuideSection {
+  title: string;
+  summary?: string;
+  bullets?: string[];
+}
+
+export interface ProductGuide {
+  intro: string;
+  highlights?: ProductGuideHighlight[];
+  sections: ProductGuideSection[];
+  note?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -193,6 +211,7 @@ export interface Product {
   salesChannels?: Array<'retail' | 'wholesale'>;
   searchTerms?: string[];
   displayOrder?: number;
+  productGuide?: ProductGuide;
   
   // Rich prose & specifications for extensive product pages
   story?: string;

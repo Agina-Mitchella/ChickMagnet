@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_BATCH_TRACE_RECORDS } from './data/products';
 import { STOREFRONT_PRODUCTS } from './data/storefrontCatalog';
 import { Product, CartItem, BuyerType, MainCategory, User } from './types';
@@ -17,8 +16,9 @@ import Footer from './components/Footer';
 import AccountDashboard from './components/AccountDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import BusinessPlanHub from './components/BusinessPlanHub';
-import heroChickenImage from './assets/images/hero_poultry_chicks_1785408878635.jpg';
-import { ArrowRight } from 'lucide-react';
+import StorefrontHero from './components/StorefrontHero';
+import FAQSection from './components/FAQSection';
+import { useColorScheme } from './utils/colorScheme';
 import {
   subscribeProducts,
   filterCachedStorefrontProducts,
@@ -37,7 +37,10 @@ import {
 } from './utils/storefrontProducts';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>('shop');
+  const { preference: colorScheme, setPreference: setColorScheme } = useColorScheme();
+  const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>(() => (
+    window.location.pathname.replace(/\/+$/, '') === '/about' ? 'about' : 'shop'
+  ));
   const [buyerType, setBuyerType] = useState<BuyerType>('retail');
   const [selectedCategory, setSelectedCategory] = useState<MainCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -66,6 +69,7 @@ export default function App() {
         const initP = initialMap.get(p.id);
         return {
           ...p,
+          name: initP?.name || p.name,
           image: initP?.image || p.image,
           description: initP?.description || p.description,
           tags: initP?.tags || p.tags,
@@ -114,6 +118,39 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('chickmagnet_cart', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  useEffect(() => {
+    const syncPageFromLocation = () => {
+      const isAboutPage = window.location.pathname.replace(/\/+$/, '') === '/about';
+      setActiveTab(isAboutPage ? 'about' : 'shop');
+      if (isAboutPage && window.location.hash) {
+        window.setTimeout(() => {
+          document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: 'start' });
+        }, 0);
+      }
+    };
+
+    window.addEventListener('popstate', syncPageFromLocation);
+    syncPageFromLocation();
+    return () => window.removeEventListener('popstate', syncPageFromLocation);
+  }, []);
+
+  const navigateToTab = (tab: 'shop' | 'about' | 'profile', sectionId?: string) => {
+    setActiveTab(tab);
+    const nextUrl = tab === 'about'
+      ? `/about${sectionId ? `#${sectionId}` : ''}`
+      : `/${sectionId ? `#${sectionId}` : ''}`;
+    const currentUrl = `${window.location.pathname}${window.location.hash}`;
+    if (currentUrl !== nextUrl) window.history.pushState({}, '', nextUrl);
+
+    window.setTimeout(() => {
+      if (sectionId) {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 0);
+  };
 
   // Real-time Firebase Auth session and profile sync
   useEffect(() => {
@@ -234,7 +271,9 @@ export default function App() {
       buyerType: summary.buyerType,
       paymentMethod: summary.paymentMethod,
       paymentNumber: summary.paymentNumber,
-      paymentConfirmationStatus: summary.paymentConfirmationStatus
+      paymentConfirmationStatus: summary.paymentConfirmationStatus,
+      deliveryFeeStatus: summary.deliveryFeeStatus,
+      paymentCovers: summary.paymentCovers,
     };
 
     await saveOrderToFirestore(newOrderRecord);
@@ -280,6 +319,22 @@ export default function App() {
     setSearchQuery('');
   };
 
+  const scrollToCatalog = () => {
+    window.setTimeout(() => {
+      document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const handleFooterCategorySelect = (category: MainCategory | 'all') => {
+    navigateToTab('shop');
+    if (category === 'fresh-poultry' && buyerType === 'wholesale') {
+      setBuyerType('retail');
+    }
+    setSelectedCategory(category);
+    setSearchQuery('');
+    scrollToCatalog();
+  };
+
   // If Admin Dashboard mode is active, render full-screen Admin View
   if (isAdminOpen && isCurrentUserAdmin) {
     return (
@@ -297,12 +352,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-emerald-950 font-sans flex flex-col justify-between selection:bg-amber-400 selection:text-emerald-950">
+    <div className="flex min-h-screen flex-col justify-between bg-[#fffdf9] font-sans text-emerald-950 selection:bg-amber-400 selection:text-emerald-950 dark:bg-[#07130e] dark:text-emerald-50 dark:selection:bg-amber-300">
       
       {/* Sticky Header Navigation */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => navigateToTab(tab)}
         cartCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
         onOpenCart={() => setIsCartOpen(true)}
         currentUser={currentUser}
@@ -325,6 +380,11 @@ export default function App() {
         setSelectedCategory={setSelectedCategory}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        searchableProducts={storefrontProducts}
+        onSelectProduct={setSelectedProduct}
+        onApplySearch={scrollToCatalog}
+        colorScheme={colorScheme}
+        onColorSchemeChange={setColorScheme}
         onOpenTraceability={() => setIsTraceabilityOpen(true)}
         onOpenClaims={() => setIsClaimsOpen(true)}
         onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
@@ -377,75 +437,32 @@ export default function App() {
               handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
             }}
             onOpenClaims={() => setIsClaimsOpen(true)}
-            onNavigateToShop={() => setActiveTab('shop')}
+            onNavigateToShop={() => navigateToTab('shop')}
             onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
             onOpenBusinessPlan={isCurrentUserAdmin ? () => setIsBusinessPlanOpen(true) : undefined}
           />
         ) : (
           /* MARKETPLACE SHOP VIEW */
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
+          <div className="mx-auto max-w-[1440px] space-y-8 px-3 pt-4 min-[360px]:px-4 sm:space-y-9 sm:px-6 sm:pt-6 lg:px-8">
             
-            {/* Clean Hero Value Banner (Only shown in 'all' catalog category) */}
+            {/* Premium responsive hero, shown only for the full catalogue. */}
             {selectedCategory === 'all' && (
-              <div className="bg-gradient-to-br from-[#123524] via-[#0b2217] to-[#17442f] text-amber-50 rounded-3xl p-6 sm:p-10 lg:p-12 border border-emerald-800/80 shadow-2xl relative overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-                  
-                  {/* Left Column: Headline, Copy, CTA & Trust Badges */}
-                  <div className="lg:col-span-7 space-y-5">
-                    
-                    {/* Single Primary Headline */}
-                    <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-amber-300 tracking-tight leading-tight">
-                      Quality and Affordable Poultry Products For Wholesale and Retail
-                    </h1>
-
-                    {/* Single Primary CTA */}
-                    <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                      <button
-                        onClick={() => {
-                          const el = document.getElementById('catalog-section');
-                          if (el) el.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-8 py-3.5 rounded-2xl text-sm transition-all shadow-lg hover:shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span>Explore Products</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Embedded Sticker Image */}
-                  <div className="lg:col-span-5 block">
-                    <div className="relative group max-w-md mx-auto lg:max-w-none">
-                      <div className="p-2 sm:p-2.5 bg-[#0b2217]/60 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-2xl hover:border-amber-400/70 transition-all duration-300 transform sm:-rotate-1 hover:rotate-0">
-                        <div className="relative rounded-2xl overflow-hidden">
-                          <img
-                            src={heroChickenImage}
-                            alt="ChickMagnet poultry products"
-                            referrerPolicy="no-referrer"
-                            className="w-full h-52 sm:h-60 lg:h-64 object-cover transform group-hover:scale-105 transition-transform duration-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
+              <StorefrontHero onExploreProducts={scrollToCatalog} />
             )}
 
             {/* Below-The-Fold Intent Split & Feature Trust Bar */}
-            <div id="catalog-section" className="scroll-mt-6 space-y-6">
+            <div id="catalog-section" className="scroll-mt-48 space-y-5 sm:scroll-mt-52 sm:space-y-6 xl:scroll-mt-44">
               
               {/* Intent Split Selector */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col items-center justify-between gap-4 rounded-[1.5rem] border border-stone-200 bg-white p-3 shadow-[0_10px_30px_rgba(18,53,36,0.06)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_14px_34px_rgba(0,0,0,0.22)] sm:flex-row sm:p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                  <div className="bg-slate-100 p-1 rounded-xl flex w-full sm:w-auto">
+                  <div className="flex w-full rounded-xl bg-stone-100 p-1 dark:bg-black/25 sm:w-auto">
                     <button
                       onClick={() => handleBuyerTypeChange('retail')}
                       className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         buyerType === 'retail'
                           ? 'bg-emerald-950 text-amber-300 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-emerald-100/70 dark:hover:text-white'
                       }`}
                     >
                       <span>Retail</span>
@@ -455,7 +472,7 @@ export default function App() {
                       className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         buyerType === 'wholesale'
                           ? 'bg-emerald-950 text-amber-300 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-emerald-100/70 dark:hover:text-white'
                       }`}
                     >
                       <span>Commercial Wholesale</span>
@@ -466,25 +483,30 @@ export default function App() {
               </div>
 
               {/* Catalog Header & Count */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-4 pt-2">
+              <div className="flex items-end justify-between gap-3 border-b border-stone-200 pb-4 pt-2 dark:border-white/10">
                 <div>
-                  <h2 className="font-serif font-black text-2xl text-emerald-950">
+                  <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.13em] text-amber-700">
+                    {buyerType === 'wholesale' ? 'For commercial buyers' : 'For your table and flock'}
+                  </p>
+                  <h2 className="text-2xl font-black tracking-[-0.035em] text-emerald-950 dark:text-white sm:text-3xl">
                     {selectedCategory === 'all'
                       ? (buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Retail Products')
-                      : selectedCategory.toUpperCase()}
+                      : selectedCategory === 'live-birds'
+                        ? 'Live Chicken'
+                        : selectedCategory === 'fresh-poultry'
+                          ? 'Fresh Chicken'
+                          : 'Eggs'}
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-mono">
-                  <span className="bg-amber-500 text-emerald-950 px-2.5 py-1 rounded-lg font-bold uppercase">
-                    {buyerType}
-                  </span>
-                </div>
+                <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-extrabold text-amber-900 dark:bg-amber-300/15 dark:text-amber-200">
+                  {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+                </span>
               </div>
             </div>
 
             {/* Product Grid - Fits 4 cards in a row on medium/large screens */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-4">
+            <div className="grid grid-cols-2 gap-x-2.5 gap-y-7 min-[360px]:gap-x-3 sm:gap-x-5 sm:gap-y-9 md:grid-cols-3 xl:grid-cols-4">
               {filteredProducts.map(product => (
                 <ProductCard
                   key={product.id}
@@ -496,10 +518,10 @@ export default function App() {
             </div>
 
             {filteredProducts.length === 0 && (
-              <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 space-y-3">
+              <div className="space-y-3 rounded-3xl border border-stone-200 bg-white px-5 py-16 text-center dark:border-white/10 dark:bg-white/[0.06]">
                 <div className="text-4xl">🐣</div>
-                <h3 className="font-serif font-bold text-lg text-emerald-950">No products match your filter</h3>
-                <p className="text-xs text-slate-500 font-mono max-w-sm mx-auto">
+                <h3 className="font-serif font-bold text-lg text-emerald-950 dark:text-white">No products match your filter</h3>
+                <p className="text-xs text-slate-500 dark:text-emerald-100/65 font-mono max-w-sm mx-auto">
                   Try clearing your search query or switching categories in the navigation header.
                 </p>
                 <button
@@ -514,6 +536,8 @@ export default function App() {
               </div>
             )}
 
+            <FAQSection />
+
           </div>
         )}
 
@@ -521,18 +545,13 @@ export default function App() {
 
       {/* Footer */}
       <Footer 
+        buyerType={buyerType}
+        onSelectCategory={handleFooterCategorySelect}
         onNavigate={(tab, sectionId) => {
           if (tab === 'shop' || tab === 'about' || tab === 'profile') {
-            setActiveTab(tab as any);
-            if (sectionId) {
-              setTimeout(() => {
-                const el = document.getElementById(sectionId);
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
-            }
+            navigateToTab(tab, sectionId);
           }
-        }} 
-        onOpenAdmin={() => setIsAdminOpen(true)}
+        }}
       />
 
       {/* Product Detail Modal */}

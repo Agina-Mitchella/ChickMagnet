@@ -80,7 +80,7 @@ export default function CartDrawer({
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0b2217]/80 backdrop-blur-md flex justify-end">
-      <div className="bg-white w-full max-w-lg h-full flex flex-col justify-between shadow-2xl relative text-emerald-950">
+      <div className="bg-white w-full max-w-lg h-full flex flex-col justify-between shadow-2xl relative text-emerald-950 dark:bg-[#0b2117] dark:text-emerald-50">
         
         {/* Header */}
         <div className="p-4 bg-[#123524] text-amber-50 flex items-center justify-between border-b border-emerald-900">
@@ -102,12 +102,12 @@ export default function CartDrawer({
         </div>
 
         {/* Content Body: Split by Fulfillment Group */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-white dark:bg-[#0b2117]">
           {cartItems.length === 0 ? (
             <div className="text-center py-16 space-y-3">
               <div className="text-4xl">🐔</div>
-              <h3 className="font-serif font-bold text-lg text-emerald-950">Your cart is empty</h3>
-              <p className="text-xs text-emerald-800 max-w-xs mx-auto">
+              <h3 className="font-serif font-bold text-lg text-emerald-950 dark:text-white">Your cart is empty</h3>
+              <p className="text-xs text-emerald-800 max-w-xs mx-auto dark:text-emerald-100/70">
                 Browse chicken and eggs for retail or wholesale orders.
               </p>
             </div>
@@ -119,7 +119,7 @@ export default function CartDrawer({
               const meta = groupMeta[groupKey];
 
               return (
-                <div key={groupKey} className="rounded-2xl border-2 border-emerald-200 overflow-hidden shadow-xs">
+                <div key={groupKey} className="rounded-2xl border-2 border-emerald-200 overflow-hidden shadow-xs dark:border-white/12">
                   {/* Fulfillment Group Header */}
                   <div className={`p-3 border-b flex items-center justify-between ${meta.bg} ${meta.border}`}>
                     <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function CartDrawer({
                   </div>
 
                   {/* Items in Group */}
-                  <div className="p-3 divide-y divide-emerald-100 bg-white">
+                  <div className="p-3 divide-y divide-emerald-100 bg-white dark:divide-white/10 dark:bg-white/[0.04]">
                     {items.map(item => {
                       const isWholesale = buyerType === 'wholesale';
                       const unitPrice = getUnitPrice(item.product, buyerType);
@@ -155,7 +155,7 @@ export default function CartDrawer({
                             <div className="flex-1 flex flex-col justify-between">
                               <div>
                                 <div className="flex items-start justify-between">
-                                  <h4 className="font-bold text-xs text-emerald-950 line-clamp-1">
+                                  <h4 className="font-bold text-xs text-emerald-950 line-clamp-1 dark:text-white">
                                     {item.product.name}
                                   </h4>
                                   <button
@@ -168,7 +168,7 @@ export default function CartDrawer({
                                   </button>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-emerald-800 font-mono mt-0.5">
+                                <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-emerald-800 font-mono mt-0.5 dark:text-emerald-100/65">
                                   <span>Ksh {unitPrice.toLocaleString()} / {item.product.unit || 'unit'}</span>
                                   {isWholesale && <span className="text-amber-900 font-bold bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300">Wholesale</span>}
                                   {isWeightVariable && (
@@ -181,29 +181,29 @@ export default function CartDrawer({
 
                               {/* Quantity Control & Line Total */}
                               <div className="flex items-center justify-between mt-2">
-                                <div className="flex items-center gap-2 bg-emerald-50 rounded-lg p-0.5 border border-emerald-200">
+                                <div className="flex items-center gap-2 bg-emerald-50 rounded-lg p-0.5 border border-emerald-200 dark:border-white/12 dark:bg-black/25">
                                   <button
                                     onClick={() => onUpdateQuantity(item.product.id, Math.max(minRequired, item.quantity - 1))}
                                     disabled={item.quantity <= minRequired}
-                                    className="w-6 h-6 rounded bg-white font-bold text-xs text-emerald-950 border border-emerald-200 flex items-center justify-center cursor-pointer shadow-xs"
+                                    className="w-6 h-6 rounded bg-white font-bold text-xs text-emerald-950 border border-emerald-200 flex items-center justify-center cursor-pointer shadow-xs dark:border-white/12 dark:bg-white/10 dark:text-white"
                                   >
                                     -
                                   </button>
-                                  <span className="font-mono text-xs font-bold px-1 text-emerald-950">{item.quantity}</span>
+                                  <span className="font-mono text-xs font-bold px-1 text-emerald-950 dark:text-white">{item.quantity}</span>
                                   <button
                                     onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                                    className="w-6 h-6 rounded bg-white font-bold text-xs text-emerald-950 border border-emerald-200 flex items-center justify-center cursor-pointer shadow-xs"
+                                    className="w-6 h-6 rounded bg-white font-bold text-xs text-emerald-950 border border-emerald-200 flex items-center justify-center cursor-pointer shadow-xs dark:border-white/12 dark:bg-white/10 dark:text-white"
                                   >
                                     +
                                   </button>
                                 </div>
 
                                 <div className="text-right">
-                                  <span className="font-serif font-black text-xs text-emerald-950">
+                                  <span className="font-serif font-black text-xs text-emerald-950 dark:text-white">
                                     Ksh {(unitPrice * item.quantity).toLocaleString()}
                                   </span>
                                   {isWeightVariable && (
-                                    <div className="text-[9px] text-emerald-700 font-mono">
+                                    <div className="text-[9px] text-emerald-700 font-mono dark:text-emerald-100/60">
                                       Final total may vary by packed weight
                                     </div>
                                   )}
@@ -230,7 +230,7 @@ export default function CartDrawer({
 
                           {/* Weight Variable Packed Note */}
                           {isWeightVariable && !isBelowMin && (
-                            <div className="text-[10px] text-emerald-900 bg-emerald-50 p-1.5 rounded-lg border border-emerald-200">
+                            <div className="text-[10px] text-emerald-900 bg-emerald-50 p-1.5 rounded-lg border border-emerald-200 dark:border-white/12 dark:bg-white/[0.06] dark:text-emerald-100/75">
                               Final price is confirmed from the packed weight.
                             </div>
                           )}
@@ -246,7 +246,7 @@ export default function CartDrawer({
 
         {/* Footer Checkout Summary */}
         {cartItems.length > 0 && (
-          <div className="p-4 bg-emerald-50/80 border-t-2 border-emerald-200 space-y-3">
+          <div className="p-4 bg-emerald-50/80 border-t-2 border-emerald-200 space-y-3 dark:border-white/12 dark:bg-[#102c1f]">
             {/* Warning banner if live bird min order violation exists */}
             {hasMinOrderViolation && (
               <div className="bg-rose-50 border border-rose-300 p-2.5 rounded-xl text-xs text-rose-950 flex items-start gap-2 font-medium">
@@ -258,21 +258,25 @@ export default function CartDrawer({
             )}
 
             <div className="space-y-1.5 text-xs font-mono">
-              <div className="flex justify-between text-emerald-900">
+              <div className="flex justify-between text-emerald-900 dark:text-emerald-100/70">
                 <span>Subtotal (Estimated)</span>
-                <span className="font-bold text-emerald-950">Ksh {subtotal.toLocaleString()}</span>
+                <span className="font-bold text-emerald-950 dark:text-white">Ksh {subtotal.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-emerald-900">
+              <div className="flex justify-between text-emerald-900 dark:text-emerald-100/70">
                 <span>Delivery groups</span>
-                <span className="text-emerald-900 font-bold">
+                <span className="text-emerald-900 font-bold dark:text-emerald-100/80">
                   {Object.values(fulfillmentGroups).filter(g => g.length > 0).length}
                 </span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-emerald-950 pt-1.5 border-t border-emerald-200 font-serif">
-                <span>Estimated Total</span>
+              <div className="flex justify-between text-sm font-bold text-emerald-950 pt-1.5 border-t border-emerald-200 font-serif dark:border-white/12 dark:text-white">
+                <span>Products total</span>
                 <span className="text-base text-amber-700 font-black">Ksh {subtotal.toLocaleString()}</span>
               </div>
             </div>
+
+            <p className="text-[11px] leading-relaxed text-emerald-800 dark:text-emerald-100/70">
+              Delivery is quoted separately after ChickMagnet reviews your destination, order size and handling needs.
+            </p>
 
             <button
               disabled={hasMinOrderViolation}

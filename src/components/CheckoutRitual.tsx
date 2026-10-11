@@ -130,8 +130,10 @@ export default function CheckoutRitual({
     return acc + (price * item.quantity);
   }, 0);
 
-  const logisticsTotal = groupKeys.length * 450;
-  const grandTotal = subtotal + logisticsTotal;
+  // Delivery depends on destination, order size and handling requirements.
+  // It is quoted after the product order is reviewed, so checkout collects products only.
+  const logisticsTotal = 0;
+  const grandTotal = subtotal;
   const hasWeightVariableItems = cartItems.some(i => 
     i.product.category === 'fresh-poultry' || i.product.unit?.includes('kg')
   );
@@ -183,6 +185,8 @@ export default function CheckoutRitual({
       subtotal,
       logisticsTotal,
       grandTotal,
+      deliveryFeeStatus: 'quoted_after_order_review',
+      paymentCovers: 'products_only',
       paymentMethod: 'M-Pesa Send Money',
       paymentNumber: MPESA_PAYMENT_NUMBER,
       paymentConfirmationStatus: 'pending_manual_review',
@@ -208,7 +212,7 @@ export default function CheckoutRitual({
 
   const confirmationMessage = [
     `ChickMagnet order ${orderId}`,
-    `Amount: Ksh ${grandTotal.toLocaleString()}`,
+    `Product payment: Ksh ${grandTotal.toLocaleString()}`,
     '',
     'Paste the full M-Pesa confirmation message below:'
   ].join('\n');
@@ -383,7 +387,7 @@ export default function CheckoutRitual({
                   This order has {groupKeys.length} delivery groups
                 </div>
                 <p className="text-[11px] text-amber-900 leading-relaxed">
-                  Chicken and eggs may be packed separately. A Ksh 450 delivery fee applies to each group.
+                  Chicken and eggs may need different handling. ChickMagnet will review the full order and provide one delivery quote based on the destination, quantity and delivery groups.
                 </p>
               </div>
             )}
@@ -409,7 +413,7 @@ export default function CheckoutRitual({
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-emerald-950 font-mono">{groupTitle}</div>
                       <span className="text-[10px] bg-amber-100 text-amber-950 border border-amber-300 px-2 py-0.5 rounded font-mono font-bold">
-                        Delivery: Ksh 450
+                        Quote after review
                       </span>
                     </div>
                     <p className="text-slate-600">{deliverySlots[group]}</p>
@@ -421,17 +425,20 @@ export default function CheckoutRitual({
             {/* Order Total Overview */}
             <div className="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200 space-y-2 font-mono text-xs">
               <div className="flex justify-between text-emerald-900">
-                <span>Products Subtotal</span>
+                <span>Products total</span>
                 <span>Ksh {subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-emerald-900">
-                <span>Delivery ({groupKeys.length} group{groupKeys.length > 1 ? 's' : ''})</span>
-                <span>Ksh {logisticsTotal.toLocaleString()}</span>
+                <span>Delivery</span>
+                <span>Quoted separately</span>
               </div>
               <div className="flex justify-between text-emerald-950 font-bold text-base border-t border-emerald-200 pt-2">
-                <span className="font-serif">Grand Total</span>
+                <span className="font-serif">Amount due now</span>
                 <span className="font-serif">Ksh {grandTotal.toLocaleString()}</span>
               </div>
+              <p className="border-t border-emerald-200 pt-2 text-[11px] leading-relaxed text-emerald-800">
+                This payment covers products only. ChickMagnet will confirm availability, the exact delivery date and the countrywide delivery fee after reviewing your order.
+              </p>
             </div>
 
             {deliveryDetailsError && (
@@ -490,8 +497,9 @@ export default function CheckoutRitual({
                 </div>
 
                 <div className="sm:text-right">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Amount</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Product payment</p>
                   <p className="mt-1 font-serif text-2xl font-black text-emerald-950">Ksh {grandTotal.toLocaleString()}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">Delivery is quoted separately.</p>
                 </div>
               </div>
 
@@ -508,6 +516,7 @@ export default function CheckoutRitual({
                 <li className="flex gap-3"><strong className="text-emerald-950">1.</strong><span>Open M-Pesa and choose <strong>Send Money</strong>.</span></li>
                 <li className="flex gap-3"><strong className="text-emerald-950">2.</strong><span>Send <strong>Ksh {grandTotal.toLocaleString()}</strong> to <strong>{MPESA_PAYMENT_NUMBER}</strong>.</span></li>
                 <li className="flex gap-3"><strong className="text-emerald-950">3.</strong><span>Send the full M-Pesa confirmation message to the same number.</span></li>
+                <li className="flex gap-3"><strong className="text-emerald-950">4.</strong><span>Allow 2 to 24 hours for manual confirmation. ChickMagnet will then confirm availability, the delivery date and the separate delivery fee.</span></li>
               </ol>
             </div>
 

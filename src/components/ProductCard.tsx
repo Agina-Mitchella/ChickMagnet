@@ -34,7 +34,7 @@ export default function ProductCard({
           type="button"
           onClick={() => onSelectProduct(product)}
           aria-label={`View ${product.name}`}
-          className="block aspect-square w-full overflow-hidden rounded-2xl bg-slate-100 text-left cursor-pointer sm:aspect-[1.16/1]"
+          className="block aspect-square w-full overflow-hidden rounded-2xl bg-slate-100 text-left cursor-pointer dark:bg-white/10 sm:aspect-[1.16/1]"
         >
           <img
             src={product.image}
@@ -52,8 +52,8 @@ export default function ProductCard({
           aria-label={`${isSaved ? 'Remove' : 'Save'} ${product.name}`}
           aria-pressed={isSaved}
           title={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
-          className={`absolute right-2.5 top-2.5 grid h-9 w-9 place-items-center rounded-full bg-white/95 shadow-md transition-colors cursor-pointer ${
-            isSaved ? 'text-rose-600' : 'text-emerald-950 hover:text-rose-600'
+          className={`absolute right-2.5 top-2.5 grid h-10 w-10 place-items-center rounded-full bg-white/95 shadow-md transition-colors cursor-pointer dark:bg-emerald-950/90 ${
+            isSaved ? 'text-rose-600' : 'text-emerald-950 hover:text-rose-600 dark:text-white'
           }`}
         >
           <Heart className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
@@ -65,7 +65,7 @@ export default function ProductCard({
           <button
             type="button"
             onClick={() => onSelectProduct(product)}
-            className="min-w-0 text-left text-xs sm:text-sm font-bold leading-tight text-emerald-950 line-clamp-2 cursor-pointer hover:underline underline-offset-2"
+            className="min-w-0 text-left text-xs sm:text-sm font-bold leading-tight text-emerald-950 dark:text-white line-clamp-2 cursor-pointer hover:underline underline-offset-2"
           >
             {product.name}
           </button>
@@ -77,7 +77,7 @@ export default function ProductCard({
             <span className="relative inline-flex" aria-hidden="true">
               <span className="flex gap-0.5">
                 {STARS.map((_, index) => (
-                  <Star key={`empty-${index}`} className="h-3 w-3 fill-slate-200 text-slate-200" />
+                  <Star key={`empty-${index}`} className="h-3 w-3 fill-slate-200 text-slate-200 dark:fill-white/15 dark:text-white/15" />
                 ))}
               </span>
               <span
@@ -91,18 +91,18 @@ export default function ProductCard({
                 </span>
               </span>
             </span>
-            <span className="text-[10px] font-bold text-slate-700">
+            <span className="text-[10px] font-bold text-slate-700 dark:text-emerald-100/70">
               {formatRating(product.rating)}
             </span>
           </div>
         </div>
 
-        <div className="mt-2 flex items-baseline gap-1 text-emerald-950">
+        <div className="mt-2 flex items-baseline gap-1 text-emerald-950 dark:text-emerald-50">
           <span className="text-xs font-extrabold sm:text-sm">
             {hasAgeOptions ? 'From ' : ''}Ksh {displayPrice.toLocaleString()}
           </span>
           {product.unit ? (
-            <span className="text-[10px] text-slate-600">/{product.unit}</span>
+            <span className="text-[10px] text-slate-600 dark:text-emerald-100/65">/{product.unit}</span>
           ) : null}
         </div>
       </div>
