@@ -1,17 +1,23 @@
 import type { Product } from '../types';
 import { INITIAL_PRODUCTS as LEGACY_INITIAL_PRODUCTS } from './products';
 
-const CHICKS_IMAGE = '/images/chickmagnet-chicks.jpg';
 const LIVE_CHICKEN_IMAGE = '/images/chickmagnet-live-chicken.jpg';
 const EGGS_IMAGE = '/images/catalog/eggs.jpg';
 const WHOLE_CHICKEN_IMAGE = '/images/catalog/whole-chicken-pack.jpg';
 const CUTS_IMAGE = '/images/catalog/mixed-cuts-pack.jpg';
 
-const BREED_IMAGES: Record<string, string> = {
+const BREED_IMAGES = {
   'Improved Kienyeji': '/images/catalog/improved-kienyeji.jpg',
   Sasso: '/images/catalog/sasso.jpg',
   Kenbro: '/images/catalog/kenbro.jpg',
   Kuroiler: '/images/catalog/kuroiler.jpg',
+} as const;
+
+const BREED_CHICK_IMAGES: Record<keyof typeof BREED_IMAGES, string> = {
+  'Improved Kienyeji': '/images/catalog/chicks-improved-kienyeji.jpg',
+  Sasso: '/images/catalog/chicks-sasso.jpg',
+  Kenbro: '/images/catalog/chicks-kenbro.jpg',
+  Kuroiler: '/images/catalog/chicks-kuroiler.jpg',
 };
 
 type ProductInput = Pick<
@@ -85,7 +91,7 @@ function makeBreedProducts(breed: keyof typeof BREED_IMAGES, order: number): Pro
       description: `Day-old ${breed} chicks sold directly by ChickMagnet.`,
       price: 110,
       subCategory: 'day-old-chicks',
-      image: CHICKS_IMAGE,
+      image: BREED_CHICK_IMAGES[breed],
       searchTerms: [breed, 'day old', 'day-old', 'chicks'],
       displayOrder: order,
     }),
@@ -96,7 +102,7 @@ function makeBreedProducts(breed: keyof typeof BREED_IMAGES, order: number): Pro
       description: `Choose ${breed} chicks at one or two weeks old.`,
       price: 160,
       subCategory: 'day-old-chicks',
-      image: CHICKS_IMAGE,
+      image: BREED_CHICK_IMAGES[breed],
       variantsConfig: { type: 'live', ageOptions: ONE_TO_TWO_WEEKS },
       searchTerms: [breed, '1 week', '2 weeks', 'one week', 'two weeks', 'chicks'],
       displayOrder: order + 1,
