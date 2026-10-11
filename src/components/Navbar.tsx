@@ -100,8 +100,11 @@ export default function Navbar({
     { id: 'all', label: 'All Products', icon: <ShoppingBag />, description: 'Chicken and eggs' },
     { id: 'live-birds', label: 'Live Chicken', icon: <Feather />, description: 'Chicks and mature chicken' },
     { id: 'fresh-poultry', label: 'Fresh Chicken', icon: <Utensils />, description: 'Whole chicken and cuts' },
-    { id: 'eggs', label: 'Eggs', icon: <Egg />, description: 'Table and hatching eggs' },
+    { id: 'eggs', label: 'Eggs', icon: <Egg />, description: 'Fresh eggs by the tray' },
   ];
+  const visibleCategories = categoriesList.filter(
+    category => buyerType !== 'wholesale' || category.id !== 'fresh-poultry'
+  );
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-stone-200 bg-[#fffdfa]/95 text-[#173b2a] shadow-[0_10px_35px_rgba(18,53,36,0.08)] backdrop-blur-xl">
@@ -137,7 +140,7 @@ export default function Navbar({
         </button>
 
         <nav className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex" aria-label="Product categories">
-          {categoriesList.map((cat) => {
+          {visibleCategories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
             return (
               <button
@@ -309,7 +312,7 @@ export default function Navbar({
       </div>
 
       <nav className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pb-3 lg:hidden" aria-label="Product categories">
-        {categoriesList.map((cat) => {
+        {visibleCategories.map((cat) => {
           const isSelected = selectedCategory === cat.id;
           return (
             <button

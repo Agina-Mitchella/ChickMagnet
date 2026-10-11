@@ -24,6 +24,7 @@ export default function ProductCard({
 }: ProductCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const displayPrice = getUnitPrice(product, buyerType);
+  const hasAgeOptions = Boolean(product.variantsConfig?.ageOptions?.length);
   const ratingPercentage = Math.min(STAR_COUNT, Math.max(0, product.rating)) / STAR_COUNT * 100;
 
   return (
@@ -41,6 +42,7 @@ export default function ProductCard({
             loading="lazy"
             decoding="async"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+            style={{ objectPosition: product.imagePosition || '50% 50%' }}
           />
         </button>
 
@@ -97,10 +99,10 @@ export default function ProductCard({
 
         <div className="mt-2 flex items-baseline gap-1 text-emerald-950">
           <span className="text-xs font-extrabold sm:text-sm">
-            Ksh {displayPrice.toLocaleString()}
+            {hasAgeOptions ? 'From ' : ''}Ksh {displayPrice.toLocaleString()}
           </span>
-          {product.liveData?.pricePerBird ? (
-            <span className="text-[10px] text-slate-600">/ bird</span>
+          {product.unit ? (
+            <span className="text-[10px] text-slate-600">/{product.unit}</span>
           ) : null}
         </div>
       </div>

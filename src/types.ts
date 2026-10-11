@@ -139,6 +139,7 @@ export interface ProductVariantsConfig {
   eggGrades?: string[]; // e.g. ['Medium (50-55g)', 'Large (55-60g)', 'Jumbo (65g+)']
   packCounts?: { label: string; count: number; price: number }[];
   supplySizes?: { label: string; unit: string; price: number }[];
+  ageOptions?: { label: string; ageWeeks: number; price: number }[];
 }
 
 export interface FrequentlyBoughtTogetherConfig {
@@ -176,6 +177,7 @@ export interface Product {
   category: MainCategory;
   subCategory: SubCategory;
   image: string;
+  imagePosition?: string;
   images?: string[];
   sellerName: string;
   sellerId: string;
@@ -188,6 +190,9 @@ export interface Product {
   wholesaleMinQty?: number;
   unit?: string;
   minOrderQty?: number;
+  salesChannels?: Array<'retail' | 'wholesale'>;
+  searchTerms?: string[];
+  displayOrder?: number;
   
   // Rich prose & specifications for extensive product pages
   story?: string;

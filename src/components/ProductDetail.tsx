@@ -100,6 +100,7 @@ export default function ProductDetail({
   const eggGradeOptions = product.variantsConfig?.eggGrades || [];
   const packOptions = product.variantsConfig?.packCounts || [];
   const supplyOptions = product.variantsConfig?.supplySizes || [];
+  const ageOptions = product.variantsConfig?.ageOptions || [];
 
   const [selectedBone, setSelectedBone] = useState(boneOptions[0] || '');
   const [selectedSkin, setSelectedSkin] = useState(skinOptions[0] || '');
@@ -107,6 +108,7 @@ export default function ProductDetail({
   const [selectedEggGrade, setSelectedEggGrade] = useState(eggGradeOptions[0] || '');
   const [selectedPackIndex, setSelectedPackIndex] = useState(0);
   const [selectedSupplyIndex, setSelectedSupplyIndex] = useState(0);
+  const [selectedAgeIndex, setSelectedAgeIndex] = useState(0);
 
   const minimumQuantity = getMinimumOrderQuantity(product, buyerType);
   const [quantity, setQuantity] = useState(minimumQuantity);
@@ -114,8 +116,10 @@ export default function ProductDetail({
   const selectedWeight = weightOptions[selectedWeightIndex];
   const selectedPack = packOptions[selectedPackIndex];
   const selectedSupply = supplyOptions[selectedSupplyIndex];
+  const selectedAge = ageOptions[selectedAgeIndex];
   const basePrice = getUnitPrice(product, buyerType);
-  const unitPrice = selectedPack?.price
+  const unitPrice = selectedAge?.price
+    ?? selectedPack?.price
     ?? selectedSupply?.price
     ?? (basePrice + (selectedWeight?.priceDiff || 0));
   const totalPrice = unitPrice * quantity;
@@ -129,14 +133,15 @@ export default function ProductDetail({
       selectedWeight?.label,
       selectedEggGrade,
       selectedPack?.label,
-      selectedSupply?.label
+      selectedSupply?.label,
+      selectedAge?.label,
     ].filter(Boolean) as string[];
     const optionKey = selectedOptions.join('|');
     const cartProduct: Product = selectedOptions.length > 0
       ? {
           ...product,
           id: `${product.id}::${optionKey}`,
-          name: `${product.name} — ${selectedOptions.join(', ')}`,
+          name: `${product.name} (${selectedOptions.join(', ')})`,
           price: buyerType === 'retail' ? unitPrice : product.price,
           wholesalePrice: buyerType === 'wholesale' ? unitPrice : product.wholesalePrice
         }
@@ -188,6 +193,7 @@ export default function ProductDetail({
                 alt={product.name}
                 decoding="async"
                 className="h-full w-full object-cover"
+                style={{ objectPosition: product.imagePosition || '50% 50%' }}
               />
             </div>
 
@@ -210,6 +216,7 @@ export default function ProductDetail({
                       loading="lazy"
                       decoding="async"
                       className="h-full w-full object-cover"
+                      style={{ objectPosition: product.imagePosition || '50% 50%' }}
                     />
                   </button>
                 ))}
@@ -228,13 +235,22 @@ export default function ProductDetail({
 
             <div className="mt-6 flex items-baseline gap-1.5 border-y border-slate-100 py-5 text-emerald-950">
               <span className="text-2xl font-black">Ksh {unitPrice.toLocaleString()}</span>
-              {product.liveData?.pricePerBird ? <span className="text-sm text-slate-500">/ bird</span> : null}
+              {product.unit ? <span className="text-sm text-slate-500">/{product.unit}</span> : null}
             </div>
 
             <div className="mt-6 space-y-5">
               <OptionGroup label="Bone" options={boneOptions} selected={selectedBone} onSelect={setSelectedBone} />
               <OptionGroup label="Skin" options={skinOptions} selected={selectedSkin} onSelect={setSelectedSkin} />
               <OptionGroup label="Egg size" options={eggGradeOptions} selected={selectedEggGrade} onSelect={setSelectedEggGrade} />
+
+              {ageOptions.length > 0 ? (
+                <OptionGroup
+                  label="Age"
+                  options={ageOptions.map((option) => option.label)}
+                  selected={selectedAge?.label || ''}
+                  onSelect={(option) => setSelectedAgeIndex(ageOptions.findIndex((item) => item.label === option))}
+                />
+              ) : null}
 
               {weightOptions.length > 0 ? (
                 <OptionGroup

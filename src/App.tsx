@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { INITIAL_PRODUCTS, MOCK_BATCH_TRACE_RECORDS } from './data/products';
+import { MOCK_BATCH_TRACE_RECORDS } from './data/products';
+import { STOREFRONT_PRODUCTS } from './data/storefrontCatalog';
 import { Product, CartItem, BuyerType, MainCategory, User } from './types';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
@@ -28,7 +29,12 @@ import {
   subscribeCMSBlocks
 } from './services/firestoreSync';
 import { getFirebaseAuthorization, logoutUser, subscribeAuthUser } from './config/firebase';
-import { applyStorefrontCopy, isCurrentStorefrontProduct } from './utils/storefrontProducts';
+import {
+  applyStorefrontCopy,
+  isCurrentStorefrontProduct,
+  isProductAvailableForBuyer,
+  productMatchesSearch,
+} from './utils/storefrontProducts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>('shop');
@@ -42,20 +48,20 @@ export default function App() {
   // Products State
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('chickmagnet_products');
-    let rawProducts = INITIAL_PRODUCTS;
+    let rawProducts = STOREFRONT_PRODUCTS;
     if (saved) {
       try {
         const parsed: Product[] = JSON.parse(saved);
-        if (parsed.length > 0) rawProducts = filterCachedStorefrontProducts(parsed);
+        const visibleCachedProducts = filterCachedStorefrontProducts(parsed);
+        if (visibleCachedProducts.length > 0) rawProducts = visibleCachedProducts;
       } catch {
-        rawProducts = INITIAL_PRODUCTS;
+        rawProducts = STOREFRONT_PRODUCTS;
       }
     }
-    const validCategories = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies', 'processed'];
-    const deletedIds = new Set(['prod-improved-kienyeji-mature', 'prod-chick-cobb500']);
-    const initialMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip]));
+    const validCategories = ['live-birds', 'fresh-poultry', 'eggs'];
+    const initialMap = new Map(STOREFRONT_PRODUCTS.map(ip => [ip.id, ip]));
     return rawProducts
-      .filter(p => validCategories.includes(p.category) && !deletedIds.has(p.id))
+      .filter(p => validCategories.includes(p.category) && isCurrentStorefrontProduct(p))
       .map(p => {
         const initP = initialMap.get(p.id);
         return {
@@ -64,7 +70,11 @@ export default function App() {
           description: initP?.description || p.description,
           tags: initP?.tags || p.tags,
           variantsConfig: initP?.variantsConfig || p.variantsConfig,
-          badge: initP?.badge || p.badge
+          badge: initP?.badge || p.badge,
+          salesChannels: initP?.salesChannels || p.salesChannels,
+          searchTerms: initP?.searchTerms || p.searchTerms,
+          displayOrder: initP?.displayOrder ?? p.displayOrder,
+          imagePosition: initP?.imagePosition || p.imagePosition,
         };
       });
   });
@@ -253,15 +263,22 @@ export default function App() {
   const VALID_CATEGORIES = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies', 'processed'];
   const storefrontProducts = products
     .filter(isCurrentStorefrontProduct)
-    .map(applyStorefrontCopy);
+    .map(applyStorefrontCopy)
+    .filter(product => isProductAvailableForBuyer(product, buyerType))
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   const filteredProducts = storefrontProducts.filter(p => {
     if (!VALID_CATEGORIES.includes(p.category)) return false;
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = productMatchesSearch(p, searchQuery);
 
     return matchesCategory && matchesSearch;
   });
+
+  const handleBuyerTypeChange = (type: BuyerType) => {
+    setBuyerType(type);
+    setSelectedCategory('all');
+    setSearchQuery('');
+  };
 
   // If Admin Dashboard mode is active, render full-screen Admin View
   if (isAdminOpen && isCurrentUserAdmin) {
@@ -303,7 +320,7 @@ export default function App() {
           localStorage.removeItem('chickmagnet_user');
         }}
         buyerType={buyerType}
-        setBuyerType={setBuyerType}
+        setBuyerType={handleBuyerTypeChange}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
         searchQuery={searchQuery}
@@ -424,7 +441,7 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                   <div className="bg-slate-100 p-1 rounded-xl flex w-full sm:w-auto">
                     <button
-                      onClick={() => setBuyerType('retail')}
+                      onClick={() => handleBuyerTypeChange('retail')}
                       className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         buyerType === 'retail'
                           ? 'bg-emerald-950 text-amber-300 shadow-sm'
@@ -434,7 +451,7 @@ export default function App() {
                       <span>Retail</span>
                     </button>
                     <button
-                      onClick={() => setBuyerType('wholesale')}
+                      onClick={() => handleBuyerTypeChange('wholesale')}
                       className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         buyerType === 'wholesale'
                           ? 'bg-emerald-950 text-amber-300 shadow-sm'
@@ -452,7 +469,9 @@ export default function App() {
               <div className="flex items-center justify-between border-b border-slate-200 pb-4 pt-2">
                 <div>
                   <h2 className="font-serif font-black text-2xl text-emerald-950">
-                    {selectedCategory === 'all' ? 'Chicken and Eggs' : selectedCategory.toUpperCase()}
+                    {selectedCategory === 'all'
+                      ? (buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Retail Products')
+                      : selectedCategory.toUpperCase()}
                   </h2>
                 </div>
 

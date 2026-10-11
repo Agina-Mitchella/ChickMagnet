@@ -4,12 +4,12 @@ import {
 } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../config/firebase';
 import { Product } from '../types';
-import { INITIAL_PRODUCTS } from '../data/products';
+import { STOREFRONT_PRODUCTS } from '../data/storefrontCatalog';
 import { getStoredCMSData, saveStoredCMSData, CMSBlock } from '../utils/cms';
 import { isCurrentStorefrontProduct } from '../utils/storefrontProducts';
 
 const EXPLICIT_STOREFRONT_PRODUCT_IDS_CACHE_KEY = 'chickmagnet_explicit_storefront_product_ids';
-const DEFAULT_PRODUCTS_BY_ID = new Map(INITIAL_PRODUCTS.map(product => [product.id, product]));
+const DEFAULT_PRODUCTS_BY_ID = new Map(STOREFRONT_PRODUCTS.map(product => [product.id, product]));
 
 function safeSetLocalStorage(key: string, value: string) {
   try {
@@ -74,7 +74,7 @@ export function subscribeProducts(
         .filter(productDocument => productDocument.data().showOnStorefront === true)
         .map(productDocument => productDocument.id);
 
-      const items: Product[] = INITIAL_PRODUCTS.flatMap(defaultProduct => {
+      const items: Product[] = STOREFRONT_PRODUCTS.flatMap(defaultProduct => {
         const override = firestoreProducts.get(defaultProduct.id);
         firestoreProducts.delete(defaultProduct.id);
         const defaultIsVisible = isCurrentStorefrontProduct(defaultProduct);
@@ -98,7 +98,10 @@ export function subscribeProducts(
       for (const [productId, product] of firestoreProducts) {
         // New products have no built-in visibility. An admin must explicitly
         // publish them; missing and false values are both treated as hidden.
-        if (product.showOnStorefront !== true) {
+        if (
+          product.showOnStorefront !== true
+          || !isCurrentStorefrontProduct({ ...(product as Product), id: productId })
+        ) {
           continue;
         }
 
@@ -131,7 +134,7 @@ export function subscribeProducts(
         }
       } catch {}
     }
-    onUpdate(INITIAL_PRODUCTS.filter(product =>
+    onUpdate(STOREFRONT_PRODUCTS.filter(product =>
       isVisibleFallbackProduct(product, new Set())
     ));
   });
