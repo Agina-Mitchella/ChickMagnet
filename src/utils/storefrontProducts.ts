@@ -56,9 +56,6 @@ export function productMatchesSearch(product: Product, rawQuery: string): boolea
     ...product.tags,
     ...(product.searchTerms ?? []),
     ...(product.variantsConfig?.ageOptions?.map(option => option.label) ?? []),
-    product.productGuide?.intro,
-    ...(product.productGuide?.highlights?.flatMap(highlight => [highlight.label, highlight.value]) ?? []),
-    ...(product.productGuide?.sections.flatMap(section => [section.title, section.summary, ...(section.bullets ?? [])]) ?? []),
   ];
 
   const searchableText = normalizeSearchText(searchableValues.filter(Boolean).join(' '));
