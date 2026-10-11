@@ -1,11 +1,13 @@
 import React from 'react';
-import { X, ShoppingBag, ShieldCheck, Truck, AlertTriangle, ArrowRight, Trash2, Scale } from 'lucide-react';
-import { CartItem, FulfillmentType } from '../types';
+import { X, ShoppingBag, AlertTriangle, ArrowRight, Trash2, Scale } from 'lucide-react';
+import { BuyerType, CartItem, FulfillmentType } from '../types';
+import { findMinimumOrderViolations, getMinimumOrderQuantity, getUnitPrice } from '../utils/orderRules';
 
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   cartItems: CartItem[];
+  buyerType: BuyerType;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
   onProceedToCheckout: () => void;
@@ -15,6 +17,7 @@ export default function CartDrawer({
   isOpen,
   onClose,
   cartItems,
+  buyerType,
   onUpdateQuantity,
   onRemoveItem,
   onProceedToCheckout
@@ -35,48 +38,43 @@ export default function CartDrawer({
 
   const calculateSubtotal = () => {
     return cartItems.reduce((acc, item) => {
-      const isWholesale = item.product.wholesalePrice && item.quantity >= (item.product.wholesaleMinQty || 1);
-      const price = isWholesale ? item.product.wholesalePrice! : item.product.price;
+      const price = getUnitPrice(item.product, buyerType);
       return acc + (price * item.quantity);
     }, 0);
   };
 
   const subtotal = calculateSubtotal();
 
-  // Check if any live bird item is under minimum order requirement (min 10 chicks for thermal transport)
-  const invalidLiveBirdItems = cartItems.filter(item => 
-    item.fulfillmentGroup === 'live-climate' && item.quantity < (item.product.minOrderQty || 10)
-  );
-  const hasMinOrderViolation = invalidLiveBirdItems.length > 0;
+  const hasMinOrderViolation = findMinimumOrderViolations(cartItems, buyerType).length > 0;
 
   const groupMeta: Record<FulfillmentType, { title: string; icon: string; bg: string; border: string; desc: string }> = {
     'live-climate': {
-      title: 'Live Bird Express Transport',
+      title: 'Live chicken',
       icon: '🐥',
       bg: 'bg-[#123524] text-amber-300',
       border: 'border-emerald-800',
-      desc: 'Ventilated & temperature-stabilized vehicle (Runs Tue/Thu/Sat)'
+      desc: 'Live chicken delivery'
     },
     'chilled-express': {
-      title: 'Chilled Cold-Chain (0°C - 4°C)',
+      title: 'Fresh chicken',
       icon: '❄️',
       bg: 'bg-[#123524] text-emerald-200',
       border: 'border-emerald-800',
-      desc: 'Air-chilled fresh poultry insulated boxes (Runs Mon-Sat)'
+      desc: 'Chilled delivery'
     },
     'frozen-deep': {
-      title: 'Frozen Express (-18°C Deep Freeze)',
+      title: 'Frozen chicken',
       icon: '🧊',
       bg: 'bg-[#123524] text-emerald-200',
       border: 'border-emerald-800',
-      desc: 'Sub-zero frozen value-added products (Runs Mon/Wed/Fri)'
+      desc: 'Frozen delivery'
     },
     'dry-ambient': {
-      title: 'Dry Farm Goods (Ambient Parcel)',
-      icon: '📦',
+      title: 'Eggs & Standard Delivery',
+      icon: '🥚',
       bg: 'bg-[#123524] text-emerald-200',
       border: 'border-emerald-800',
-      desc: 'Feed, incubators, biosecurity & supplies (Ships Daily)'
+      desc: 'Packed for standard delivery'
     }
   };
 
@@ -88,13 +86,15 @@ export default function CartDrawer({
         <div className="p-4 bg-[#123524] text-amber-50 flex items-center justify-between border-b border-emerald-900">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-amber-400" />
-            <h2 className="font-serif font-black text-lg">Your Poultry Cart</h2>
+            <h2 className="font-serif font-black text-lg">Your cart</h2>
             <span className="bg-amber-400 text-emerald-950 text-xs font-mono font-bold px-2 py-0.5 rounded-full">
               {cartItems.length} items
             </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close cart"
             className="p-1.5 rounded-full hover:bg-emerald-900 text-emerald-300 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -108,7 +108,7 @@ export default function CartDrawer({
               <div className="text-4xl">🐔</div>
               <h3 className="font-serif font-bold text-lg text-emerald-950">Your cart is empty</h3>
               <p className="text-xs text-emerald-800 max-w-xs mx-auto">
-                Explore day-old chicks, dressed chicken cuts, hatching eggs, and farm supplies.
+                Browse chicken and eggs for retail or wholesale orders.
               </p>
             </div>
           ) : (
@@ -137,10 +137,10 @@ export default function CartDrawer({
                   {/* Items in Group */}
                   <div className="p-3 divide-y divide-emerald-100 bg-white">
                     {items.map(item => {
-                      const isWholesale = item.product.wholesalePrice && item.quantity >= (item.product.wholesaleMinQty || 1);
-                      const unitPrice = isWholesale ? item.product.wholesalePrice! : item.product.price;
+                      const isWholesale = buyerType === 'wholesale';
+                      const unitPrice = getUnitPrice(item.product, buyerType);
                       const isWeightVariable = item.product.category === 'fresh-poultry' || item.product.unit?.includes('kg');
-                      const minRequired = item.product.minOrderQty || (item.fulfillmentGroup === 'live-climate' ? 10 : 1);
+                      const minRequired = getMinimumOrderQuantity(item.product, buyerType);
                       const isBelowMin = item.quantity < minRequired;
 
                       return (
@@ -159,7 +159,9 @@ export default function CartDrawer({
                                     {item.product.name}
                                   </h4>
                                   <button
+                                    type="button"
                                     onClick={() => onRemoveItem(item.product.id)}
+                                    aria-label={`Remove ${item.product.name} from cart`}
                                     className="text-emerald-600 hover:text-rose-600 text-xs ml-2 cursor-pointer"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -181,7 +183,8 @@ export default function CartDrawer({
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center gap-2 bg-emerald-50 rounded-lg p-0.5 border border-emerald-200">
                                   <button
-                                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                                    onClick={() => onUpdateQuantity(item.product.id, Math.max(minRequired, item.quantity - 1))}
+                                    disabled={item.quantity <= minRequired}
                                     className="w-6 h-6 rounded bg-white font-bold text-xs text-emerald-950 border border-emerald-200 flex items-center justify-center cursor-pointer shadow-xs"
                                   >
                                     -
@@ -201,7 +204,7 @@ export default function CartDrawer({
                                   </span>
                                   {isWeightVariable && (
                                     <div className="text-[9px] text-emerald-700 font-mono">
-                                      (Final weight ±10%)
+                                      Final total may vary by packed weight
                                     </div>
                                   )}
                                 </div>
@@ -214,7 +217,7 @@ export default function CartDrawer({
                             <div className="bg-amber-50 border border-amber-300 p-2 rounded-xl text-[11px] text-amber-950 flex items-center justify-between gap-2 font-medium">
                               <div className="flex items-center gap-1.5">
                                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>Min order: <strong>{minRequired} chicks</strong> required for heat preservation.</span>
+                                <span>Minimum order: <strong>{minRequired}</strong>.</span>
                               </div>
                               <button
                                 onClick={() => onUpdateQuantity(item.product.id, minRequired)}
@@ -228,7 +231,7 @@ export default function CartDrawer({
                           {/* Weight Variable Packed Note */}
                           {isWeightVariable && !isBelowMin && (
                             <div className="text-[10px] text-emerald-900 bg-emerald-50 p-1.5 rounded-lg border border-emerald-200">
-                              ℹ️ <strong>Weight Note:</strong> Final price adjusted to actual scale-packed weight (±10% tolerance cushion).
+                              Final price is confirmed from the packed weight.
                             </div>
                           )}
                         </div>
@@ -249,7 +252,7 @@ export default function CartDrawer({
               <div className="bg-rose-50 border border-rose-300 p-2.5 rounded-xl text-xs text-rose-950 flex items-start gap-2 font-medium">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong>Min Order Violation:</strong> Please increase live bird quantities to at least 10 chicks per breed to ensure safe climate transport.
+                  <strong>Minimum order not met.</strong> Update the highlighted quantities before checkout.
                 </div>
               </div>
             )}
@@ -260,9 +263,9 @@ export default function CartDrawer({
                 <span className="font-bold text-emerald-950">Ksh {subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-emerald-900">
-                <span>Fulfillment Packages</span>
+                <span>Delivery groups</span>
                 <span className="text-emerald-900 font-bold">
-                  {Object.values(fulfillmentGroups).filter(g => g.length > 0).length} Separate Vehicle Slot(s)
+                  {Object.values(fulfillmentGroups).filter(g => g.length > 0).length}
                 </span>
               </div>
               <div className="flex justify-between text-sm font-bold text-emerald-950 pt-1.5 border-t border-emerald-200 font-serif">

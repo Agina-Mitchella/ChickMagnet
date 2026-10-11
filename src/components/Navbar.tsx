@@ -1,9 +1,54 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ShieldCheck, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Package, Egg, Layers, HelpCircle, FileText, Activity, LayoutDashboard, Sparkles, Filter } from 'lucide-react';
+import { ShoppingBag, User as UserIcon, LogIn, ChevronDown, Feather, Utensils, Egg, FileText, LayoutDashboard, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, BuyerType, MainCategory } from '../types';
 import { useBrandLogo } from '../utils/cms';
-import { INITIAL_BREED_DROPDOWN_OPTIONS } from '../data/products';
+import poultryChicksImage from '../assets/images/hero_poultry_chicks_1785408878635.jpg';
+import roosterHenImage from '../assets/images/live_rooster_hen_1785409332530.jpg';
+import freshChickenImage from '../assets/images/category-fresh-chicken.jpg';
+import eggsImage from '../assets/images/category-eggs.jpg';
+
+const CATEGORY_ARTWORK: Record<MainCategory | 'all', { src: string; position: string }> = {
+  all: { src: poultryChicksImage, position: '50% 67%' },
+  'live-birds': { src: roosterHenImage, position: '52% 43%' },
+  'fresh-poultry': { src: freshChickenImage, position: '50% 48%' },
+  eggs: { src: eggsImage, position: '50% 50%' },
+  processed: { src: freshChickenImage, position: '50% 48%' },
+  'farm-supplies': { src: poultryChicksImage, position: '50% 67%' },
+};
+
+function CategoryArtwork({
+  category,
+  icon,
+  compact = false,
+}: {
+  category: MainCategory | 'all';
+  icon?: React.ReactNode;
+  compact?: boolean;
+}) {
+  const artwork = CATEGORY_ARTWORK[category];
+
+  return (
+    <span
+      className={`relative shrink-0 overflow-hidden rounded-2xl bg-emerald-950 shadow-sm ring-1 ring-black/5 ${
+        compact ? 'h-10 w-10' : 'h-12 w-12'
+      }`}
+      aria-hidden="true"
+    >
+      <img
+        src={artwork.src}
+        alt=""
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+        style={{ objectPosition: artwork.position }}
+      />
+      {icon && (
+        <span className="absolute bottom-0.5 right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white/95 text-emerald-950 shadow-sm [&>svg]:h-3 [&>svg]:w-3">
+          {icon}
+        </span>
+      )}
+    </span>
+  );
+}
 
 interface NavbarProps {
   activeTab: string;
@@ -20,12 +65,9 @@ interface NavbarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onOpenTraceability: () => void;
-  onOpenWholesale: () => void;
   onOpenClaims: () => void;
   onOpenAdmin?: () => void;
   onOpenBusinessPlan?: () => void;
-  selectedBreedFilter?: string;
-  setSelectedBreedFilter?: (breed: string) => void;
 }
 
 export default function Navbar({
@@ -43,251 +85,170 @@ export default function Navbar({
   searchQuery,
   setSearchQuery,
   onOpenTraceability,
-  onOpenWholesale,
   onOpenClaims,
   onOpenAdmin,
-  onOpenBusinessPlan,
-  selectedBreedFilter = 'all',
-  setSelectedBreedFilter
+  onOpenBusinessPlan
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [isBreedDropdownOpen, setIsBreedDropdownOpen] = useState(false);
   const brand = useBrandLogo();
 
-  const isAdmin = currentUser?.role === 'admin' || 
-                  currentUser?.role === 'ADMIN' || 
-                  Boolean(currentUser?.customClaims?.admin === true);
+  const isAdmin = Boolean(
+    currentUser?.customClaims?.admin === true || currentUser?.customClaims?.role === 'ADMIN'
+  );
 
   const categoriesList: { id: MainCategory | 'all'; label: string; icon: React.ReactNode; description: string }[] = [
-    { id: 'all', label: 'All Catalog', icon: <ShoppingBag className="w-4 h-4" />, description: 'Browse all live birds, fresh poultry, eggs & farm supplies' },
-    { id: 'live-birds', label: 'Live Birds', icon: <Feather className="w-4 h-4" />, description: 'Day-old chicks, pullets & roosters' },
-    { id: 'fresh-poultry', label: 'Fresh & Whole Poultry', icon: <Utensils className="w-4 h-4" />, description: 'Dressed whole birds & fresh cuts' },
-    { id: 'eggs', label: 'Eggs', icon: <Egg className="w-4 h-4" />, description: 'Table eggs & hatching eggs' },
-    { id: 'farm-supplies', label: 'Farm Supplies', icon: <Layers className="w-4 h-4" />, description: 'Feed, vaccines & equipment' }
+    { id: 'all', label: 'All Products', icon: <ShoppingBag />, description: 'Chicken and eggs' },
+    { id: 'live-birds', label: 'Live Chicken', icon: <Feather />, description: 'Chicks and mature chicken' },
+    { id: 'fresh-poultry', label: 'Fresh Chicken', icon: <Utensils />, description: 'Whole chicken and cuts' },
+    { id: 'eggs', label: 'Eggs', icon: <Egg />, description: 'Table and hatching eggs' },
   ];
 
-  const handleSelectBreedOption = (optionValue: string, optionCategory?: string) => {
-    if (setSelectedBreedFilter) {
-      setSelectedBreedFilter(optionValue);
-    }
-    if (optionValue === 'all') {
-      setSearchQuery('');
-      if (optionCategory && optionCategory !== 'all') {
-        setSelectedCategory(optionCategory as MainCategory);
-      }
-    } else {
-      // Set breed filter and sync search query for matching
-      setSearchQuery(optionValue);
-      if (optionCategory && optionCategory !== 'all') {
-        setSelectedCategory(optionCategory as MainCategory);
-      }
-    }
-    if (activeTab !== 'shop') {
-      setActiveTab('shop');
-    }
-    setIsBreedDropdownOpen(false);
-  };
-
-  const currentSelectedBreedLabel = INITIAL_BREED_DROPDOWN_OPTIONS.find(
-    o => (o.breedQuery === selectedBreedFilter) || (!o.breedQuery && selectedBreedFilter === 'all') || (searchQuery && o.breedQuery && o.breedQuery.toLowerCase().includes(searchQuery.toLowerCase()))
-  )?.label || 'Browse Heritage Breeds & Categories';
-
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#123524] text-amber-50 shadow-md">
-      
-      {/* Main Header Bar (Row 1) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3 sm:gap-6">
-        
-        {/* Logo & Brand Name (Location removed as requested) */}
-        <div 
+    <header className="sticky top-0 z-40 w-full border-b border-stone-200 bg-[#fffdfa]/95 text-[#173b2a] shadow-[0_10px_35px_rgba(18,53,36,0.08)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:gap-5 lg:px-8">
+        <button
+          type="button"
           onClick={() => {
             setActiveTab('shop');
             setSelectedCategory('all');
             setSearchQuery('');
-            if (setSelectedBreedFilter) setSelectedBreedFilter('all');
           }}
-          className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 select-none"
+          className="group flex h-12 shrink-0 items-center rounded-2xl bg-[#123524] px-2.5 shadow-[0_6px_18px_rgba(18,53,36,0.18)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 sm:h-14 sm:px-3"
+          aria-label="Go to all products"
         >
           {brand.logoImageUrl ? (
-            <div className="flex items-center gap-3">
-              <img 
-                src={brand.logoImageUrl} 
-                alt={brand.brandName || 'Logo'} 
-                style={{ height: '48px', width: 'auto', maxWidth: '280px', objectFit: 'contain' }}
-                className="h-10 sm:h-12 max-w-[220px] sm:max-w-[280px] w-auto object-contain shrink-0 group-hover:scale-105 transition-transform drop-shadow-md" 
+            <span className="flex items-center gap-2.5">
+              <img
+                src={brand.logoImageUrl}
+                alt={brand.brandName || 'ChickMagnet'}
+                className="h-9 w-auto max-w-[112px] object-contain transition-transform group-hover:scale-[1.03] sm:h-11 sm:max-w-[176px]"
               />
               {brand.logoDisplayMode === 'image_with_text' && (
-                <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
+                <span className="hidden text-lg font-extrabold tracking-[-0.03em] text-amber-300 xl:inline">
                   {brand.brandName || 'ChickMagnet'}
                 </span>
               )}
-            </div>
+            </span>
           ) : (
-            <div>
-              <span className="font-serif text-xl sm:text-2xl font-black text-amber-400 tracking-tight leading-none">
-                {brand.brandName || 'ChickMagnet'}
-              </span>
-            </div>
+            <span className="px-1 text-lg font-extrabold tracking-[-0.03em] text-amber-300 sm:text-xl">
+              {brand.brandName || 'ChickMagnet'}
+            </span>
           )}
-        </div>
+        </button>
 
-        {/* BREED DROPDOWN SELECTOR (Replaces Search Bar) */}
-        <div className="flex-1 max-w-xl relative">
-          <div className="relative">
-            <button
-              id="breed-dropdown-trigger"
-              type="button"
-              onClick={() => setIsBreedDropdownOpen(!isBreedDropdownOpen)}
-              className="w-full flex items-center justify-between pl-4 pr-3.5 py-2.5 bg-[#0b2217] border border-emerald-700/80 hover:border-amber-400/80 rounded-xl text-xs text-amber-50 transition-all cursor-pointer shadow-xs"
-            >
-              <div className="flex items-center gap-2.5 truncate">
-                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
-                <span className="font-bold text-amber-300 font-mono uppercase tracking-wider text-[10px] shrink-0">Select Breed:</span>
-                <span className="truncate text-slate-100 font-medium">{currentSelectedBreedLabel}</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 text-amber-400 transition-transform shrink-0 ml-2 ${isBreedDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
+        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex" aria-label="Product categories">
+          {categoriesList.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  if (activeTab !== 'shop') setActiveTab('shop');
+                }}
+                className={`group flex min-w-0 items-center gap-2.5 rounded-[1.35rem] border px-2.5 py-2 text-left transition-all ${
+                  isSelected
+                    ? 'border-emerald-900 bg-emerald-950 text-white shadow-[0_8px_18px_rgba(6,46,31,0.2)]'
+                    : 'border-transparent bg-white text-[#173b2a] hover:border-stone-200 hover:bg-[#fff8e8] hover:shadow-sm'
+                }`}
+              >
+                <CategoryArtwork category={cat.id} icon={cat.icon} />
+                <span className="min-w-0 pr-1">
+                  <span className="block whitespace-nowrap text-[13px] font-bold tracking-[-0.01em]">{cat.label}</span>
+                  <span className={`hidden whitespace-nowrap text-[10px] xl:block ${isSelected ? 'text-emerald-100/75' : 'text-stone-500'}`}>
+                    {cat.description}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
 
-            {/* Dropdown Menu */}
-            <AnimatePresence>
-              {isBreedDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className="absolute left-0 right-0 mt-2 bg-[#0b2217] border-2 border-emerald-700 rounded-2xl shadow-2xl z-50 p-2 text-xs text-emerald-100 max-h-80 overflow-y-auto"
-                >
-                  <div className="px-2 py-1.5 text-[10px] font-mono uppercase text-emerald-400 font-bold border-b border-emerald-900 flex items-center justify-between">
-                    <span>Verified Breeds & Categories</span>
-                    <span>Hatchery Verified</span>
-                  </div>
-
-                  <div className="pt-1.5 space-y-1">
-                    {INITIAL_BREED_DROPDOWN_OPTIONS.map((opt) => {
-                      const optionVal = opt.breedQuery || 'all';
-                      const isSelected = selectedBreedFilter === optionVal || (!selectedBreedFilter && optionVal === 'all');
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => handleSelectBreedOption(optionVal, opt.category)}
-                          className={`w-full text-left px-3 py-2 rounded-xl transition flex items-center justify-between cursor-pointer ${
-                            isSelected 
-                              ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' 
-                              : 'hover:bg-emerald-900/60 text-slate-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-sm">
-                              {opt.category === 'live-birds' ? '🐥' : opt.category === 'fresh-poultry' ? '🍗' : opt.category === 'eggs' ? '🥚' : opt.category === 'farm-supplies' ? '📦' : '🌟'}
-                            </span>
-                            <div>
-                              <div className="font-bold">{opt.label}</div>
-                              {opt.description && (
-                                <div className={`text-[10px] ${isSelected ? 'text-emerald-900 font-medium' : 'text-emerald-300/80 font-normal'}`}>
-                                  {opt.description}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {opt.category !== 'all' && (
-                            <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full ${
-                              isSelected ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-amber-300'
-                            }`}>
-                              {opt.category}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          
-          {/* User Account Button */}
+        <div className="flex shrink-0 items-center gap-2">
           {currentUser ? (
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 bg-[#0b2217] border border-emerald-800/80 px-2.5 sm:px-3 py-2 rounded-xl hover:border-amber-400/60 transition-colors text-xs font-bold text-amber-300 cursor-pointer min-h-[40px]"
+                className="flex h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-2 shadow-sm transition-all hover:border-stone-300 hover:shadow-md sm:pr-3"
+                aria-expanded={profileOpen}
+                aria-label="Open account menu"
               >
-                <span className="w-6 h-6 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-mono text-xs font-black">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-950 text-sm font-extrabold text-amber-300">
                   {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                 </span>
-                <span className="hidden md:inline max-w-[140px] truncate">
+                <span className="hidden max-w-[120px] truncate text-xs font-bold md:inline">
                   {currentUser.name} {isAdmin && '(Admin)'}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <ChevronDown className="hidden h-3.5 w-3.5 text-stone-500 sm:block" />
               </button>
 
               <AnimatePresence>
                 {profileOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    className="absolute right-0 mt-2 w-64 bg-[#0b2217] border border-emerald-800 rounded-xl shadow-xl z-50 p-3 text-xs text-emerald-100 max-w-[calc(100vw-32px)]"
+                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    className="absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-32px)] rounded-2xl border border-stone-200 bg-white p-3 text-xs text-[#173b2a] shadow-[0_18px_50px_rgba(18,53,36,0.18)]"
                   >
-                    <div className="pb-2 mb-2 border-b border-emerald-800">
-                      <div className="font-bold text-amber-300">
-                        {currentUser.name} {isAdmin && '(Admin)'}
-                      </div>
-                      <div className="text-[11px] text-emerald-400 truncate">{currentUser.email}</div>
-                      <div className="mt-1 text-[10px] uppercase font-mono bg-emerald-900/60 text-amber-300 px-2 py-0.5 rounded inline-block font-bold">
-                        Account: {buyerType === 'retail' ? 'Homesteader' : buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Farmer'}
+                    <div className="mb-2 border-b border-stone-100 px-2 pb-3">
+                      <div className="font-bold">{currentUser.name} {isAdmin && '(Admin)'}</div>
+                      <div className="truncate pt-0.5 text-[11px] text-stone-500">{currentUser.email}</div>
+                      <div className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-800">
+                        {buyerType === 'retail' ? 'Retail' : buyerType === 'wholesale' ? 'Commercial wholesale' : 'Farmer'}
                       </div>
                     </div>
-                    
+
                     <button
+                      type="button"
                       onClick={() => {
                         setActiveTab('profile');
                         setProfileOpen(false);
                       }}
-                      className="w-full text-left py-2 px-2 hover:bg-emerald-900/40 rounded flex items-center gap-2 font-medium cursor-pointer"
+                      className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50"
                     >
-                      <UserIcon className="w-3.5 h-3.5 text-amber-400" />
+                      <UserIcon className="h-4 w-4 text-emerald-800" />
                       <span>My Account & Orders</span>
                     </button>
-                    
+
                     {onOpenAdmin && isAdmin && (
                       <button
+                        type="button"
                         onClick={() => {
                           onOpenAdmin();
                           setProfileOpen(false);
                         }}
-                        className="w-full text-left py-2 px-2 hover:bg-amber-500/20 text-amber-300 font-bold rounded flex items-center gap-2 cursor-pointer"
+                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-amber-50"
                       >
-                        <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Admin Dashboard Control</span>
+                        <LayoutDashboard className="h-4 w-4 text-amber-600" />
+                        <span>Admin Dashboard</span>
                       </button>
                     )}
 
-                    {(currentUser.buyerType === 'wholesale' || buyerType === 'wholesale') && (
+                    {onOpenBusinessPlan && isAdmin && (
                       <button
+                        type="button"
                         onClick={() => {
-                          onOpenWholesale();
+                          onOpenBusinessPlan();
                           setProfileOpen(false);
                         }}
-                        className="w-full text-left py-2 px-2 hover:bg-emerald-900/40 rounded flex items-center gap-2 font-medium cursor-pointer"
+                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50"
                       >
-                        <FileText className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Wholesale Standing Orders</span>
+                        <FileText className="h-4 w-4 text-emerald-800" />
+                        <span>Farm Plan</span>
                       </button>
                     )}
 
-                    <div className="pt-2 mt-2 border-t border-emerald-800">
+                    <div className="mt-2 border-t border-stone-100 pt-2">
                       <button
+                        type="button"
                         onClick={() => {
                           setProfileOpen(false);
                           onSignOut();
                         }}
-                        className="w-full text-left py-2 px-2 text-rose-300 hover:bg-rose-950/40 rounded font-medium cursor-pointer"
+                        className="w-full rounded-xl px-2 py-2.5 text-left font-semibold text-rose-700 hover:bg-rose-50"
                       >
                         Sign Out
                       </button>
@@ -298,46 +259,48 @@ export default function Navbar({
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => onOpenAuth('signin')}
-              className="flex items-center gap-1.5 bg-[#0b2217] border border-emerald-800/80 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:border-amber-400/80 transition-all cursor-pointer min-h-[40px]"
+              aria-label="Sign in"
+              className="flex h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-3 text-xs font-bold text-[#173b2a] shadow-sm transition-all hover:border-stone-300 hover:shadow-md"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign In</span>
             </button>
           )}
 
-          {/* Admin Dashboard Quick Button */}
           {onOpenAdmin && isAdmin && (
             <button
+              type="button"
               onClick={onOpenAdmin}
-              className="flex items-center gap-1.5 bg-[#0b2217] hover:bg-emerald-900/60 border border-amber-500/50 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px]"
+              className="hidden h-11 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100 xl:flex"
             >
-              <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Admin</span>
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Admin</span>
             </button>
           )}
 
-          {/* Farm Business Plan Quick Button */}
           {onOpenBusinessPlan && isAdmin && (
             <button
+              type="button"
               onClick={onOpenBusinessPlan}
-              className="flex items-center gap-1.5 bg-[#0b2217] hover:bg-emerald-900/60 border border-emerald-500/50 text-emerald-300 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px]"
+              className="hidden h-11 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-900 transition-colors hover:bg-emerald-100 2xl:flex"
             >
-              <FileText className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Farm Plan</span>
+              <FileText className="h-4 w-4" />
+              <span>Farm Plan</span>
             </button>
           )}
 
-          {/* Cart Button */}
           <button
             id="header-cart-button"
+            type="button"
             onClick={onOpenCart}
-            className="relative flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 px-3.5 sm:px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-transform hover:scale-102 cursor-pointer min-h-[40px]"
+            className="relative flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-3.5 text-xs font-extrabold text-emerald-950 shadow-[0_6px_16px_rgba(245,158,11,0.25)] transition-all hover:-translate-y-0.5 hover:from-amber-300 hover:to-amber-400 sm:px-4"
           >
-            <ShoppingBag className="w-4 h-4 shrink-0" />
+            <ShoppingBag className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Cart</span>
             {cartCount > 0 && (
-              <span className="bg-emerald-950 text-amber-300 text-[11px] font-mono px-1.5 py-0.5 rounded-full font-black">
+              <span className="flex min-w-5 items-center justify-center rounded-full bg-emerald-950 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-300">
                 {cartCount}
               </span>
             )}
@@ -345,29 +308,59 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Category Dropdown Navigation Bar (Row 2) */}
-      <div className="bg-[#0b2217] border-t border-emerald-900/80 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto no-scrollbar py-2 gap-1 text-xs">
-          {categoriesList.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setSelectedCategory(cat.id);
-                  if (activeTab !== 'shop') setActiveTab('shop');
-                }}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-amber-400 text-emerald-950 font-bold shadow-xs'
-                    : 'text-emerald-200 hover:text-white hover:bg-emerald-900/60 font-medium'
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
+      <nav className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pb-3 lg:hidden" aria-label="Product categories">
+        {categoriesList.map((cat) => {
+          const isSelected = selectedCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => {
+                setSelectedCategory(cat.id);
+                if (activeTab !== 'shop') setActiveTab('shop');
+              }}
+              className={`group flex shrink-0 items-center gap-2 rounded-2xl border px-2 py-1.5 text-xs font-bold transition-all ${
+                isSelected
+                  ? 'border-emerald-950 bg-emerald-950 text-white shadow-sm'
+                  : 'border-stone-200 bg-white text-[#173b2a]'
+              }`}
+            >
+              <CategoryArtwork category={cat.id} icon={cat.icon} compact />
+              <span className="pr-1 whitespace-nowrap">{cat.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-stone-100 px-4 pb-3 pt-2 sm:px-6 lg:px-8 lg:pb-4">
+        <div className="relative mx-auto max-w-3xl">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-800" />
+          <label htmlFor="storefront-search" className="sr-only">Search products</label>
+          <input
+            id="storefront-search"
+            type="search"
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              if (activeTab !== 'shop') setActiveTab('shop');
+            }}
+            placeholder="Search chicken or eggs"
+            className="h-12 w-full rounded-full border border-stone-200 bg-white pl-12 pr-24 text-sm font-semibold text-[#173b2a] shadow-[0_5px_18px_rgba(18,53,36,0.1)] outline-none transition-all placeholder:font-medium placeholder:text-stone-400 hover:border-stone-300 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 sm:h-14 sm:text-base"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-emerald-950 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-900"
+            >
+              Clear
+            </button>
+          ) : (
+            <span className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-xs font-bold text-stone-500 sm:block">
+              Chicken & eggs
+            </span>
+          )}
         </div>
       </div>
     </header>

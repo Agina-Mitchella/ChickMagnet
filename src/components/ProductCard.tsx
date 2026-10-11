@@ -1,181 +1,109 @@
-import React from 'react';
-import { ShoppingBag, ShieldCheck, Clock, Award, Activity, Truck, FileCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Star } from 'lucide-react';
 import { Product, BuyerType } from '../types';
+import { getUnitPrice } from '../utils/orderRules';
 
 interface ProductCardProps {
   product: Product;
   onSelectProduct: (product: Product) => void;
-  onAddToCart: (product: Product) => void;
   buyerType: BuyerType;
-  onOpenTraceabilityWithBatch?: (batchId: string) => void;
+}
+
+const STAR_COUNT = 5;
+const STARS = Array.from({ length: STAR_COUNT });
+
+function formatRating(rating: number) {
+  if (rating === 5) return '5.0';
+  return rating.toFixed(2).replace(/0$/, '');
 }
 
 export default function ProductCard({
   product,
   onSelectProduct,
-  onAddToCart,
-  buyerType,
-  onOpenTraceabilityWithBatch
+  buyerType
 }: ProductCardProps) {
-  const isWholesaleMode = buyerType === 'wholesale';
-  const displayPrice = isWholesaleMode && product.wholesalePrice ? product.wholesalePrice : product.price;
-
-  // Category Badge Colors & Emoji
-  const getCategoryMeta = () => {
-    switch (product.category) {
-      case 'live-birds':
-        return { label: 'Live Birds', emoji: '🐥', bg: 'bg-[#0b2217]/90 text-emerald-300 border-emerald-800' };
-      case 'fresh-poultry':
-        return { label: 'Fresh & Dressed', emoji: '🍗', bg: 'bg-[#0b2217]/90 text-amber-300 border-amber-800' };
-      case 'processed':
-        return { label: 'Processed', emoji: '🌶️', bg: 'bg-[#0b2217]/90 text-rose-300 border-rose-800' };
-      case 'eggs':
-        return { label: 'Eggs', emoji: '🥚', bg: 'bg-[#0b2217]/90 text-amber-300 border-amber-800' };
-      case 'farm-supplies':
-        return { label: 'Farm Supplies', emoji: '🚜', bg: 'bg-[#0b2217]/90 text-emerald-200 border-emerald-800' };
-      default:
-        return { label: 'Poultry', emoji: '🐔', bg: 'bg-[#0b2217]/90 text-amber-300 border-emerald-800' };
-    }
-  };
-
-  const categoryMeta = getCategoryMeta();
+  const [isSaved, setIsSaved] = useState(false);
+  const displayPrice = getUnitPrice(product, buyerType);
+  const ratingPercentage = Math.min(STAR_COUNT, Math.max(0, product.rating)) / STAR_COUNT * 100;
 
   return (
-    <div 
-      className="bg-white border border-emerald-200/90 rounded-xl overflow-hidden hover:shadow-lg hover:border-emerald-400 transition-all duration-200 flex flex-col group relative"
-    >
-      {/* Top Image & Badges */}
-      <div 
-        onClick={() => onSelectProduct(product)}
-        className="relative h-32 sm:h-36 w-full bg-emerald-50 overflow-hidden cursor-pointer"
-      >
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        
-        {/* Category Badge */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border backdrop-blur-md shadow-2xs ${categoryMeta.bg}`}>
-            <span>{categoryMeta.emoji}</span>
-            <span>{categoryMeta.label}</span>
-          </span>
-        </div>
+    <article className="group min-w-0">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => onSelectProduct(product)}
+          aria-label={`View ${product.name}`}
+          className="block aspect-square w-full overflow-hidden rounded-2xl bg-slate-100 text-left cursor-pointer sm:aspect-[1.16/1]"
+        >
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+          />
+        </button>
 
-        {/* Batch ID Quick Trace Button */}
-        {(product.liveData?.batchId || product.freshData?.batchId || product.processedData?.batchId) && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const batchId = product.liveData?.batchId || product.freshData?.batchId || product.processedData?.batchId;
-              if (batchId && onOpenTraceabilityWithBatch) {
-                onOpenTraceabilityWithBatch(batchId);
-              }
-            }}
-            className="absolute top-2 right-2 bg-[#0b2217]/90 text-amber-300 hover:text-white border border-emerald-700 text-[9px] font-mono px-1.5 py-0.5 rounded-full flex items-center gap-1 z-10 transition-colors cursor-pointer"
-            title="Click to view full vaccination & farm traceability report"
-          >
-            <Activity className="w-2.5 h-2.5 text-emerald-400" />
-            <span>{product.liveData?.batchId || product.freshData?.batchId || product.processedData?.batchId}</span>
-          </button>
-        )}
-
-        {/* Live Fertile Egg Hatchability Window Overlay */}
-        {product.eggData?.eggType === 'fertile' && product.eggData?.daysSinceLaid !== undefined && (
-          <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-[#0b2217]/90 border border-amber-500/40 text-amber-300 px-2 py-0.5 rounded-md text-[9px] flex items-center justify-between z-10 font-mono">
-            <span className="flex items-center gap-0.5 font-bold">
-              <Clock className="w-2.5 h-2.5 text-amber-400" />
-              Laid {product.eggData.daysSinceLaid}d ago
-            </span>
-            <span className="text-emerald-300">
-              Viability: {product.eggData.hatchViabilityPercent || 90}%
-            </span>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => setIsSaved((saved) => !saved)}
+          aria-label={`${isSaved ? 'Remove' : 'Save'} ${product.name}`}
+          aria-pressed={isSaved}
+          title={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
+          className={`absolute right-2.5 top-2.5 grid h-9 w-9 place-items-center rounded-full bg-white/95 shadow-md transition-colors cursor-pointer ${
+            isSaved ? 'text-rose-600' : 'text-emerald-950 hover:text-rose-600'
+          }`}
+        >
+          <Heart className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+        </button>
       </div>
 
-      {/* Card Body */}
-      <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between space-y-2">
-        <div>
-          {/* Rating & Badge */}
-          <div className="flex items-center justify-between text-[10px] text-emerald-800 font-medium mb-0.5">
-            {product.badge ? (
-              <span className="text-emerald-800 font-semibold truncate bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 text-[9px]">{product.badge}</span>
-            ) : <span />}
-            <span className="text-amber-700 font-mono font-bold shrink-0">
-              ★ {product.rating.toFixed(1)} ({product.reviewsCount})
-            </span>
-          </div>
-
-          {/* Title */}
-          <h3 
+      <div className="px-0.5 pt-2.5">
+        <div className="flex flex-col items-start gap-1 sm:flex-row sm:justify-between sm:gap-2">
+          <button
+            type="button"
             onClick={() => onSelectProduct(product)}
-            className="font-serif font-bold text-xs sm:text-sm text-emerald-950 group-hover:text-amber-700 transition-colors line-clamp-2 cursor-pointer leading-tight"
+            className="min-w-0 text-left text-xs sm:text-sm font-bold leading-tight text-emerald-950 line-clamp-2 cursor-pointer hover:underline underline-offset-2"
           >
             {product.name}
-          </h3>
+          </button>
 
-          {/* Specific Data Snippets per category */}
-          <div className="mt-1 text-[10px] text-emerald-900">
-            {/* Live Birds Specs */}
-            {product.liveData && (
-              <div className="bg-emerald-50 px-2 py-1 rounded text-[10px] border border-emerald-200/80 font-mono flex justify-between items-center">
-                <span>Breed: <strong className="font-sans font-bold">{product.liveData.breed}</strong></span>
-                <span className="uppercase text-amber-900 font-bold">{product.liveData.sex}</span>
-              </div>
-            )}
-
-            {/* Fresh Dressed Whole Chicken Specs */}
-            {product.freshData && (
-              <div className="bg-amber-50/80 px-2 py-1 rounded text-[10px] flex justify-between items-center border border-amber-200/80 font-mono">
-                <span>Est: <strong>{product.freshData.weightEstKg} kg</strong></span>
-                <span className="text-emerald-800 text-[9px]">{product.freshData.cutType}</span>
-              </div>
-            )}
-
-            {/* Eggs Specs */}
-            {product.eggData && product.eggData.eggType !== 'fertile' && (
-              <div className="bg-amber-50/80 px-2 py-1 rounded text-[10px] flex justify-between font-mono text-amber-950 border border-amber-200/80">
-                <span>Grade: <strong>{product.eggData.gradeSize.toUpperCase()}</strong></span>
-                <span>{product.eggData.countPerPack} Eggs/Pack</span>
-              </div>
-            )}
+          <div
+            className="flex shrink-0 items-center gap-1"
+            aria-label={`${formatRating(product.rating)} out of 5 stars`}
+          >
+            <span className="relative inline-flex" aria-hidden="true">
+              <span className="flex gap-0.5">
+                {STARS.map((_, index) => (
+                  <Star key={`empty-${index}`} className="h-3 w-3 fill-slate-200 text-slate-200" />
+                ))}
+              </span>
+              <span
+                className="absolute inset-y-0 left-0 overflow-hidden"
+                style={{ width: `${ratingPercentage}%` }}
+              >
+                <span className="flex w-max gap-0.5">
+                  {STARS.map((_, index) => (
+                    <Star key={`filled-${index}`} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  ))}
+                </span>
+              </span>
+            </span>
+            <span className="text-[10px] font-bold text-slate-700">
+              {formatRating(product.rating)}
+            </span>
           </div>
         </div>
 
-        {/* Price & Action Row */}
-        <div className="pt-2 border-t border-emerald-100 flex items-center justify-between">
-          <div>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-[10px] font-mono font-bold text-emerald-900">Ksh</span>
-              <span className="font-serif text-base font-black text-emerald-950">
-                {displayPrice.toLocaleString()}
-              </span>
-              {product.liveData?.pricePerBird && (
-                <span className="text-[9px] text-emerald-800 font-mono">/bird</span>
-              )}
-            </div>
-
-            {isWholesaleMode && product.wholesalePrice && (
-              <div className="text-[9px] text-amber-700 font-mono font-bold">
-                Bulk ({product.wholesaleMinQty}+)
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddToCart(product);
-            }}
-            className="flex items-center gap-1 bg-emerald-800 hover:bg-emerald-900 text-amber-300 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition-transform hover:scale-105 cursor-pointer shadow-2xs shrink-0"
-          >
-            <ShoppingBag className="w-3 h-3" />
-            <span>Add</span>
-          </button>
+        <div className="mt-2 flex items-baseline gap-1 text-emerald-950">
+          <span className="text-xs font-extrabold sm:text-sm">
+            Ksh {displayPrice.toLocaleString()}
+          </span>
+          {product.liveData?.pricePerBird ? (
+            <span className="text-[10px] text-slate-600">/ bird</span>
+          ) : null}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

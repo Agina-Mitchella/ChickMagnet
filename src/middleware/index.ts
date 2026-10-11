@@ -111,59 +111,10 @@ export interface AuthRequest extends Request {
 }
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization || req.cookies?.access_token;
-
-  if (!authHeader) {
-    if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_AUTH === 'true') {
-      req.user = {
-        id: 'dev-admin-user-id',
-        email: 'uxagina@gmail.com',
-        role: 'ADMIN'
-      };
-      return next();
-    }
-    throw new UnauthorizedError('Access token is missing or expired.', 'MISSING_TOKEN');
-  }
-
-  const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
-
-  try {
-    // Parse Bearer or session payload (supporting base64/JSON or standard payload)
-    let payload: any = null;
-    if (token.includes('.')) {
-      const parts = token.split('.');
-      if (parts.length >= 2) {
-        payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-      }
-    } else {
-      try {
-        payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-      } catch {
-        payload = { id: token, email: 'user@chickmagnet.co.ke', role: 'BUYER' };
-      }
-    }
-
-    const email = payload?.email || 'uxagina@gmail.com';
-    const isAdmin = email.toLowerCase() === 'uxagina@gmail.com' || email.toLowerCase().includes('admin') || email.toLowerCase() === 'manyaos7@gmail.com';
-
-    req.user = {
-      id: payload?.user_id || payload?.sub || payload?.id || 'firebase-user-id',
-      email: email,
-      role: isAdmin ? 'ADMIN' : (payload?.role || 'BUYER'),
-      keeperId: payload?.keeperId,
-    };
-    next();
-  } catch (err) {
-    if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_AUTH === 'true') {
-      req.user = {
-        id: 'dev-admin-user-id',
-        email: 'uxagina@gmail.com',
-        role: 'ADMIN'
-      };
-      return next();
-    }
-    throw new UnauthorizedError('Access token is invalid or expired.', 'INVALID_TOKEN');
-  }
+  throw new UnauthorizedError(
+    'Legacy Express authentication is disabled. Use Firebase Authentication and Firestore security rules.',
+    'LEGACY_AUTH_DISABLED'
+  );
 }
 
 export function requireRoles(...roles: ('ADMIN' | 'STAFF' | 'BUYER' | 'KEEPER')[]) {

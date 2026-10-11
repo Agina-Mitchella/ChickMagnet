@@ -169,6 +169,7 @@ export interface Product {
   id: string;
   name: string;
   description: string;
+  showOnStorefront?: boolean;
   price: number;
   rating: number;
   reviewsCount: number;
@@ -222,7 +223,6 @@ export interface Product {
 export interface CartItem {
   product: Product;
   quantity: number;
-  selectedSex?: 'male' | 'female' | 'unsexed';
   selectedAgeWeeks?: number;
   fulfillmentGroup: FulfillmentType;
   estimatedPriceRange?: { min: number; max: number };
@@ -291,6 +291,7 @@ export interface WholesaleStandingOrder {
 }
 
 export interface User {
+  uid: string;
   email: string;
   name: string;
   avatarEmoji?: string;
@@ -304,6 +305,7 @@ export interface User {
   creditLimitKsh?: number;
   customClaims?: {
     admin?: boolean;
+    role?: string;
     [key: string]: any;
   };
 }

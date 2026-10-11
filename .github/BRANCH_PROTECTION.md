@@ -1,54 +1,72 @@
-# Branch Protection & Environment Promotion Policy
+# Release controls and ownership
 
-## Branch Protection Rules (`main`)
+This document describes the release path that is actually configured. It does
+not claim that repository settings are enforced unless they have been verified
+in GitHub or Vercel.
 
-The `main` branch represents the stable production environment for **Sol Handmades**. The following rules are enforced via GitHub repository settings:
+## Verified release path (11 October 2026)
 
-1. **Direct Pushes Forbidden**:
-   - `main` branch is locked against direct `git push`.
-   - All code changes must enter `main` via a Pull Request (PR).
+- `main` is the default branch of `Agina-Mitchella/ChickMagnet`.
+- The Vercel Git integration creates `Production` deployments for pushes to
+  this repository. GitHub records show those deployments are owned by
+  `agina-mitchelles-projects`.
+- `chickmagnet.xyz` and `www.chickmagnet.xyz` are served by Vercel.
+- The Sauti Vercel CLI account (`sautionlineai-3596`) cannot access that Vercel
+  project or either production domain. A Git push can trigger the existing Git
+  integration, but the Sauti account cannot inspect, promote, or roll back the
+  resulting deployment directly.
+- The previous `chickmagnet-api.run.app` destination is not a valid Cloud Run
+  service URL. The frontend currently uses Firebase Auth and Firestore directly,
+  so Vercel returns `404` for `/api` until a real backend is provisioned.
 
-2. **Required Reviewers**:
-   - Every PR targeting `main` requires at least **1 approved review** from an authorized repository code owner.
+## GitHub Actions
 
-3. **Status Check Enforcement**:
-   - All CI workflows (`Frontend CI/CD Pipeline` and `Backend CI/CD Pipeline`) must pass with 100% success before merging is allowed.
-   - Required status checks include:
-     - TypeScript compilation (`tsc --noEmit`)
-     - ESLint linting
-     - Automated unit/integration tests (`vitest`)
-     - Secret leak scanning (`TruffleHog`)
-     - Firestore security rules validation
+- `Frontend CI/CD Pipeline` runs a clean install, TypeScript checks, and the
+  production build. Vercel deployment is intentionally left to the existing Git
+  integration so one push cannot create duplicate releases.
+- Vercel runs a frontend-only Vite build. The Express bundle is built and tested
+  separately and must never be published inside the static `dist` output.
+- `Backend CI/CD Pipeline` scans changed Git history for verified secrets and
+  proves that the Cloud Run container can build. It does not deploy.
+- Third-party Actions are pinned to reviewed commit SHAs. Checkout credentials
+  are not persisted after checkout.
 
-4. **Up-to-Date Branch Enforcement**:
-   - Pull request branches must be up to date with `main` before merging.
+## Required repository settings
 
-5. **No Force Pushes**:
-   - Force pushes (`git push --force`) are strictly blocked on `main`.
+The current GitHub credentials cannot read branch-protection settings for this
+repository. Verify these controls in GitHub, and configure any that are absent,
+before treating `main` as protected:
 
----
+1. Require a pull request and at least one approving review.
+2. Require `Frontend Quality Checks & Build`, `Secret Scan`, and
+   `Build Cloud Run Container`.
+3. Require the branch to be current before merging.
+4. Disable force pushes and branch deletion.
 
-## Environment Promotion Lifecycle
+## Production release checklist
 
-```
-[ Local Dev ]  --->  [ Preview PR ]  --->  [ Production main ]
- .env.local            Vercel Preview        Vercel Prod + Cloud Run
-                       Cloud Run Revision
-```
+1. Review the exact diff and confirm there are no unrelated generated files or
+   credentials.
+2. Run `npm ci`, `npm run lint`, `npm run build`, and `git diff --check`.
+3. Push the reviewed commit to `main`.
+4. Wait for both GitHub workflows and the GitHub `Production` deployment status.
+5. Smoke-test `https://www.chickmagnet.xyz/` on desktop and mobile, including
+   sign-in, product browsing, cart, checkout, and authenticated order history.
+6. Confirm `/api` returns `404`; it must not silently serve the SPA shell.
 
-1. **Development (`dev`)**:
-   - Runs locally or on feature branches using `.env.local`.
-   - Uses sandbox M-Pesa credentials and local Docker containers (PostgreSQL + Redis).
+## Backend deployment prerequisites
 
-2. **Preview (`preview`)**:
-   - Automatically triggered on every Pull Request to `main`.
-   - Deploys preview frontend to a unique Vercel URL.
-   - Deploys backend to a Cloud Run preview revision.
-   - Uses sandbox Daraja APIs and isolated preview database schema.
+Do not restore automated Cloud Run deployment until all of the following are
+known and tested:
 
-3. **Production (`production`)**:
-   - Automatically triggered only on merge to `main`.
-   - Deploys frontend to production domain (`sol-alpha-gules.vercel.app`).
-   - Deploys backend to Google Cloud Run with minScale=1 (zero cold starts).
-   - Executes automated smoke tests (`/health` & `/api/v1/products`).
-   - Rolls back automatically if smoke tests fail.
+- Google Cloud project and deployment identity
+- Cloud Run region and service name
+- Artifact Registry repository
+- Exact `*.run.app` service URL and successful `/health` response
+- Runtime secrets and database/cache dependencies
+- A rollback command that names a real prior revision
+- CORS permission for `https://chickmagnet.xyz` and
+  `https://www.chickmagnet.xyz`
+
+After those values exist, stage and smoke-test a new revision before shifting
+production traffic.

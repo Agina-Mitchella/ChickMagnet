@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import { prisma, redis } from './config/index.ts';
 import {
   globalRateLimiter,
-  authRateLimiter,
   paymentRateLimiter,
   searchRateLimiter,
   uploadRateLimiter,
@@ -14,12 +13,10 @@ import {
 import { structuredRequestLogger } from './utils/logger.ts';
 
 // Router imports
-import authRouter from './modules/auth/router.ts';
 import usersRouter from './modules/users/router.ts';
 import makersRouter from './modules/makers/router.ts';
 import shopRouter from './modules/shop/router.ts';
 import productRouter from './modules/products/router.ts';
-import ordersRouter from './modules/orders/router.ts';
 import giftingRouter from './modules/gifting/router.ts';
 import paymentsRouter from './modules/payments/router.ts';
 import cartRouter from './modules/cart/router.ts';
@@ -64,8 +61,17 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       frameSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https://source.unsplash.com", "https://images.unsplash.com"],
-      connectSrc: ["'self'", "https://*.google.com", "https://*.aistudio.google", "ws:", "wss:"],
+      imgSrc: ["'self'", "data:", "https://source.unsplash.com", "https://images.unsplash.com", "https://www.google.com"],
+      connectSrc: [
+        "'self'",
+        "https://*.google.com",
+        "https://*.googleapis.com",
+        "https://*.firebaseio.com",
+        "wss://*.firebaseio.com",
+        "https://*.aistudio.google",
+        "ws:",
+        "wss:"
+      ],
       frameAncestors: ["'self'", "https://*.aistudio.google", "https://*.google.com", "https://*.run.app"]
     }
   },
@@ -120,9 +126,18 @@ app.use(globalRateLimiter);
 // 5. ROUTE MOUNTING WITH SPECIFIC RATE LIMITERS
 // ==========================================
 
-// Auth routes (5 req/min)
-app.use('/api/v1/auth', authRateLimiter, authRouter);
-app.use('/api/auth', authRateLimiter, authRouter);
+// Firebase Auth and owner-scoped Firestore are the canonical account/order path.
+// The legacy local JSON/Prisma routes cannot verify Firebase identity and are
+// deliberately unavailable instead of presenting an insecure parallel system.
+app.all(['/api/v1/auth', '/api/v1/auth/*', '/api/auth', '/api/auth/*'], (_req, res) => {
+  res.status(410).json({
+    success: false,
+    error: {
+      code: 'LEGACY_AUTH_API_DISABLED',
+      message: 'Use Firebase Authentication from the ChickMagnet client.',
+    },
+  });
+});
 
 // Payment routes (10 req/min)
 app.use('/api/v1/payments', paymentRateLimiter, paymentsRouter);
@@ -145,8 +160,15 @@ app.use('/api/makers', makersRouter);
 app.use('/api/v1/shop', shopRouter);
 app.use('/api/shop', shopRouter);
 
-app.use('/api/v1/orders', ordersRouter);
-app.use('/api/orders', ordersRouter);
+app.all(['/api/v1/orders', '/api/v1/orders/*', '/api/orders', '/api/orders/*'], (_req, res) => {
+  res.status(410).json({
+    success: false,
+    error: {
+      code: 'LEGACY_ORDER_API_DISABLED',
+      message: 'Use the authenticated Firestore order flow.',
+    },
+  });
+});
 
 app.use('/api/v1/gifts', giftingRouter);
 app.use('/api/gifts', giftingRouter);

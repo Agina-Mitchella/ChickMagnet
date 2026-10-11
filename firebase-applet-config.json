@@ -1,12 +1,12 @@
 {
-  "projectId": "gen-lang-client-0655097153",
-  "appId": "1:205792581271:web:d2feac1c67d559a25ebbd2",
-  "apiKey": "AIzaSyDbaCW9Qd-64OtSdMobrGluXtRis1STsLI",
-  "authDomain": "gen-lang-client-0655097153.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-chickmagnet-c33ce73f-301f-4822-9979-df8dcc0b4067",
-  "storageBucket": "gen-lang-client-0655097153.firebasestorage.app",
-  "messagingSenderId": "205792581271",
-  "measurementId": "",
-  "oAuthClientId": "205792581271-kv36hocg3ndbpehcslcqiun13r768jjf.apps.googleusercontent.com",
+  "projectId": "chickmagnet-54dad",
+  "appId": "1:212408378484:web:122fe776f39d783a4e5d21",
+  "apiKey": "AIzaSyAP1MJ82J6VQnPiC-O-V1yXUXhR-EMSaoE",
+  "authDomain": "chickmagnet-54dad.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "chickmagnet-54dad.firebasestorage.app",
+  "messagingSenderId": "212408378484",
+  "measurementId": "G-PV8P9F565F",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

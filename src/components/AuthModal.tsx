@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, Mail, Lock, User as UserIcon, LogIn, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { X, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
-import { api } from '../utils/api';
-import { signInWithGoogle, signInWithEmail, registerWithEmail } from '../config/firebase';
+import { getFirebaseAuthorization, signInWithGoogle, signInWithEmail, registerWithEmail } from '../config/firebase';
 import { useBrandLogo } from '../utils/cms';
 
 interface AuthModalProps {
@@ -11,7 +10,6 @@ interface AuthModalProps {
   onClose: () => void;
   onAuthSuccess: (user: User) => void;
   initialMode?: 'signin' | 'register';
-  targetRole?: 'BUYER' | 'KEEPER';
 }
 
 const AVATAR_SYMBOLS = [
@@ -23,7 +21,7 @@ const AVATAR_SYMBOLS = [
   { symbol: '🚜', label: 'Tractor' },
 ];
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signin', targetRole = 'BUYER' }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signin' }: AuthModalProps) {
   const brand = useBrandLogo();
   const [mode, setMode] = useState<'signin' | 'register' | 'welcome'>(initialMode);
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
@@ -37,11 +35,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
   const [name, setName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🐣');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'BUYER' | 'KEEPER'>(targetRole || 'BUYER');
-  
   // Status
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = () => {
     setEmail('');
@@ -54,6 +51,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     setAcceptTerms(false);
     setError(null);
     setSuccessMsg(null);
+    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -65,26 +63,28 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
   React.useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
-      setSelectedRole(targetRole || 'BUYER');
       resetForm();
       setRegisteredUser(null);
     }
-  }, [isOpen, initialMode, targetRole]);
+  }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 
   const handleGoogleSignIn = async () => {
     setError(null);
+    setIsSubmitting(true);
     try {
       const user = await signInWithGoogle();
       const userEmail = user.email || '';
-      const isAdminAccount = userEmail.toLowerCase() === 'uxagina@gmail.com' || userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'manyaos7@gmail.com';
+      const authorization = await getFirebaseAuthorization(user);
       const loggedUser: User = {
+        uid: user.uid,
         email: userEmail,
-        name: user.displayName || (isAdminAccount ? 'Agina (Admin)' : 'Poultry Buyer'),
-        avatarEmoji: isAdminAccount ? '👑' : '🐣',
-        role: isAdminAccount ? 'ADMIN' : 'BUYER',
-        buyerType: isAdminAccount ? 'wholesale' : 'retail'
+        name: user.displayName || 'Poultry Buyer',
+        avatarEmoji: authorization.isAdmin ? '👑' : '🐣',
+        role: authorization.isAdmin ? 'ADMIN' : 'BUYER',
+        buyerType: 'retail',
+        customClaims: authorization.claims,
       };
       onAuthSuccess(loggedUser);
       setSuccessMsg(`Welcome to ChickMagnet, ${loggedUser.name}!`);
@@ -94,7 +94,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       }, 1000);
     } catch (err: any) {
       console.error(err);
-      setError('Google Sign-In failed: ' + (err.message || 'unknown error'));
+      setError('Google sign-in could not be completed. Please try again.');
+      setIsSubmitting(false);
     }
   };
 
@@ -108,16 +109,19 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const isAdminAccount = cleanEmail === 'uxagina@gmail.com' || cleanEmail.includes('admin') || cleanEmail === 'manyaos7@gmail.com';
 
+    setIsSubmitting(true);
     try {
       const fbUser = await signInWithEmail(cleanEmail, password);
+      const authorization = await getFirebaseAuthorization(fbUser);
       const loggedUser: User = {
+        uid: fbUser.uid,
         email: fbUser.email || cleanEmail,
-        name: fbUser.displayName || (isAdminAccount ? 'Agina (Admin)' : cleanEmail.split('@')[0]),
-        avatarEmoji: isAdminAccount ? '👑' : '🐣',
-        role: isAdminAccount ? 'ADMIN' : (targetRole || 'BUYER'),
-        buyerType: isAdminAccount ? 'wholesale' : 'retail'
+        name: fbUser.displayName || cleanEmail.split('@')[0],
+        avatarEmoji: authorization.isAdmin ? '👑' : '🐣',
+        role: authorization.isAdmin ? 'ADMIN' : 'BUYER',
+        buyerType: 'retail',
+        customClaims: authorization.claims,
       };
       
       onAuthSuccess(loggedUser);
@@ -133,10 +137,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         errMsg = 'Invalid email or password. If you are a new user, please register first.';
       } else if (err.code === 'auth/too-many-requests') {
         errMsg = 'Access temporarily disabled due to many failed attempts. Please try again later.';
-      } else if (err.message) {
-        errMsg = err.message;
       }
       setError(errMsg);
+      setIsSubmitting(false);
     }
   };
 
@@ -166,23 +169,25 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const isAdminAccount = cleanEmail === 'uxagina@gmail.com' || cleanEmail.includes('admin') || cleanEmail === 'manyaos7@gmail.com';
 
+    setIsSubmitting(true);
     try {
       const fbUser = await registerWithEmail(
         cleanEmail,
         password,
         name.trim(),
-        selectedEmoji,
-        isAdminAccount ? 'ADMIN' : selectedRole
+        selectedEmoji
       );
+      const authorization = await getFirebaseAuthorization(fbUser);
 
       const loggedUser: User = {
+        uid: fbUser.uid,
         email: fbUser.email || cleanEmail,
         name: name.trim(),
         avatarEmoji: selectedEmoji,
-        role: (isAdminAccount ? 'ADMIN' : selectedRole) as any,
-        buyerType: isAdminAccount ? 'wholesale' : 'retail'
+        role: authorization.isAdmin ? 'ADMIN' : 'BUYER',
+        buyerType: 'retail',
+        customClaims: authorization.claims,
       };
 
       resetForm();
@@ -198,10 +203,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         errMsg = 'Password is too weak. Please use at least 6 characters.';
       } else if (err.code === 'auth/invalid-email') {
         errMsg = 'Please enter a valid email address.';
-      } else if (err.message) {
-        errMsg = err.message;
       }
       setError(errMsg);
+      setIsSubmitting(false);
     }
   };
 
@@ -210,6 +214,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       <div 
         onClick={handleClose}
         className="fixed inset-0 bg-[#0b2217]/80 backdrop-blur-md"
+        aria-hidden="true"
       />
 
       <motion.div 
@@ -217,10 +222,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white border-2 border-emerald-800 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-auto text-emerald-950"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
       >
         <button 
           onClick={handleClose}
           className="absolute top-4 right-4 p-2 text-emerald-800 hover:text-emerald-950 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
+          aria-label="Close account dialog"
         >
           <X className="w-5 h-5" />
         </button>
@@ -232,7 +241,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               Welcome to {brand.brandName || 'ChickMagnet'}, {registeredUser?.name}!
             </h3>
             <p className="text-xs text-emerald-800 mt-2">
-              Your account has been created successfully. Explore our bio-secure poultry marketplace.
+              Your account is ready. You can now shop and keep track of your orders.
             </p>
             <button
               onClick={handleClose}
@@ -244,11 +253,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         ) : (
           <>
             <div className="mb-6 text-center">
-              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-950 border border-amber-300 rounded-full text-xs font-bold font-mono mb-2">
-                📍 Kisii, Kenya
-              </span>
-              <h3 className="font-serif font-black text-2xl text-emerald-950">
-                {mode === 'signin' ? 'Sign In to Account' : 'Create an Account'}
+              <h3 id="auth-modal-title" className="px-8 font-serif text-xl font-black text-emerald-950 sm:text-2xl">
+                {mode === 'signin' ? 'Sign in to your account' : 'Create an account'}
               </h3>
 
               <div className="mt-4 p-1 bg-emerald-50 border border-emerald-200 rounded-xl flex">
@@ -288,12 +294,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               {mode === 'register' && (
                 <>
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-emerald-950 font-mono">Full Name</label>
+                    <label htmlFor="register-name" className="block text-xs font-bold text-emerald-950 font-mono">Full name</label>
                     <input
+                      id="register-name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Agina"
+                      autoComplete="name"
                       className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
                       required
                     />
@@ -307,6 +314,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                           key={item.symbol}
                           type="button"
                           onClick={() => setSelectedEmoji(item.symbol)}
+                          aria-label={item.label}
+                          aria-pressed={selectedEmoji === item.symbol}
                           className={`text-xl p-2 rounded-xl border-2 flex-1 transition-all cursor-pointer ${
                             selectedEmoji === item.symbol ? 'border-amber-500 bg-amber-50 scale-105' : 'border-emerald-200 bg-emerald-50/50'
                           }`}
@@ -320,40 +329,66 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
               )}
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-emerald-950 font-mono">Email Address</label>
+                <label htmlFor="auth-email" className="block text-xs font-bold text-emerald-950 font-mono">Email address</label>
                 <input
+                  id="auth-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. uxagina@gmail.com"
+                  autoComplete="email"
+                  placeholder="you@example.com"
                   className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-emerald-950 font-mono">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
-                  required
-                />
+                <label htmlFor="auth-password" className="block text-xs font-bold text-emerald-950 font-mono">Password</label>
+                <div className="relative">
+                  <input
+                    id="auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    placeholder="••••••••"
+                    className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 pr-11 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-emerald-700"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {mode === 'register' && (
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-emerald-950 font-mono">Confirm Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
-                    required
-                  />
+                  <label htmlFor="confirm-password" className="block text-xs font-bold text-emerald-950 font-mono">Confirm password</label>
+                  <div className="relative">
+                    <input
+                      id="confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                      placeholder="••••••••"
+                      className="w-full bg-white border-2 border-emerald-200 rounded-xl px-4 py-2.5 pr-11 text-xs text-emerald-950 font-medium focus:outline-none focus:border-emerald-700"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((visible) => !visible)}
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-emerald-700"
+                      aria-label={showConfirmPassword ? 'Hide confirmed password' : 'Show confirmed password'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -367,22 +402,24 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
                     className="mt-0.5 accent-emerald-800 rounded cursor-pointer"
                   />
                   <label htmlFor="accept-terms" className="text-xs text-emerald-900 cursor-pointer">
-                    I agree to the ChickMagnet Bio-Security Terms & Conditions.
+                    I agree to the ChickMagnet terms and conditions.
                   </label>
                 </div>
               )}
 
               <button
                 type="submit"
-                className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-md"
+                disabled={isSubmitting}
+                className="w-full bg-emerald-800 hover:bg-emerald-900 disabled:bg-emerald-700/60 disabled:cursor-wait text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-md"
               >
-                {mode === 'signin' ? 'Sign In' : 'Complete Registration'}
+                {isSubmitting ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Complete Registration'}
               </button>
 
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                disabled={isSubmitting}
+                className="w-full bg-amber-400 hover:bg-amber-300 disabled:bg-amber-200 disabled:cursor-wait text-emerald-950 font-bold py-3 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 Sign in with Google
               </button>

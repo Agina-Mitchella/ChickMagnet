@@ -8,25 +8,44 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   onAuthStateChanged,
-  User as FirebaseUser
+  User as FirebaseUser,
+  IdTokenResult,
 } from 'firebase/auth';
-import { initializeFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { initializeFirestore, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
 // Mute internal info/warning/error logs in client console for offline resilience
 setLogLevel('silent');
 
-// Support Vercel environment variables or fallback to firebase-applet-config.json
-const firebaseConfig = {
-  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
-  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
-  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
-  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigJson.storageBucket,
-  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson.messagingSenderId,
-  appId: import.meta.env?.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
-};
+const environmentProjectId = import.meta.env?.VITE_FIREBASE_PROJECT_ID?.trim();
+if (environmentProjectId && environmentProjectId !== firebaseConfigJson.projectId) {
+  throw new Error(
+    `Firebase project mismatch: expected ${firebaseConfigJson.projectId}, received ${environmentProjectId}.`
+  );
+}
 
-const databaseId = import.meta.env?.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId || "(default)";
+// The checked-in Firebase app config is the canonical project binding. Vercel
+// overrides are accepted only when they explicitly identify that same project,
+// which prevents a stale partial environment from mixing two Firebase apps.
+const useEnvironmentConfig = environmentProjectId === firebaseConfigJson.projectId;
+const firebaseConfig = {
+  apiKey: useEnvironmentConfig && import.meta.env?.VITE_FIREBASE_API_KEY
+    ? import.meta.env.VITE_FIREBASE_API_KEY
+    : firebaseConfigJson.apiKey,
+  authDomain: useEnvironmentConfig && import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN
+    ? import.meta.env.VITE_FIREBASE_AUTH_DOMAIN
+    : firebaseConfigJson.authDomain,
+  projectId: firebaseConfigJson.projectId,
+  storageBucket: useEnvironmentConfig && import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET
+    ? import.meta.env.VITE_FIREBASE_STORAGE_BUCKET
+    : firebaseConfigJson.storageBucket,
+  messagingSenderId: useEnvironmentConfig && import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID
+    ? import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID
+    : firebaseConfigJson.messagingSenderId,
+  appId: useEnvironmentConfig && import.meta.env?.VITE_FIREBASE_APP_ID
+    ? import.meta.env.VITE_FIREBASE_APP_ID
+    : firebaseConfigJson.appId,
+};
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
@@ -34,9 +53,41 @@ export const app = initializeApp(firebaseConfig);
 // Initialize Services with long-polling fallback for iframe sandboxes
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-}, databaseId);
+});
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+export interface FirebaseAuthorization {
+  claims: IdTokenResult['claims'];
+  isAdmin: boolean;
+}
+
+export async function getFirebaseAuthorization(user: FirebaseUser): Promise<FirebaseAuthorization> {
+  const tokenResult = await user.getIdTokenResult();
+  const isAdmin = tokenResult.claims.admin === true || tokenResult.claims.role === 'ADMIN';
+  return { claims: tokenResult.claims, isAdmin };
+}
+
+async function ensureUserProfile(
+  user: FirebaseUser,
+  defaults: { displayName?: string; avatarEmoji?: string } = {}
+) {
+  const userRef = doc(db, 'users', user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
+      uid: user.uid,
+      email: user.email || '',
+      displayName: defaults.displayName || user.displayName || 'Poultry Buyer',
+      buyerType: 'retail',
+      avatarEmoji: defaults.avatarEmoji || '🐣',
+      photoURL: user.photoURL || '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
 
 // Standard Error Handler
 export enum OperationType {
@@ -103,24 +154,7 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
     
-    // Check if user exists in Firestore, if not create one
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    
-    const isAdminAccount = user.email?.toLowerCase() === 'uxagina@gmail.com' || user.email?.toLowerCase().includes('admin') || user.email?.toLowerCase() === 'manyaos7@gmail.com';
-
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || (isAdminAccount ? 'Agina (Admin)' : 'Poultry Farmer'),
-        role: isAdminAccount ? 'ADMIN' : 'BUYER',
-        buyerType: isAdminAccount ? 'wholesale' : 'retail',
-        avatarEmoji: isAdminAccount ? '👑' : '🐣',
-        photoURL: user.photoURL,
-        createdAt: new Date().toISOString(),
-      });
-    }
+    await ensureUserProfile(user);
     
     return user;
   } catch (error) {
@@ -135,20 +169,9 @@ export const signInWithEmail = async (email: string, pass: string) => {
     const result = await signInWithEmailAndPassword(auth, email, pass);
     const user = result.user;
 
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      const isAdminAccount = user.email?.toLowerCase() === 'uxagina@gmail.com' || user.email?.toLowerCase().includes('admin') || user.email?.toLowerCase() === 'manyaos7@gmail.com';
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email?.split('@')[0] || 'Member',
-        role: isAdminAccount ? 'ADMIN' : 'BUYER',
-        buyerType: isAdminAccount ? 'wholesale' : 'retail',
-        avatarEmoji: isAdminAccount ? '👑' : '🐣',
-        createdAt: new Date().toISOString(),
-      });
-    }
+    await ensureUserProfile(user, {
+      displayName: user.displayName || user.email?.split('@')[0] || 'Member',
+    });
     return user;
   } catch (error) {
     console.error("Error signing in with email:", error);
@@ -161,8 +184,7 @@ export const registerWithEmail = async (
   email: string,
   pass: string,
   name: string,
-  avatarEmoji: string = '🐣',
-  role: string = 'BUYER'
+  avatarEmoji: string = '🐣'
 ) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
@@ -172,18 +194,9 @@ export const registerWithEmail = async (
       displayName: name
     });
 
-    const isAdminAccount = email.toLowerCase() === 'uxagina@gmail.com' || email.toLowerCase().includes('admin') || email.toLowerCase() === 'manyaos7@gmail.com';
-    const finalRole = isAdminAccount ? 'ADMIN' : role;
-
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: user.email,
+    await ensureUserProfile(user, {
       displayName: name,
-      role: finalRole,
-      buyerType: finalRole === 'ADMIN' ? 'wholesale' : 'retail',
-      avatarEmoji: avatarEmoji || '🐣',
-      createdAt: new Date().toISOString(),
+      avatarEmoji,
     });
 
     return user;

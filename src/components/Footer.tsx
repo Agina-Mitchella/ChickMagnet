@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, ChevronRight, Phone, Mail, User, MapPin } from 'lucide-react';
+import { ArrowUp, ChevronRight, Phone, Mail } from 'lucide-react';
 import { useBrandLogo } from '../utils/cms';
 
 interface FooterProps {
@@ -15,7 +15,7 @@ export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: Foote
     { label: 'Contact & Support Team', action: () => onOpenSupport ? onOpenSupport() : onNavigate?.('about', 'faqs') },
     { label: 'Frequently Asked Questions (FAQs)', action: () => onNavigate?.('about', 'faqs') },
     { label: 'Shop All Catalog', action: () => onNavigate?.('shop') },
-    { label: 'Quality & Guarantees', action: () => onNavigate?.('about', 'quality-guarantees') },
+    { label: 'Ordering Information', action: () => onNavigate?.('about', 'quality-guarantees') },
   ];
 
   return (
@@ -32,22 +32,12 @@ export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: Foote
               Contact Us
             </h3>
             <p className="text-xs text-emerald-200/90 max-w-lg">
-              Have inquiries about day-old chick availability, custom incubator setups, or commercial wholesale orders in Kisii? Get in touch with us directly.
+              Ask about product availability, retail orders, or commercial wholesale orders.
             </p>
           </div>
 
           <div className="w-full lg:w-auto bg-[#0b2217] border border-emerald-700/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-xs shadow-inner">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-400 text-emerald-950 font-bold flex items-center justify-center shrink-0 shadow-xs">
-                <User className="w-5 h-5 text-emerald-950" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-amber-300">Steve Logarn Ositu</div>
-                <div className="text-emerald-300/80 font-mono text-[11px] flex items-center gap-1 mt-0.5">
-                  <MapPin className="w-3 h-3 text-amber-400" /> Kisii, Kenya
-                </div>
-              </div>
-            </div>
+            <div className="font-bold text-sm text-amber-300">ChickMagnet Support</div>
 
             <div className="h-px sm:h-10 w-full sm:w-px bg-emerald-800 my-1 sm:my-0" />
 
@@ -74,7 +64,7 @@ export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: Foote
         <div className="max-w-4xl">
           <div className="flex flex-col space-y-3">
             <h4 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider border-b border-emerald-800 pb-2">
-              Company & Hatchery
+              ChickMagnet
             </h4>
             <ul className="flex flex-wrap gap-x-8 gap-y-3">
               {companyLinks.map((item, idx) => (
@@ -110,7 +100,7 @@ export default function Footer({ onNavigate, onOpenSupport, onOpenAdmin }: Foote
             ) : (
               <span className="font-serif font-black text-amber-400 text-base">{brand.brandName || 'ChickMagnet'}</span>
             )}
-            <span>© {new Date().getFullYear()} {brand.brandName || 'ChickMagnet'} Hatchery Ltd (Kisii, Kenya). All rights reserved.</span>
+            <span>© {new Date().getFullYear()} {brand.brandName || 'ChickMagnet'}. All rights reserved.</span>
           </div>
 
           <button

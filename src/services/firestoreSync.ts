@@ -1,10 +1,15 @@
 import {
-  collection, doc, setDoc, deleteDoc, onSnapshot
+  collection, doc, setDoc, onSnapshot, query, where, updateDoc, serverTimestamp,
+  DocumentData, QuerySnapshot
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../config/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../config/firebase';
 import { Product } from '../types';
 import { INITIAL_PRODUCTS } from '../data/products';
 import { getStoredCMSData, saveStoredCMSData, CMSBlock } from '../utils/cms';
+import { isCurrentStorefrontProduct } from '../utils/storefrontProducts';
+
+const EXPLICIT_STOREFRONT_PRODUCT_IDS_CACHE_KEY = 'chickmagnet_explicit_storefront_product_ids';
+const DEFAULT_PRODUCTS_BY_ID = new Map(INITIAL_PRODUCTS.map(product => [product.id, product]));
 
 function safeSetLocalStorage(key: string, value: string) {
   try {
@@ -22,46 +27,95 @@ function safeSetLocalStorage(key: string, value: string) {
   }
 }
 
+function getExplicitlyEnabledProductIds(): Set<string> {
+  try {
+    const cachedIds = JSON.parse(
+      localStorage.getItem(EXPLICIT_STOREFRONT_PRODUCT_IDS_CACHE_KEY) || '[]'
+    );
+    return new Set(Array.isArray(cachedIds) ? cachedIds.filter(id => typeof id === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function isVisibleFallbackProduct(product: Product, explicitlyEnabledIds: Set<string>): boolean {
+  if (product.showOnStorefront === false) {
+    return false;
+  }
+
+  const defaultProduct = DEFAULT_PRODUCTS_BY_ID.get(product.id);
+  if (defaultProduct) {
+    return isCurrentStorefrontProduct(defaultProduct) || explicitlyEnabledIds.has(product.id);
+  }
+
+  return product.showOnStorefront === true && explicitlyEnabledIds.has(product.id);
+}
+
+export function filterCachedStorefrontProducts(products: Product[]): Product[] {
+  const explicitlyEnabledIds = getExplicitlyEnabledProductIds();
+  return products.filter(product => isVisibleFallbackProduct(product, explicitlyEnabledIds));
+}
+
 // 1. Products Realtime Sync
 export function subscribeProducts(
   onUpdate: (products: Product[]) => void
 ) {
   const collectionRef = collection(db, 'products');
   
-  const unsubscribe = onSnapshot(collectionRef, async (snapshot) => {
+  const unsubscribe = onSnapshot(collectionRef, (snapshot) => {
     try {
-      if (snapshot.empty) {
-        console.log('Seeding initial products to Firestore...');
-        for (const prod of INITIAL_PRODUCTS) {
-          await setDoc(doc(db, 'products', prod.id), prod);
+      const firestoreProducts = new Map(
+        snapshot.docs.map(productDocument => [
+          productDocument.id,
+          productDocument.data() as Partial<Product>,
+        ])
+      );
+      const explicitlyEnabledIds = snapshot.docs
+        .filter(productDocument => productDocument.data().showOnStorefront === true)
+        .map(productDocument => productDocument.id);
+
+      const items: Product[] = INITIAL_PRODUCTS.flatMap(defaultProduct => {
+        const override = firestoreProducts.get(defaultProduct.id);
+        firestoreProducts.delete(defaultProduct.id);
+        const defaultIsVisible = isCurrentStorefrontProduct(defaultProduct);
+        const explicitlyEnabled = override?.showOnStorefront === true;
+
+        if (
+          override?.showOnStorefront === false
+          || (!defaultIsVisible && !explicitlyEnabled)
+        ) {
+          return [];
         }
-        onUpdate(INITIAL_PRODUCTS);
-        safeSetLocalStorage('chickmagnet_products', JSON.stringify(INITIAL_PRODUCTS));
-      } else {
-        const initialImageMap = new Map(INITIAL_PRODUCTS.map(ip => [ip.id, ip.image]));
-        const existingIds = new Set(snapshot.docs.map(d => d.id));
-        const items: Product[] = snapshot.docs.map(d => {
-          const data = d.data() as Product;
-          return {
-            id: d.id,
-            ...data,
-            image: data.image || initialImageMap.get(d.id) || ''
-          };
+
+        return [{
+          ...defaultProduct,
+          ...override,
+          id: defaultProduct.id,
+          showOnStorefront: true,
+        }];
+      });
+
+      for (const [productId, product] of firestoreProducts) {
+        // New products have no built-in visibility. An admin must explicitly
+        // publish them; missing and false values are both treated as hidden.
+        if (product.showOnStorefront !== true) {
+          continue;
+        }
+
+        items.push({
+          ...(product as Product),
+          id: productId,
+          showOnStorefront: true,
         });
-
-        // Seed any newly introduced initial products so the catalog is complete
-        const missingInitial = INITIAL_PRODUCTS.filter(ip => !existingIds.has(ip.id));
-        if (missingInitial.length > 0) {
-          for (const missing of missingInitial) {
-            setDoc(doc(db, 'products', missing.id), missing).catch(() => {});
-            items.push(missing);
-          }
-        }
-
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_products', JSON.stringify(items));
-        window.dispatchEvent(new Event('chickmagnet_products_updated'));
       }
+
+      onUpdate(items);
+      safeSetLocalStorage('chickmagnet_products', JSON.stringify(items));
+      safeSetLocalStorage(
+        EXPLICIT_STOREFRONT_PRODUCT_IDS_CACHE_KEY,
+        JSON.stringify(explicitlyEnabledIds)
+      );
+      window.dispatchEvent(new Event('chickmagnet_products_updated'));
     } catch (err) {
       console.error('Error handling products snapshot:', err);
     }
@@ -72,12 +126,14 @@ export function subscribeProducts(
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          onUpdate(parsed);
+          onUpdate(filterCachedStorefrontProducts(parsed as Product[]));
           return;
         }
       } catch {}
     }
-    onUpdate(INITIAL_PRODUCTS);
+    onUpdate(INITIAL_PRODUCTS.filter(product =>
+      isVisibleFallbackProduct(product, new Set())
+    ));
   });
 
   return unsubscribe;
@@ -85,65 +141,123 @@ export function subscribeProducts(
 
 export async function saveProductToFirestore(product: Product) {
   try {
-    await setDoc(doc(db, 'products', product.id), product);
+    await setDoc(doc(db, 'products', product.id), {
+      ...product,
+      showOnStorefront: product.showOnStorefront !== false,
+    });
     safeSetLocalStorage('chickmagnet_products_last_update', Date.now().toString());
     window.dispatchEvent(new Event('chickmagnet_products_updated'));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `products/${product.id}`);
+    throw error;
   }
 }
 
 export async function deleteProductFromFirestore(productId: string) {
   try {
-    await deleteDoc(doc(db, 'products', productId));
+    await setDoc(doc(db, 'products', productId), {
+      showOnStorefront: false,
+    }, { merge: true });
     window.dispatchEvent(new Event('chickmagnet_products_updated'));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
+    throw error;
   }
 }
 
 // 2. Orders Realtime Sync
-export function subscribeOrders(
-  onUpdate: (orders: any[]) => void,
-  initialOrders: any[] = []
-) {
-  const collectionRef = collection(db, 'orders');
+// Firestore security rules do not filter results. Buyer queries must include the
+// same owner predicate enforced by the rules or Firestore rejects the query.
+function snapshotOrders(snapshot: QuerySnapshot<DocumentData>) {
+  return snapshot.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a: any, b: any) => {
+      const aTime = a.createdAt?.toMillis?.() || 0;
+      const bTime = b.createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+}
 
-  return onSnapshot(collectionRef, async (snapshot) => {
-    try {
-      if (snapshot.empty && initialOrders && initialOrders.length > 0) {
-        for (const order of initialOrders) {
-          const docId = order.id || `order-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-          await setDoc(doc(db, 'orders', docId), { ...order, id: docId });
-        }
-        onUpdate(initialOrders);
-      } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_admin_orders', JSON.stringify(items));
-      }
-    } catch (err) {
-      console.error('Orders snapshot error:', err);
-    }
+export function subscribeUserOrders(userId: string, onUpdate: (orders: any[]) => void) {
+  const ownerQuery = query(collection(db, 'orders'), where('buyerId', '==', userId));
+
+  return onSnapshot(ownerQuery, (snapshot) => {
+    onUpdate(snapshotOrders(snapshot));
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'orders');
-    const saved = localStorage.getItem('chickmagnet_admin_orders');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
-      } catch {}
-    }
-    onUpdate(initialOrders);
+    onUpdate([]);
+  });
+}
+
+export function subscribeAdminOrders(onUpdate: (orders: any[]) => void) {
+  return onSnapshot(collection(db, 'orders'), (snapshot) => {
+    onUpdate(snapshotOrders(snapshot));
+  }, (error) => {
+    handleFirestoreError(error, OperationType.GET, 'orders');
+    onUpdate([]);
   });
 }
 
 export async function saveOrderToFirestore(order: any) {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) {
+    throw new Error('Sign in before submitting an order.');
+  }
+
+  const docId = String(order.id || `order-${Date.now()}`);
+  const orderRecord = {
+    id: docId,
+    buyerId: firebaseUser.uid,
+    buyerEmail: firebaseUser.email || '',
+    date: String(order.date || ''),
+    items: String(order.items || ''),
+    itemCount: Number(order.itemCount || 0),
+    status: 'Payment confirmation pending',
+    statusColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
+    total: Number(order.total || 0),
+    batchId: String(order.batchId || ''),
+    fulfillment: String(order.fulfillment || ''),
+    eta: String(order.eta || ''),
+    deliverySlots: order.deliverySlots || {},
+    buyerType: order.buyerType === 'wholesale' ? 'wholesale' : 'retail',
+    paymentMethod: 'M-Pesa Send Money',
+    paymentNumber: '0724300781',
+    paymentConfirmationStatus: 'pending_manual_review',
+    pricingVerificationStatus: 'pending_manual_review',
+    createdAt: serverTimestamp(),
+  };
+
   try {
-    const docId = order.id || `order-${Date.now()}`;
-    await setDoc(doc(db, 'orders', docId), { ...order, id: docId });
+    await setDoc(doc(db, 'orders', docId), orderRecord);
+    return { ...orderRecord, createdAt: new Date() };
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `orders/${order.id}`);
+    handleFirestoreError(error, OperationType.WRITE, `orders/${docId}`);
+    throw new Error('Your order could not be saved. Please try again before sending another payment confirmation.');
+  }
+}
+
+const ALLOWED_ORDER_STATUSES = new Set([
+  'Payment confirmation pending',
+  'Packed / Weighed',
+  'Dispatched',
+  'Delivered',
+  'Guarantee Window Open',
+  'Closed',
+]);
+
+export async function updateOrderStatusInFirestore(orderId: string, status: string) {
+  if (!ALLOWED_ORDER_STATUSES.has(status)) {
+    throw new Error('Invalid order status.');
+  }
+
+  try {
+    await updateDoc(doc(db, 'orders', orderId), {
+      status,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+    throw new Error('The order status could not be updated.');
   }
 }
 

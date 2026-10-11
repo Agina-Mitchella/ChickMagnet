@@ -12,9 +12,10 @@ import { Product, BuyerType, MainCategory, MortalityClaim, BatchTraceabilityReco
 import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStoredBrandLogo, updateBrandLogo, useBrandLogo, compressImageDataUrl, getCMSValue, DEFAULT_BRAND_LOGO_IMAGE } from '../utils/cms';
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
+import { getWholesaleMinimumForCategory } from '../utils/orderRules';
 import {
-  subscribeOrders,
-  saveOrderToFirestore,
+  subscribeAdminOrders,
+  updateOrderStatusInFirestore,
   subscribeClaims,
   saveClaimToFirestore,
   subscribeWholesale,
@@ -31,9 +32,9 @@ export type AdminRole = 'ADMIN' | 'CONTENT_EDITOR' | 'FULFILLMENT_STAFF';
 
 interface AdminDashboardProps {
   products: Product[];
-  onUpdateProduct: (product: Product) => void;
-  onAddProduct: (product: Product) => void;
-  onDeleteProduct: (productId: string) => void;
+  onUpdateProduct: (product: Product) => Promise<void>;
+  onAddProduct: (product: Product) => Promise<void>;
+  onDeleteProduct: (productId: string) => Promise<void>;
   userOrders: any[];
   onUpdateOrderStatus?: (orderId: string, newStatus: string) => void;
   onOpenStorefrontPreview: () => void;
@@ -304,10 +305,7 @@ export default function AdminDashboard({
     }
   ];
 
-  const [orders, setOrders] = useState<any[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_admin_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-  });
+  const [orders, setOrders] = useState<any[]>([]);
 
   // Claims State
   const [claims, setClaims] = useState<MortalityClaim[]>(() => {
@@ -336,7 +334,7 @@ export default function AdminDashboard({
   // Real-time Firestore Subscriptions for all Admin entities
   useEffect(() => {
     const unsubAudit = subscribeAuditLogs(setAuditLogs, INITIAL_AUDIT_LOGS);
-    const unsubOrders = subscribeOrders(setOrders, INITIAL_ORDERS);
+    const unsubOrders = subscribeAdminOrders(setOrders);
     const unsubClaims = subscribeClaims(setClaims, INITIAL_CLAIMS);
     const unsubWholesale = subscribeWholesale(setWholesaleAccounts, INITIAL_WHOLESALE_ACCOUNTS);
     const unsubBadges = subscribeBadges(setBadges, INITIAL_BADGES);
@@ -365,14 +363,17 @@ export default function AdminDashboard({
     saveAuditLogToFirestore(newEntry);
   };
 
-  const handleAdvanceOrderStatus = (orderId: string, newStatus: string) => {
+  const handleAdvanceOrderStatus = async (orderId: string, newStatus: string) => {
     const targetOrder = orders.find(o => o.id === orderId);
-    if (targetOrder) {
+    if (!targetOrder) return;
+
+    try {
+      await updateOrderStatusInFirestore(orderId, newStatus);
       logAction(currentUser?.name || 'Admin', 'Order Status Update', `Order ${orderId}`, targetOrder.status, newStatus);
-      const updatedOrder = { ...targetOrder, status: newStatus };
-      saveOrderToFirestore(updatedOrder);
+      if (onUpdateOrderStatus) onUpdateOrderStatus(orderId, newStatus);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'The order status could not be updated.');
     }
-    if (onUpdateOrderStatus) onUpdateOrderStatus(orderId, newStatus);
   };
 
   // Order Filters
@@ -492,9 +493,12 @@ export default function AdminDashboard({
   // Product Add / Edit Modal State
   const [selectedProductModal, setSelectedProductModal] = useState<Product | null>(null);
   const [isAddingNewProduct, setIsAddingNewProduct] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [productSaveError, setProductSaveError] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<Partial<Product>>({
     name: '',
     description: '',
+    showOnStorefront: true,
     price: 150,
     wholesalePrice: 130,
     wholesaleMinQty: 50,
@@ -511,45 +515,104 @@ export default function AdminDashboard({
     reviewsCount: 12
   });
 
-  const handleSaveProductForm = () => {
-    if (!productForm.name || !productForm.price) return;
+  const handleSaveProductForm = async () => {
+    const category = (productForm.category as MainCategory) || 'live-birds';
+    const retailPrice = Number(productForm.price);
+    const stock = Number(productForm.stock ?? 0);
+    const image = productForm.image?.trim() || '';
 
-    if (isAddingNewProduct) {
-      const createdProd: Product = {
-        ...productForm,
-        id: `prod-${Date.now()}`,
-        name: productForm.name || 'New Product',
-        description: productForm.description || '',
-        price: Number(productForm.price),
-        wholesalePrice: Number(productForm.wholesalePrice || productForm.price),
-        wholesaleMinQty: Number(productForm.wholesaleMinQty || 50),
-        category: productForm.category as MainCategory || 'live-birds',
-        subCategory: productForm.subCategory as any || 'day-old-chicks',
-        stock: Number(productForm.stock || 100),
-        image: productForm.image || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
-        sellerName: 'ChickMagnet',
-        sellerId: 'farm-1',
-        sellerBadge: 'ChickMagnet Bio-Hatchery',
-        fulfillmentType: productForm.fulfillmentType as any || 'live-climate',
-        tags: productForm.tags || ['Poultry'],
-        rating: 5.0,
-        reviewsCount: 1
-      } as Product;
-
-      onAddProduct(createdProd);
-      logAction(currentUser?.name || 'Admin', 'Product Created', createdProd.name, 'None', `Price Ksh ${createdProd.price}`);
-    } else if (selectedProductModal) {
-      const updatedProd: Product = {
-        ...selectedProductModal,
-        ...productForm
-      } as Product;
-
-      onUpdateProduct(updatedProd);
-      logAction(currentUser?.name || 'Admin', 'Product Updated', updatedProd.name, `Stock ${selectedProductModal.stock}`, `Stock ${updatedProd.stock}`);
+    if (!productForm.name?.trim() || !productForm.description?.trim()) {
+      setProductSaveError('Add a product title and short description.');
+      return;
+    }
+    if (!Number.isFinite(retailPrice) || retailPrice <= 0 || !Number.isFinite(stock) || stock < 0) {
+      setProductSaveError('Enter a valid price and stock quantity.');
+      return;
+    }
+    try {
+      const imageUrl = new URL(image);
+      if (!['http:', 'https:'].includes(imageUrl.protocol)) throw new Error();
+    } catch {
+      setProductSaveError('Add a public http or https image URL.');
+      return;
     }
 
-    setSelectedProductModal(null);
-    setIsAddingNewProduct(false);
+    const fulfillmentType = category === 'live-birds'
+      ? 'live-climate'
+      : category === 'fresh-poultry'
+        ? 'chilled-express'
+        : category === 'processed'
+          ? 'frozen-deep'
+          : 'dry-ambient';
+
+    setIsSavingProduct(true);
+    setProductSaveError(null);
+
+    try {
+      if (isAddingNewProduct) {
+        const createdProd: Product = {
+          ...productForm,
+          id: `prod-${Date.now()}`,
+          name: productForm.name.trim(),
+          description: productForm.description.trim(),
+          showOnStorefront: productForm.showOnStorefront ?? true,
+          price: retailPrice,
+          wholesalePrice: Number(productForm.wholesalePrice || retailPrice),
+          wholesaleMinQty: getWholesaleMinimumForCategory(category),
+          category,
+          subCategory: productForm.subCategory as any || (category === 'eggs' ? 'table-eggs' : 'day-old-chicks'),
+          stock,
+          image,
+          sellerName: 'ChickMagnet',
+          sellerId: 'chickmagnet',
+          sellerBadge: 'Sold by ChickMagnet',
+          fulfillmentType,
+          tags: productForm.tags || ['Chicken'],
+          rating: 4.9,
+          reviewsCount: 0
+        } as Product;
+
+        await onAddProduct(createdProd);
+        logAction(currentUser?.name || 'Admin', 'Product Created', createdProd.name, 'None', `Price Ksh ${createdProd.price}`);
+      } else if (selectedProductModal) {
+        const updatedProd: Product = {
+          ...selectedProductModal,
+          ...productForm,
+          name: productForm.name.trim(),
+          description: productForm.description.trim(),
+          price: retailPrice,
+          stock,
+          image,
+          category,
+          fulfillmentType,
+          sellerName: 'ChickMagnet',
+          sellerId: 'chickmagnet',
+          sellerBadge: 'Sold by ChickMagnet',
+          wholesaleMinQty: getWholesaleMinimumForCategory(category)
+        } as Product;
+
+        await onUpdateProduct(updatedProd);
+        logAction(currentUser?.name || 'Admin', 'Product Updated', updatedProd.name, `Stock ${selectedProductModal.stock}`, `Stock ${updatedProd.stock}`);
+      }
+
+      setSelectedProductModal(null);
+      setIsAddingNewProduct(false);
+    } catch (error) {
+      setProductSaveError(error instanceof Error ? error.message : 'The product could not be saved.');
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    const confirmed = window.confirm(`Remove "${product.name}" from the catalog? This cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await onDeleteProduct(product.id);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'The product could not be removed.');
+    }
   };
 
   // Filtered Orders
@@ -648,6 +711,7 @@ export default function AdminDashboard({
           setSelectedProductModal(null);
           setProductForm({
             name: '',
+            showOnStorefront: true,
             price: 150,
             wholesalePrice: 130,
             wholesaleMinQty: 50,
@@ -1518,9 +1582,11 @@ export default function AdminDashboard({
                 onClick={() => {
                   setIsAddingNewProduct(true);
                   setSelectedProductModal({} as Product);
+                  setProductSaveError(null);
                   setProductForm({
                     name: '',
                     description: '',
+                    showOnStorefront: true,
                     price: 150,
                     wholesalePrice: 130,
                     stock: 500,
@@ -1560,6 +1626,7 @@ export default function AdminDashboard({
                       onClick={() => {
                         setSelectedProductModal(product);
                         setIsAddingNewProduct(false);
+                        setProductSaveError(null);
                         setProductForm(product);
                       }}
                       className="text-emerald-800 hover:text-emerald-950 hover:underline font-bold flex items-center gap-1 cursor-pointer"
@@ -1569,7 +1636,8 @@ export default function AdminDashboard({
                     </button>
 
                     <button
-                      onClick={() => onDeleteProduct(product.id)}
+                      type="button"
+                      onClick={() => handleDeleteProduct(product)}
                       className="text-rose-600 hover:text-rose-700 hover:underline font-medium flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -2070,7 +2138,7 @@ export default function AdminDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-800 font-bold mb-1">Homesteader Price (Ksh)</label>
+                  <label className="block text-slate-800 font-bold mb-1">Retail Price (Ksh)</label>
                   <input
                     type="number"
                     value={productForm.price}
@@ -2116,6 +2184,23 @@ export default function AdminDashboard({
                   />
                 </div>
               </div>
+
+              <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={productForm.showOnStorefront ?? productForm.category !== 'farm-supplies'}
+                  onChange={(e) => setProductForm({ ...productForm, showOnStorefront: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 accent-emerald-700"
+                />
+                <span>
+                  <span className="block text-sm font-bold text-slate-900">Show on storefront</span>
+                  <span className="block text-xs text-slate-600">Turn this off to keep the product in the CMS without offering it for sale.</span>
+                </span>
+              </label>
+
+              <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                Wholesale minimums are applied automatically: 10 for chicken and 5 for egg products.
+              </p>
 
               <div>
                 <label className="block text-slate-800 font-bold mb-1">Short Summary Description</label>
@@ -2238,29 +2323,19 @@ export default function AdminDashboard({
                       placeholder="https://images.unsplash.com/..."
                       className="w-full bg-white border border-slate-200 p-1.5 rounded-lg text-slate-900 font-mono text-xs focus:outline-none focus:border-emerald-600"
                     />
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              if (typeof reader.result === 'string') {
-                                setProductForm({ ...productForm, image: reader.result });
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="block w-full text-[11px] text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-amber-400 file:text-emerald-950 hover:file:bg-amber-500 cursor-pointer"
-                      />
-                    </div>
+                    <p className="text-[11px] leading-relaxed text-slate-500">
+                      Use a public image URL. Direct uploads are disabled until image storage is connected.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
+
+            {productSaveError ? (
+              <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800">
+                {productSaveError}
+              </div>
+            ) : null}
 
             <div className="pt-3 border-t border-slate-100 flex justify-between">
               <button
@@ -2271,9 +2346,10 @@ export default function AdminDashboard({
               </button>
               <button
                 onClick={handleSaveProductForm}
-                className="bg-amber-400 hover:bg-amber-500 text-emerald-950 font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer"
+                disabled={isSavingProduct}
+                className="bg-amber-400 hover:bg-amber-500 text-emerald-950 font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:cursor-wait disabled:opacity-60"
               >
-                Save SKU
+                {isSavingProduct ? 'Saving…' : 'Save product'}
               </button>
             </div>
           </div>

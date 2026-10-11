@@ -1,17 +1,20 @@
 import { Product, FarmSeller, BatchTraceabilityRecord, WholesaleStandingOrder, MortalityClaim, BreedDropdownOption } from '../types';
 
+const poultryChicksImage = '/images/chickmagnet-chicks.jpg';
+const roosterHenImage = '/images/chickmagnet-live-chicken.jpg';
+
 export const INITIAL_BREED_DROPDOWN_OPTIONS: BreedDropdownOption[] = [
-  { id: 'breed-all', label: 'All Poultry & Breeds', breedQuery: '', category: 'all', description: 'Browse entire hatchery & supply catalog', active: true },
-  { id: 'breed-kienyeji', label: 'Improved Kienyeji (KALRO)', breedQuery: 'Kienyeji', category: 'live-birds', description: 'Hardy indigenous dual-purpose, 220+ eggs/yr', active: true },
-  { id: 'breed-kenbro', label: 'Kenbro Dual-Purpose', breedQuery: 'Kenbro', category: 'live-birds', description: 'Heavy meat & high egg production bird', active: true },
-  { id: 'breed-kuroiler', label: 'Kuroiler Heritage', breedQuery: 'Kuroiler', category: 'live-birds', description: 'Rapid growth, scavenger champion, large brown eggs', active: true },
-  { id: 'breed-sasso', label: 'Sasso Dual-Purpose', breedQuery: 'Sasso', category: 'live-birds', description: 'French dual-purpose free-range champion', active: true },
-  { id: 'breed-broiler', label: 'Cobb 500 Fast Broilers', breedQuery: 'Broiler', category: 'live-birds', description: 'Fast 32-35 day feed conversion meat bird', active: true },
-  { id: 'breed-rainbow', label: 'Rainbow Rooster', breedQuery: 'Rainbow Rooster', category: 'live-birds', description: 'High disease resistance, colorful homestead favorite', active: true },
-  { id: 'breed-australorp', label: 'Black Australorp Heritage', breedQuery: 'Australorp', category: 'live-birds', description: 'High-egg yield docility champion, 250+ eggs/yr', active: true },
-  { id: 'breed-layers', label: 'Point-of-Lay Pullets', breedQuery: 'Point-of-Lay', category: 'live-birds', description: '18-week ready-to-lay vaccinated hens', active: true },
-  { id: 'breed-eggs', label: 'Fertile Hatching Eggs', breedQuery: 'Hatching Eggs', category: 'eggs', description: '90%+ fertility rate verified hatching eggs', active: true },
-  { id: 'breed-cuts', label: 'Fresh Poultry Cuts', breedQuery: 'Cuts', category: 'fresh-poultry', description: 'Air-chilled boneless breast, wings, thighs & whole birds', active: true },
+  { id: 'breed-all', label: 'All Products', breedQuery: '', category: 'all', description: 'Browse chicken and eggs', active: true },
+  { id: 'breed-kienyeji', label: 'Improved Kienyeji', breedQuery: 'Kienyeji', category: 'live-birds', description: 'Improved Kienyeji chicken', active: true },
+  { id: 'breed-kenbro', label: 'Kenbro', breedQuery: 'Kenbro', category: 'live-birds', description: 'Kenbro chicken', active: true },
+  { id: 'breed-kuroiler', label: 'Kuroiler', breedQuery: 'Kuroiler', category: 'live-birds', description: 'Kuroiler chicken', active: true },
+  { id: 'breed-sasso', label: 'Sasso', breedQuery: 'Sasso', category: 'live-birds', description: 'Sasso chicks and hatching eggs', active: true },
+  { id: 'breed-broiler', label: 'Cobb 500 Broilers', breedQuery: 'Broiler', category: 'live-birds', description: 'Cobb 500 broiler chicks', active: true },
+  { id: 'breed-rainbow', label: 'Rainbow', breedQuery: 'Rainbow', category: 'live-birds', description: 'Rainbow chicks', active: true },
+  { id: 'breed-australorp', label: 'Black Australorp', breedQuery: 'Australorp', category: 'live-birds', description: 'Black Australorp chicks', active: true },
+  { id: 'breed-layers', label: 'Mature Chicken', breedQuery: '18 Weeks', category: 'live-birds', description: 'Chicken at approximately 18 weeks', active: true },
+  { id: 'breed-eggs', label: 'Hatching Eggs', breedQuery: 'Hatching Eggs', category: 'eggs', description: 'Eggs for hatching', active: true },
+  { id: 'breed-cuts', label: 'Fresh Chicken Cuts', breedQuery: 'Chicken', category: 'fresh-poultry', description: 'Whole chicken and fresh cuts', active: true },
   { id: 'breed-supplies', label: 'Feeds, Drinkers & Supplies', breedQuery: 'Feed', category: 'farm-supplies', description: 'Starter mash, feeders, drinkers & incubators', active: true },
 ];
 
@@ -189,9 +192,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     reviewsCount: 34,
     category: 'live-birds',
     subCategory: 'breeding-stock',
-    image: 'https://images.unsplash.com/photo-1598965402089-897ce52e8355?auto=format&fit=crop&w=800&q=80',
+    image: roosterHenImage,
     images: [
-      'https://images.unsplash.com/photo-1598965402089-897ce52e8355?auto=format&fit=crop&w=800&q=80',
+      roosterHenImage,
       'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=800&q=80'
     ],
@@ -274,9 +277,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     reviewsCount: 128,
     category: 'live-birds',
     subCategory: 'day-old-chicks',
-    image: 'https://images.unsplash.com/photo-1598965402089-897ce52e8355?auto=format&fit=crop&w=800&q=80',
+    image: poultryChicksImage,
     images: [
-      'https://images.unsplash.com/photo-1598965402089-897ce52e8355?auto=format&fit=crop&w=800&q=80',
+      poultryChicksImage,
       'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=800&q=80'
     ],
@@ -2808,4 +2811,3 @@ export const MOCK_MORTALITY_CLAIMS: MortalityClaim[] = [
     claimDate: '2026-07-28'
   }
 ];
-

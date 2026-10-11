@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest, requireRoles, paymentRateLimiter } from '../.
 import { tryCatch } from '../../utils/index.ts';
 import { StructuredLogger } from '../../utils/logger.ts';
 import { initiateMpesaStkPush, handleMpesaCallbackPayload, getMpesaTransactionStatus } from '../../services/mpesa.ts';
+import { getWholesaleMinimumForCategory } from '../../utils/orderRules.ts';
 
 const paymentsRouter = Router();
 
@@ -17,13 +18,38 @@ paymentsRouter.use(paymentRateLimiter);
 // @route   POST /api/v1/payments/mpesa/stkpush
 // Initiates Safaricom Lipa Na M-Pesa Online STK Push prompt to customer handset
 paymentsRouter.post('/mpesa/stkpush', tryCatch(async (req: any, res: any) => {
-  const { phoneNumber, amount, accountReference, transactionDesc } = req.body;
+  const { phoneNumber, amount, accountReference, transactionDesc, buyerType = 'retail', items = [] } = req.body;
 
   if (!phoneNumber || !amount) {
     return res.status(400).json({
       success: false,
       error: { message: 'Phone number and amount are required for M-Pesa STK push.' }
     });
+  }
+
+  if (buyerType === 'wholesale') {
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Wholesale payment requires order items.' }
+      });
+    }
+
+    for (const item of items) {
+      const quantity = Number(item.quantity);
+      const minimum = getWholesaleMinimumForCategory(item.category);
+      if (!Number.isInteger(quantity) || quantity < minimum) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'WHOLESALE_MINIMUM_NOT_MET',
+            message: `${item.category === 'eggs' ? 'Egg' : 'Chicken'} wholesale orders require at least ${minimum} units per product.`,
+            productId: item.productId,
+            minimum
+          }
+        });
+      }
+    }
   }
 
   const result = await initiateMpesaStkPush({

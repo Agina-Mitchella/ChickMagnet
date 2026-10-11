@@ -1,8 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -11,73 +9,191 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // CMS Blocks & Content Configuration
-    // Public read for customer-facing rendering, authenticated/admin write with schema validation
+    function isAdmin() {
+      return isAuthenticated()
+        && (request.auth.token.admin == true || request.auth.token.role == 'ADMIN');
+    }
+
+    function validBuyerType(value) {
+      return value == 'retail' || value == 'wholesale';
+    }
+
+    function validProfileCreate(userId) {
+      return request.resource.data.keys().hasAll([
+          'uid', 'email', 'displayName', 'buyerType', 'avatarEmoji',
+          'photoURL', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'buyerType', 'avatarEmoji',
+          'photoURL', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1
+        && request.resource.data.displayName.size() <= 100
+        && validBuyerType(request.resource.data.buyerType)
+        && request.resource.data.avatarEmoji is string
+        && request.resource.data.photoURL is string
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validProfileUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'buyerType', 'avatarEmoji', 'photoURL', 'updatedAt'
+        ])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1
+        && request.resource.data.displayName.size() <= 100
+        && validBuyerType(request.resource.data.buyerType)
+        && request.resource.data.avatarEmoji is string
+        && request.resource.data.photoURL is string
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validOrderStatus(value) {
+      return value == 'Payment confirmation pending'
+        || value == 'Packed / Weighed'
+        || value == 'Dispatched'
+        || value == 'Delivered'
+        || value == 'Guarantee Window Open'
+        || value == 'Closed';
+    }
+
+    function validPaymentConfirmationStatus(value) {
+      return value == 'pending_manual_review'
+        || value == 'confirmed'
+        || value == 'rejected';
+    }
+
+    function validPricingVerificationStatus(value) {
+      return value == 'pending_manual_review'
+        || value == 'verified'
+        || value == 'rejected';
+    }
+
+    function validOrderCreate(orderId) {
+      return request.resource.data.keys().hasAll([
+          'id', 'buyerId', 'buyerEmail', 'date', 'items', 'itemCount',
+          'status', 'statusColor', 'total', 'batchId', 'fulfillment', 'eta',
+          'deliverySlots', 'buyerType', 'paymentMethod', 'paymentNumber',
+          'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id', 'buyerId', 'buyerEmail', 'date', 'items', 'itemCount',
+          'status', 'statusColor', 'total', 'batchId', 'fulfillment', 'eta',
+          'deliverySlots', 'buyerType', 'paymentMethod', 'paymentNumber',
+          'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt'
+        ])
+        && request.resource.data.id == orderId
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.buyerEmail == request.auth.token.email
+        && request.resource.data.date is string
+        && request.resource.data.items is string
+        && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 5000
+        && request.resource.data.itemCount is int
+        && request.resource.data.itemCount >= 1
+        && request.resource.data.itemCount <= 10000
+        && request.resource.data.status == 'Payment confirmation pending'
+        && request.resource.data.statusColor == 'bg-amber-500/20 text-amber-900 border-amber-500/40'
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.total <= 100000000
+        && request.resource.data.batchId is string
+        && request.resource.data.fulfillment is string
+        && request.resource.data.eta is string
+        && request.resource.data.deliverySlots is map
+        && validBuyerType(request.resource.data.buyerType)
+        && request.resource.data.paymentMethod == 'M-Pesa Send Money'
+        && request.resource.data.paymentNumber == '0724300781'
+        && request.resource.data.paymentConfirmationStatus == 'pending_manual_review'
+        && request.resource.data.pricingVerificationStatus == 'pending_manual_review'
+        && request.resource.data.createdAt == request.time;
+    }
+
+    function validAdminOrderUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'paymentConfirmationStatus', 'pricingVerificationStatus', 'updatedAt'
+        ])
+        && validOrderStatus(request.resource.data.status)
+        && validPaymentConfirmationStatus(request.resource.data.paymentConfirmationStatus)
+        && validPricingVerificationStatus(request.resource.data.pricingVerificationStatus)
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /system/{documentId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && validProfileCreate(userId);
+      allow update: if isOwner(userId) && validProfileUpdate();
+      allow delete: if false;
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.buyerId == request.auth.uid);
+      allow create: if isAuthenticated() && validOrderCreate(orderId);
+      allow update: if isAdmin() && validAdminOrderUpdate();
+      allow delete: if false;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /cms_blocks/{blockId} {
       allow read: if true;
-      allow write: if true; // Fallback for demo admin / authenticated staff
+      allow create, update, delete: if isAdmin();
     }
 
     match /cms_audit_logs/{logId} {
-      allow read: if true;
-      allow create: if true;
+      allow read, create: if isAdmin();
       allow update, delete: if false;
     }
 
-    // Products & Inventory
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if true;
+    match /admin_audit_logs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
     }
 
-    // Orders & Transactions
-    match /orders/{orderId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if false;
-    }
-
-    // Mortality & Assurance Claims
-    match /claims/{claimId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if false;
-    }
-
-    // Wholesale B2B Applications
-    match /wholesale_applications/{appId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Seller Badges & Certifications
     match /seller_badges/{badgeId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Hatchery Batches & Bio-Security Records
     match /hatchery_batches/{batchId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Admin Audit Logs
-    match /admin_audit_logs/{logId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if false;
+    match /claims/{claimId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.buyerId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.buyerId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
     }
 
-    // Users
-    match /users/{userId} {
-      allow read, write: if true;
+    match /wholesale_applications/{appId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.applicantId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.applicantId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
     }
 
     match /custom_creations/{creationId} {
-      allow read, write: if true;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

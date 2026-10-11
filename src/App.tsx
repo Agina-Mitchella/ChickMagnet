@@ -8,28 +8,27 @@ import ProductDetail from './components/ProductDetail';
 import CartDrawer from './components/CartDrawer';
 import CheckoutRitual from './components/CheckoutRitual';
 import BatchTraceabilityPortal from './components/BatchTraceabilityPortal';
-import WholesalePortal from './components/WholesalePortal';
 import MortalityClaimRitual from './components/MortalityClaimRitual';
 import CongratsModal from './components/CongratsModal';
 import AboutLore from './components/AboutLore';
 import AuthModal from './components/AuthModal';
-import ChatbotHelp from './components/ChatbotHelp';
 import Footer from './components/Footer';
 import AccountDashboard from './components/AccountDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import BusinessPlanHub from './components/BusinessPlanHub';
 import heroChickenImage from './assets/images/hero_poultry_chicks_1785408878635.jpg';
-import { ShieldCheck, Activity, Truck, Sparkles, HelpCircle, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import {
   subscribeProducts,
+  filterCachedStorefrontProducts,
   saveProductToFirestore,
   deleteProductFromFirestore,
-  subscribeOrders,
+  subscribeUserOrders,
   saveOrderToFirestore,
   subscribeCMSBlocks
 } from './services/firestoreSync';
-import { logoutUser, subscribeAuthUser } from './config/firebase';
-import { useCMSBlock } from './utils/cms';
+import { getFirebaseAuthorization, logoutUser, subscribeAuthUser } from './config/firebase';
+import { applyStorefrontCopy, isCurrentStorefrontProduct } from './utils/storefrontProducts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>('shop');
@@ -47,16 +46,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed: Product[] = JSON.parse(saved);
-        if (parsed.length > 0) {
-          const parsedMap = new Map(parsed.map(p => [p.id, p]));
-          const combined = [...parsed];
-          for (const initP of INITIAL_PRODUCTS) {
-            if (!parsedMap.has(initP.id)) {
-              combined.push(initP);
-            }
-          }
-          rawProducts = combined;
-        }
+        if (parsed.length > 0) rawProducts = filterCachedStorefrontProducts(parsed);
       } catch {
         rawProducts = INITIAL_PRODUCTS;
       }
@@ -79,10 +69,6 @@ export default function App() {
       });
   });
 
-  // CMS Live Blocks
-  const heroHeadline = useCMSBlock('hero_headline', 'Your Favorite Marketplace for Premium Poultry & Hatchery Supplies');
-  const heroSubhead = useCMSBlock('hero_subhead', 'Bio-secure Kenbro & Kienyeji chicks, air-chilled cuts, and hatching eggs delivered via climate-controlled transit with 48-hour mortality guarantee.');
-
   // Admin Dashboard Mode
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isBusinessPlanOpen, setIsBusinessPlanOpen] = useState<boolean>(false);
@@ -101,15 +87,18 @@ export default function App() {
   // Portals & Modals
   const [isTraceabilityOpen, setIsTraceabilityOpen] = useState<boolean>(false);
   const [traceBatchId, setTraceBatchId] = useState<string>('BATCH-2026-CHX9');
-  const [isWholesaleOpen, setIsWholesaleOpen] = useState<boolean>(false);
   const [isClaimsOpen, setIsClaimsOpen] = useState<boolean>(false);
 
   // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
+  const [resumeCheckoutAfterAuth, setResumeCheckoutAfterAuth] = useState(false);
   // Default to null until Firebase Auth initializes
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const isCurrentUserAdmin = Boolean(
+    currentUser?.customClaims?.admin === true || currentUser?.customClaims?.role === 'ADMIN'
+  );
 
   // Sync Cart to localStorage
   useEffect(() => {
@@ -120,31 +109,25 @@ export default function App() {
   useEffect(() => {
     const unsubAuth = subscribeAuthUser(async (firebaseUser, profileData) => {
       if (firebaseUser) {
-        let customClaims: any = undefined;
+        let customClaims: any = {};
+        let isAdmin = false;
         try {
-          const tokenResult = await firebaseUser.getIdTokenResult();
-          customClaims = tokenResult?.claims;
+          const authorization = await getFirebaseAuthorization(firebaseUser);
+          customClaims = authorization.claims;
+          isAdmin = authorization.isAdmin;
         } catch (e) {
           console.warn('Could not read id token result:', e);
         }
 
         const userEmail = firebaseUser.email || '';
-        const hasAdminClaim = Boolean(customClaims?.admin === true);
-        const isAdminAccount = hasAdminClaim || 
-          userEmail.toLowerCase() === 'uxagina@gmail.com' || 
-          userEmail.toLowerCase().includes('admin') || 
-          userEmail.toLowerCase() === 'manyaos7@gmail.com' ||
-          profileData?.role?.toUpperCase() === 'ADMIN' ||
-          profileData?.role?.toLowerCase() === 'admin';
-
-        const userRole = isAdminAccount ? 'admin' : (profileData?.role?.toLowerCase() || 'buyer');
 
         const userObj: User = {
+          uid: firebaseUser.uid,
           email: userEmail,
-          name: profileData?.displayName || firebaseUser.displayName || (isAdminAccount ? 'Agina (Admin)' : userEmail.split('@')[0] || 'Poultry Member'),
-          role: userRole,
-          buyerType: profileData?.buyerType || (isAdminAccount ? 'wholesale' : 'retail'),
-          avatarEmoji: profileData?.avatarEmoji || (isAdminAccount ? '👑' : '🐣'),
+          name: profileData?.displayName || firebaseUser.displayName || userEmail.split('@')[0] || 'Poultry Member',
+          role: isAdmin ? 'ADMIN' : 'BUYER',
+          buyerType: profileData?.buyerType === 'wholesale' ? 'wholesale' : 'retail',
+          avatarEmoji: profileData?.avatarEmoji || (isAdmin ? '👑' : '🐣'),
           photoURL: firebaseUser.photoURL || undefined,
           customClaims: customClaims
         };
@@ -160,25 +143,21 @@ export default function App() {
     };
   }, []);
 
-  // Real-time Firestore sync for Products, Orders, and CMS Blocks
+  // Public products and CMS content are independent of the signed-in account.
   useEffect(() => {
     const unsubProducts = subscribeProducts((updatedProducts) => {
       setProducts(updatedProducts);
-    });
-    const unsubOrders = subscribeOrders((updatedOrders) => {
-      setUserOrders(updatedOrders);
     });
     const unsubCMS = subscribeCMSBlocks();
 
     return () => {
       unsubProducts();
-      unsubOrders();
       unsubCMS();
     };
   }, []);
 
   // Handle Cart Operations
-  const handleAddToCart = (product: Product, quantity: number = 1, selectedSex?: 'male' | 'female' | 'unsexed') => {
+  const handleAddToCart = (product: Product, quantity: number = 1) => {
     const fulfillmentGroup = product.category === 'live-birds' 
       ? 'live-climate' 
       : product.category === 'fresh-poultry' 
@@ -193,7 +172,7 @@ export default function App() {
       updated[existingIndex].quantity += quantity;
       setCartItems(updated);
     } else {
-      setCartItems([...cartItems, { product, quantity, fulfillmentGroup, selectedSex }]);
+      setCartItems([...cartItems, { product, quantity, fulfillmentGroup }]);
     }
 
     setIsCartOpen(true);
@@ -216,71 +195,76 @@ export default function App() {
     setIsTraceabilityOpen(true);
   };
 
-  const [userOrders, setUserOrders] = useState<any[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_user_orders');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [userOrders, setUserOrders] = useState<any[]>([]);
 
-  const handleOrderCompleted = (summary: any) => {
-    setCompletedOrderSummary(summary);
-    setCartItems([]);
-    setIsCheckoutOpen(false);
+  // A buyer only subscribes to documents whose buyerId matches their Firebase UID.
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setUserOrders([]);
+      return;
+    }
 
+    return subscribeUserOrders(currentUser.uid, setUserOrders);
+  }, [currentUser?.uid]);
+
+  const handleOrderCompleted = async (summary: any) => {
     const firstSlot = summary.deliverySlots ? (Object.values(summary.deliverySlots)[0] as string) : 'Scheduled Dispatch Slot';
     const newOrderRecord = {
       id: summary.orderId,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       items: summary.items.map((i: any) => `${i.quantity}x ${i.product.name}`).join(', '),
-      status: 'Confirmed & Scheduled',
-      statusColor: 'bg-emerald-500/20 text-emerald-800 border-emerald-500/40',
+      itemCount: summary.items.reduce((count: number, item: any) => count + Number(item.quantity || 0), 0),
+      status: 'Payment confirmation pending',
+      statusColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
       total: summary.grandTotal,
-      batchId: summary.batchIds?.[0] || 'BATCH-2026-CHX9',
+      batchId: summary.batchIds?.[0] || '',
       fulfillment: summary.items?.[0]?.fulfillmentGroup === 'live-climate' ? 'Live Express Transport' : 'Express Delivery',
       eta: firstSlot,
-      deliverySlots: summary.deliverySlots
+      deliverySlots: summary.deliverySlots,
+      buyerType: summary.buyerType,
+      paymentMethod: summary.paymentMethod,
+      paymentNumber: summary.paymentNumber,
+      paymentConfirmationStatus: summary.paymentConfirmationStatus
     };
 
-    saveOrderToFirestore(newOrderRecord);
+    await saveOrderToFirestore(newOrderRecord);
+    setCompletedOrderSummary(summary);
+    setCartItems([]);
+    setIsCheckoutOpen(false);
   };
 
   // Product CRUD Handlers (Writing to Firestore)
-  const handleUpdateProduct = (updatedProduct: Product) => {
-    saveProductToFirestore(updatedProduct);
+  const handleUpdateProduct = async (updatedProduct: Product) => {
+    await saveProductToFirestore(updatedProduct);
     setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
   };
 
-  const handleAddProduct = (newProduct: Product) => {
-    saveProductToFirestore(newProduct);
+  const handleAddProduct = async (newProduct: Product) => {
+    await saveProductToFirestore(newProduct);
     setProducts(prev => [newProduct, ...prev.filter(p => p.id !== newProduct.id)]);
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    deleteProductFromFirestore(productId);
+  const handleDeleteProduct = async (productId: string) => {
+    await deleteProductFromFirestore(productId);
     setProducts(prev => prev.filter(p => p.id !== productId));
   };
 
   // Filter Products
-  const VALID_CATEGORIES = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies'];
-  const filteredProducts = products.filter(p => {
+  const VALID_CATEGORIES = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies', 'processed'];
+  const storefrontProducts = products
+    .filter(isCurrentStorefrontProduct)
+    .map(applyStorefrontCopy);
+  const filteredProducts = storefrontProducts.filter(p => {
     if (!VALID_CATEGORIES.includes(p.category)) return false;
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.sellerName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Filter by buyer mode if applicable
-    let matchesBuyerType = true;
-    if (buyerType === 'farmer') {
-      matchesBuyerType = p.category === 'live-birds' || p.category === 'farm-supplies' || p.category === 'eggs';
-    } else if (buyerType === 'retail') {
-      matchesBuyerType = p.category !== 'farm-supplies' || p.price < 5000;
-    }
+                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesCategory && matchesSearch && matchesBuyerType;
+    return matchesCategory && matchesSearch;
   });
 
   // If Admin Dashboard mode is active, render full-screen Admin View
-  if (isAdminOpen) {
+  if (isAdminOpen && isCurrentUserAdmin) {
     return (
       <AdminDashboard
         products={products}
@@ -325,14 +309,13 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onOpenTraceability={() => setIsTraceabilityOpen(true)}
-        onOpenWholesale={() => setIsWholesaleOpen(true)}
         onOpenClaims={() => setIsClaimsOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
         onOpenBusinessPlan={() => setIsBusinessPlanOpen(true)}
       />
 
       {/* Admin Dashboard Command Overlay View */}
-      {isAdminOpen && (
+      {isAdminOpen && isCurrentUserAdmin && (
         <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
           <AdminDashboard
             products={products}
@@ -340,12 +323,6 @@ export default function App() {
             onAddProduct={handleAddProduct}
             onDeleteProduct={handleDeleteProduct}
             userOrders={userOrders}
-            onUpdateOrderStatus={(orderId, newStatus) => {
-              const updated = userOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
-              setUserOrders(updated);
-              localStorage.setItem('chickmagnet_user_orders', JSON.stringify(updated));
-              window.dispatchEvent(new Event('chickmagnet_user_orders_updated'));
-            }}
             onOpenStorefrontPreview={() => setIsAdminOpen(false)}
             currentUser={currentUser}
             onCloseAdmin={() => setIsAdminOpen(false)}
@@ -382,17 +359,10 @@ export default function App() {
             onOpenTraceability={(batchId) => {
               handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
             }}
-            onOpenWholesale={() => setIsWholesaleOpen(true)}
             onOpenClaims={() => setIsClaimsOpen(true)}
             onNavigateToShop={() => setActiveTab('shop')}
-            onOpenAdmin={() => setIsAdminOpen(true)}
-            onOpenBusinessPlan={() => setIsBusinessPlanOpen(true)}
-            onSwitchRole={(newRole) => {
-              if (currentUser) {
-                const updated = { ...currentUser, role: newRole };
-                setCurrentUser(updated);
-              }
-            }}
+            onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
+            onOpenBusinessPlan={isCurrentUserAdmin ? () => setIsBusinessPlanOpen(true) : undefined}
           />
         ) : (
           /* MARKETPLACE SHOP VIEW */
@@ -408,7 +378,7 @@ export default function App() {
                     
                     {/* Single Primary Headline */}
                     <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-amber-300 tracking-tight leading-tight">
-                      Your Favorite Marketplace for Premium Poultry & Hatchery Supplies
+                      Quality and Affordable Poultry Products For Wholesale and Retail
                     </h1>
 
                     {/* Single Primary CTA */}
@@ -420,7 +390,7 @@ export default function App() {
                         }}
                         className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-8 py-3.5 rounded-2xl text-sm transition-all shadow-lg hover:shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        <span>Explore Verified Catalog</span>
+                        <span>Explore Products</span>
                         <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -433,16 +403,10 @@ export default function App() {
                         <div className="relative rounded-2xl overflow-hidden">
                           <img
                             src={heroChickenImage}
-                            alt="Verified Golden Chicks and Heritage Poultry Stock"
+                            alt="ChickMagnet poultry products"
                             referrerPolicy="no-referrer"
                             className="w-full h-52 sm:h-60 lg:h-64 object-cover transform group-hover:scale-105 transition-transform duration-500"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#0b2217]/85 via-transparent to-transparent flex items-end p-3">
-                            <div className="bg-amber-400 text-emerald-950 px-3 py-1 rounded-full text-[11px] font-extrabold font-mono shadow-md flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-950 animate-pulse"></span>
-                              <span>100% NPIP Bio-Secure Verified Stock</span>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -467,7 +431,7 @@ export default function App() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>Retail & Homesteaders</span>
+                      <span>Retail</span>
                     </button>
                     <button
                       onClick={() => setBuyerType('wholesale')}
@@ -477,28 +441,18 @@ export default function App() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>Commercial Wholesale (Net-30)</span>
+                      <span>Commercial Wholesale</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Conditional Wholesale Portal Access when Commercial Wholesale intent is selected */}
-                {buyerType === 'wholesale' && (
-                  <button
-                    onClick={() => setIsWholesaleOpen(true)}
-                    className="text-emerald-950 hover:text-emerald-900 font-bold text-xs flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer self-end sm:self-auto"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Open Wholesale Portal</span>
-                  </button>
-                )}
               </div>
 
               {/* Catalog Header & Count */}
               <div className="flex items-center justify-between border-b border-slate-200 pb-4 pt-2">
                 <div>
                   <h2 className="font-serif font-black text-2xl text-emerald-950">
-                    {selectedCategory === 'all' ? 'All Poultry & Farm Listings' : selectedCategory.toUpperCase()}
+                    {selectedCategory === 'all' ? 'Chicken and Eggs' : selectedCategory.toUpperCase()}
                   </h2>
                 </div>
 
@@ -511,15 +465,13 @@ export default function App() {
             </div>
 
             {/* Product Grid - Fits 4 cards in a row on medium/large screens */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-4">
               {filteredProducts.map(product => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   buyerType={buyerType}
                   onSelectProduct={(p) => setSelectedProduct(p)}
-                  onAddToCart={(p) => handleAddToCart(p, 1)}
-                  onOpenTraceabilityWithBatch={handleOpenTraceabilityWithBatch}
                 />
               ))}
             </div>
@@ -567,12 +519,10 @@ export default function App() {
       {/* Product Detail Modal */}
       {selectedProduct && (
         <ProductDetail
-          product={products.find(p => p.id === selectedProduct.id) || selectedProduct}
-          allProducts={products}
+          product={storefrontProducts.find(p => p.id === selectedProduct.id) || selectedProduct}
           buyerType={buyerType}
           onClose={() => setSelectedProduct(null)}
-          onAddToCart={(p, qty, sex) => handleAddToCart(p, qty, sex)}
-          onOpenTraceabilityWithBatch={handleOpenTraceabilityWithBatch}
+          onAddToCart={(p, qty) => handleAddToCart(p, qty)}
         />
       )}
 
@@ -581,9 +531,19 @@ export default function App() {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
+        buyerType={buyerType}
         onUpdateQuantity={handleUpdateCartQty}
         onRemoveItem={handleRemoveCartItem}
-        onProceedToCheckout={() => setIsCheckoutOpen(true)}
+        onProceedToCheckout={() => {
+          setSelectedProduct(null);
+          if (!currentUser) {
+            setAuthMode('signin');
+            setResumeCheckoutAfterAuth(true);
+            setAuthModalOpen(true);
+            return;
+          }
+          setIsCheckoutOpen(true);
+        }}
       />
 
       {/* Batch Traceability Portal */}
@@ -591,12 +551,6 @@ export default function App() {
         isOpen={isTraceabilityOpen}
         onClose={() => setIsTraceabilityOpen(false)}
         initialBatchId={traceBatchId}
-      />
-
-      {/* Wholesale & Standing Orders Portal */}
-      <WholesalePortal
-        isOpen={isWholesaleOpen}
-        onClose={() => setIsWholesaleOpen(false)}
       />
 
       {/* 24h Mortality Claim Ritual */}
@@ -616,19 +570,19 @@ export default function App() {
       {/* Auth Modal */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setResumeCheckoutAfterAuth(false);
+        }}
         initialMode={authMode}
         onAuthSuccess={(user) => {
           setCurrentUser(user);
           setAuthModalOpen(false);
+          if (resumeCheckoutAfterAuth) {
+            setResumeCheckoutAfterAuth(false);
+            setIsCheckoutOpen(true);
+          }
         }}
-      />
-
-      {/* Floating Chatbot & Hatchery Support Assistant */}
-      <ChatbotHelp
-        onOpenClaims={() => setIsClaimsOpen(true)}
-        onOpenTraceability={(batchId) => handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9')}
-        onOpenWholesale={() => setIsWholesaleOpen(true)}
       />
 
     </div>

@@ -1,6 +1,6 @@
 {
   "name": "ChickMagnet",
-  "description": "ChickMagnet - Premium Poultry & Live Bird Ecommerce Platform featuring batch traceability, weight-tolerance checkout, multi-temperature fulfillment, and wholesale portal.",
+  "description": "ChickMagnet sells chicken and eggs for retail and wholesale orders.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

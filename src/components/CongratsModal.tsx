@@ -1,6 +1,5 @@
 import React from 'react';
-import { CheckCircle, ShieldCheck, Truck, FileText, ArrowRight, Activity, Calendar, HelpCircle, Scale } from 'lucide-react';
-import { BuyerType } from '../types';
+import { Calendar, HelpCircle, Scale } from 'lucide-react';
 
 interface CongratsModalProps {
   orderSummary: any;
@@ -35,10 +34,13 @@ export default function CongratsModal({
             🐣
           </div>
           <h2 className="font-serif font-black text-2xl text-amber-300">
-            Order Confirmed & Locked!
+            Order received
           </h2>
           <p className="text-xs text-emerald-300 font-mono">
-            Order ID: <strong>{orderSummary.orderId}</strong> • Verified Hatchery & Cold-Chain Dispatch
+            Order ID: <strong>{orderSummary.orderId}</strong>
+          </p>
+          <p className="mx-auto max-w-md text-sm text-emerald-100">
+            Your order will be confirmed after ChickMagnet matches your M-Pesa confirmation message.
           </p>
         </div>
 
@@ -50,12 +52,15 @@ export default function CongratsModal({
           </div>
 
           <div className="flex justify-between border-b border-emerald-800 pb-2 text-emerald-300">
-            <span>Payment Terms / Method</span>
+            <span>Payment method</span>
             <span className="font-bold text-amber-300 uppercase">
-              {orderSummary.paymentMethod === 'net30' 
-                ? `Wholesale Net-30 (PO: ${orderSummary.poNumber || 'N/A'})` 
-                : `${orderSummary.paymentMethod.toUpperCase()} Upfront Payment`}
+              {orderSummary.paymentMethod.toUpperCase()}
             </span>
+          </div>
+
+          <div className="flex justify-between border-b border-emerald-800 pb-2 text-emerald-300">
+            <span>Payment status</span>
+            <span className="font-bold text-amber-300">Pending confirmation</span>
           </div>
 
           {/* Weight Variable Pricing Note */}
@@ -63,7 +68,7 @@ export default function CongratsModal({
             <div className="bg-amber-950/60 border border-amber-500/40 p-3 rounded-xl text-amber-200 text-[11px] leading-relaxed flex items-start gap-2">
               <Scale className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <strong>Weight Adjustment Note:</strong> Dressed poultry cuts are weighed at scale packing. Your final invoice will adjust to actual packed scale weight (±10% tolerance cushion).
+                Fresh chicken is priced by packed weight. The final amount may change by up to 10%.
               </div>
             </div>
           )}
@@ -72,12 +77,12 @@ export default function CongratsModal({
           <div className="space-y-1.5 py-1">
             <div className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-amber-400" />
-              Assigned Delivery Window (From Selected Dispatch Slot):
+              Delivery window
             </div>
             {Object.entries(orderSummary.deliverySlots || {}).map(([grp, slot]: any) => (
               <div key={grp} className="bg-[#123524] p-2.5 rounded-xl border border-emerald-800 flex flex-col sm:flex-row justify-between sm:items-center text-[11px] gap-1.5">
                 <span className="text-amber-300 font-bold uppercase shrink-0">
-                  {grp === 'live-climate' ? '🐥 Live Express Transport' : grp === 'chilled-express' ? '❄️ Chilled Van (0-4°C)' : grp === 'frozen-deep' ? '🧊 Sub-Zero Frozen' : '📦 Dry Goods'}
+                  {grp === 'live-climate' ? '🐥 Live chicken delivery' : grp === 'chilled-express' ? '❄️ Chilled delivery' : grp === 'frozen-deep' ? '🧊 Frozen delivery' : '🥚 Standard delivery'}
                 </span>
                 <span className="text-amber-200 font-mono font-bold bg-[#0b2217] px-2.5 py-1 rounded-lg border border-emerald-700/60 shadow-xs">{slot}</span>
               </div>
@@ -105,12 +110,12 @@ export default function CongratsModal({
             </div>
           )}
 
-          {/* Live Birds Guarantee Link */}
+          {/* Live bird delivery support */}
           {hasLiveBirds && (
             <div className="bg-emerald-950/80 border border-emerald-700/60 p-3 rounded-xl flex items-center justify-between gap-2 text-[11px]">
               <div className="flex items-center gap-2 text-emerald-200">
                 <HelpCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Live Bird Arrival covered by <strong>24-Hour Guarantee</strong>.</span>
+                <span>Report a problem with a live chicken delivery within 24 hours.</span>
               </div>
               {onOpenClaims && (
                 <button
@@ -120,7 +125,7 @@ export default function CongratsModal({
                   }}
                   className="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-bold px-2.5 py-1 rounded text-[10px] font-mono cursor-pointer shrink-0"
                 >
-                  File 24h Claim
+                  Report a problem
                 </button>
               )}
             </div>
@@ -136,7 +141,7 @@ export default function CongratsModal({
           onClick={onClose}
           className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-emerald-950 font-bold py-3.5 rounded-xl text-sm shadow-md transition-transform hover:scale-[1.01] cursor-pointer"
         >
-          Return to Marketplace Catalog
+          Return to products
         </button>
 
       </div>
