@@ -2,11 +2,13 @@ import {
   collection, doc, setDoc, onSnapshot, query, where, updateDoc, serverTimestamp,
   DocumentData, QuerySnapshot
 } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '../config/firebase';
+import { auth } from '../config/firebaseClient';
+import { db, handleFirestoreError, OperationType } from '../config/firebaseDb';
 import { Product } from '../types';
 import { STOREFRONT_PRODUCTS } from '../data/storefrontCatalog';
 import { getStoredCMSData, saveStoredCMSData, CMSBlock } from '../utils/cms';
 import { isCurrentStorefrontProduct } from '../utils/storefrontProducts';
+import { normalizeProductSeo } from '../utils/productSeo';
 
 const EXPLICIT_STOREFRONT_PRODUCT_IDS_CACHE_KEY = 'chickmagnet_explicit_storefront_product_ids';
 const DEFAULT_PRODUCTS_BY_ID = new Map(STOREFRONT_PRODUCTS.map(product => [product.id, product]));
@@ -144,9 +146,12 @@ export function subscribeProducts(
 
 export async function saveProductToFirestore(product: Product) {
   try {
+    const normalizedProduct = normalizeProductSeo(product);
     await setDoc(doc(db, 'products', product.id), {
-      ...product,
-      showOnStorefront: product.showOnStorefront !== false,
+      ...normalizedProduct,
+      showOnStorefront: normalizedProduct.catalogStatus !== 'archived'
+        && normalizedProduct.showOnStorefront !== false,
+      updatedAt: serverTimestamp(),
     });
     safeSetLocalStorage('chickmagnet_products_last_update', Date.now().toString());
     window.dispatchEvent(new Event('chickmagnet_products_updated'));
@@ -160,10 +165,13 @@ export async function deleteProductFromFirestore(productId: string) {
   try {
     await setDoc(doc(db, 'products', productId), {
       showOnStorefront: false,
+      catalogStatus: 'archived',
+      searchVisibility: 'noindex',
+      updatedAt: serverTimestamp(),
     }, { merge: true });
     window.dispatchEvent(new Event('chickmagnet_products_updated'));
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
+    handleFirestoreError(error, OperationType.WRITE, `products/${productId}`);
     throw error;
   }
 }

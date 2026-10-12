@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Check, ChevronDown, Heart, Minus, Plus, ShoppingBag, Star, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Heart, Minus, Plus, ShoppingBag, Star, X } from 'lucide-react';
 import { BuyerType, Product, ProductGuide as ProductGuideData } from '../types';
 import { getMinimumOrderQuantity, getUnitPrice } from '../utils/orderRules';
 import { getProductGuide } from '../utils/productGuides';
+import ResponsiveProductImage from './ResponsiveProductImage';
 
 interface ProductDetailProps {
   product: Product;
-  onClose: () => void;
+  onClose?: () => void;
   onAddToCart: (product: Product, quantity: number) => void;
   buyerType: BuyerType;
+  standalone?: boolean;
+  initialAgeWeeks?: number;
 }
 
 interface OptionGroupProps {
@@ -18,36 +21,15 @@ interface OptionGroupProps {
   onSelect: (option: string) => void;
 }
 
-const STAR_COUNT = 5;
-const STARS = Array.from({ length: STAR_COUNT });
-
 function formatRating(rating: number) {
   if (rating === 5) return '5.0';
   return rating.toFixed(2).replace(/0$/, '');
 }
 
 function StarRating({ rating }: { rating: number }) {
-  const ratingPercentage = Math.min(STAR_COUNT, Math.max(0, rating)) / STAR_COUNT * 100;
-
   return (
     <div className="flex items-center gap-2" aria-label={`${formatRating(rating)} out of 5 stars`}>
-      <span className="relative inline-flex" aria-hidden="true">
-        <span className="flex gap-0.5">
-          {STARS.map((_, index) => (
-            <Star key={`empty-${index}`} className="h-4 w-4 fill-slate-200 text-slate-200 dark:fill-white/15 dark:text-white/15" />
-          ))}
-        </span>
-        <span
-          className="absolute inset-y-0 left-0 overflow-hidden"
-          style={{ width: `${ratingPercentage}%` }}
-        >
-          <span className="flex w-max gap-0.5">
-            {STARS.map((_, index) => (
-              <Star key={`filled-${index}`} className="h-4 w-4 fill-amber-400 text-amber-400" />
-            ))}
-          </span>
-        </span>
-      </span>
+      <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
       <span className="text-sm font-bold text-slate-700 dark:text-emerald-100/70">{formatRating(rating)}</span>
     </div>
   );
@@ -167,7 +149,9 @@ export default function ProductDetail({
   product,
   onClose,
   onAddToCart,
-  buyerType
+  buyerType,
+  standalone = false,
+  initialAgeWeeks,
 }: ProductDetailProps) {
   const images = product.images?.length ? product.images : [product.image];
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -188,7 +172,10 @@ export default function ProductDetail({
   const [selectedEggGrade, setSelectedEggGrade] = useState(eggGradeOptions[0] || '');
   const [selectedPackIndex, setSelectedPackIndex] = useState(0);
   const [selectedSupplyIndex, setSelectedSupplyIndex] = useState(0);
-  const [selectedAgeIndex, setSelectedAgeIndex] = useState(0);
+  const [selectedAgeIndex, setSelectedAgeIndex] = useState(() => {
+    const requestedIndex = ageOptions.findIndex(option => option.ageWeeks === initialAgeWeeks);
+    return requestedIndex >= 0 ? requestedIndex : 0;
+  });
 
   const minimumQuantity = getMinimumOrderQuantity(product, buyerType);
   const [quantity, setQuantity] = useState(minimumQuantity);
@@ -203,7 +190,18 @@ export default function ProductDetail({
     ?? selectedSupply?.price
     ?? (basePrice + (selectedWeight?.priceDiff || 0));
   const totalPrice = unitPrice * quantity;
-  const isAvailable = product.stock > 0;
+  const isAvailable = product.stock > 0 && product.catalogStatus !== 'temporarilyUnavailable';
+
+  const selectAge = (label: string) => {
+    const nextIndex = ageOptions.findIndex(item => item.label === label);
+    setSelectedAgeIndex(nextIndex);
+    const ageWeeks = ageOptions[nextIndex]?.ageWeeks;
+    if (standalone && ageWeeks !== undefined) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('age', `${ageWeeks}-weeks`);
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  };
 
   const addToCart = () => {
     if (!isAvailable) return;
@@ -232,15 +230,26 @@ export default function ProductDetail({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 p-2 backdrop-blur-sm sm:p-5">
+    <div className={standalone ? 'w-full' : 'fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 p-2 backdrop-blur-sm sm:p-5'}>
       <div
-        role="dialog"
-        aria-modal="true"
+        role={standalone ? undefined : 'dialog'}
+        aria-modal={standalone ? undefined : 'true'}
         aria-labelledby="product-detail-title"
-        className="mx-auto my-2 w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-[#0b2117] dark:text-emerald-50 sm:my-5"
+        className={`mx-auto w-full max-w-5xl overflow-hidden rounded-3xl bg-white dark:bg-[#0b2117] dark:text-emerald-50 ${standalone ? 'border border-stone-200 shadow-[0_18px_55px_rgba(18,53,36,0.08)] dark:border-white/10' : 'my-2 shadow-2xl sm:my-5'}`}
       >
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-[#0b2117]/95 sm:px-6">
-          <span className="text-sm font-bold text-emerald-950 dark:text-white">Product details</span>
+          {standalone ? (
+            <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
+              <a href="/shop" className="inline-flex shrink-0 items-center gap-1 font-bold text-emerald-900 hover:underline dark:text-amber-300">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Products
+              </a>
+              <span aria-hidden="true" className="text-slate-300">/</span>
+              <span className="truncate text-slate-500 dark:text-emerald-100/60">{product.name}</span>
+            </nav>
+          ) : (
+            <span className="text-sm font-bold text-emerald-950 dark:text-white">Product details</span>
+          )}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -253,25 +262,28 @@ export default function ProductDetail({
             >
               <Heart className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
             </button>
-            <button
-              id="close-product-detail-btn"
-              type="button"
-              onClick={onClose}
-              aria-label="Close product details"
-              className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {!standalone ? (
+              <button
+                id="close-product-detail-btn"
+                type="button"
+                onClick={onClose}
+                aria-label="Close product details"
+                className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            ) : null}
           </div>
         </header>
 
         <div className="grid gap-7 p-4 sm:p-6 lg:grid-cols-2 lg:gap-10 lg:p-8">
           <section className="space-y-3" aria-label="Product images">
             <div className="aspect-[1.08/1] overflow-hidden rounded-2xl bg-slate-100 dark:bg-white/10">
-              <img
+              <ResponsiveProductImage
                 src={images[selectedImageIndex] || product.image}
-                alt={product.name}
-                decoding="async"
+                alt={product.imageAlt || product.name}
+                sizes="(min-width: 1024px) 46vw, 100vw"
+                fetchPriority="high"
                 className="h-full w-full object-cover"
                 style={{ objectPosition: product.imagePosition || '50% 50%' }}
               />
@@ -290,11 +302,11 @@ export default function ProductDetail({
                       selectedImageIndex === index ? 'border-emerald-900' : 'border-transparent'
                     }`}
                   >
-                    <img
+                    <ResponsiveProductImage
                       src={image}
                       alt=""
+                      sizes="64px"
                       loading="lazy"
-                      decoding="async"
                       className="h-full w-full object-cover"
                       style={{ objectPosition: product.imagePosition || '50% 50%' }}
                     />
@@ -328,7 +340,7 @@ export default function ProductDetail({
                   label="Age"
                   options={ageOptions.map((option) => option.label)}
                   selected={selectedAge?.label || ''}
-                  onSelect={(option) => setSelectedAgeIndex(ageOptions.findIndex((item) => item.label === option))}
+                  onSelect={selectAge}
                 />
               ) : null}
 

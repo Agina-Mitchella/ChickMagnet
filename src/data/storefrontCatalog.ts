@@ -1,6 +1,7 @@
 import type { Product } from '../types';
 import { INITIAL_PRODUCTS as LEGACY_INITIAL_PRODUCTS } from './products';
 import { createBreedProductGuide, createChickenFarmCareSections, createFreshPoultryGuide } from '../utils/productGuides';
+import { normalizeProductSeo } from '../utils/productSeo';
 
 const LIVE_CHICKEN_IMAGE = '/images/chickmagnet-live-chicken.jpg';
 const EGGS_IMAGE = '/images/catalog/eggs.jpg';
@@ -27,7 +28,7 @@ type ProductInput = Pick<
 > & Partial<Product>;
 
 function catalogProduct(input: ProductInput): Product {
-  return {
+  return normalizeProductSeo({
     rating: 4.8,
     reviewsCount: 0,
     sellerName: 'ChickMagnet',
@@ -38,7 +39,7 @@ function catalogProduct(input: ProductInput): Product {
     showOnStorefront: true,
     minOrderQty: 1,
     ...input,
-  };
+  });
 }
 
 export const KIENYEJI_AGE_PRICES = [
@@ -89,7 +90,7 @@ function makeBreedProducts(breed: keyof typeof BREED_IMAGES, order: number): Pro
       ...common,
       id: `wholesale-${slug}-day-old`,
       name: `${breed} Day-Old Chicks`,
-      description: `Unsexed day-old ${breed} chicks raised on ChickMagnet’s clean farm and given the vaccinations due at hatch.`,
+      description: `Unsexed day-old ${breed} chicks raised on ChickMagnet’s clean farm. Every hatchery vaccination due on Day 1 is completed and recorded.`,
       price: 110,
       subCategory: 'day-old-chicks',
       image: BREED_CHICK_IMAGES[breed],
@@ -101,7 +102,7 @@ function makeBreedProducts(breed: keyof typeof BREED_IMAGES, order: number): Pro
       ...common,
       id: `wholesale-${slug}-one-two-weeks`,
       name: `${breed} Chicks (1 to 2 Weeks)`,
-      description: `Choose unsexed ${breed} chicks at one or two weeks old, with every vaccination due by the selected age completed.`,
+      description: `Choose unsexed ${breed} chicks at one or two weeks old. Every vaccination due by the selected age is completed and recorded.`,
       price: 160,
       subCategory: 'day-old-chicks',
       image: BREED_CHICK_IMAGES[breed],
@@ -114,7 +115,7 @@ function makeBreedProducts(breed: keyof typeof BREED_IMAGES, order: number): Pro
       ...common,
       id: `wholesale-${slug}-three-eighteen-weeks`,
       name: `${breed} Chickens (3 to 18 Weeks)`,
-      description: `Choose unsexed ${breed} chickens from Week 3 through Week 18, with every vaccination due by the selected age completed.`,
+      description: `Choose unsexed ${breed} chickens from Week 3 through Week 18. Every vaccination due by the selected age is completed and recorded.`,
       price: 250,
       subCategory: 'growers-broilers',
       image: BREED_IMAGES[breed],
@@ -187,7 +188,7 @@ const retailMatureBreed = (
 ) => catalogProduct({
   id: `retail-mature-${breed.toLowerCase().replace(/\s+/g, '-')}`,
   name: `Mature ${breed} Chicken`,
-  description: `A mature ${breed} chicken raised on ChickMagnet’s clean farm with age-appropriate vaccinations completed.`,
+  description: `A mature ${breed} chicken raised on ChickMagnet’s clean farm by trained farm managers, with every vaccination due by its age completed and recorded.`,
   price: 1_200,
   category: 'live-birds',
   subCategory: 'growers-broilers',
@@ -205,7 +206,8 @@ export const STOREFRONT_PRODUCTS: Product[] = [
   catalogProduct({
     id: 'retail-live-kienyeji',
     name: 'Mature Improved Kienyeji Chicken',
-    description: 'A mature Improved Kienyeji chicken raised on ChickMagnet’s clean farm with age-appropriate vaccinations completed.',
+    previousSlugs: ['live-improved-kienyeji-chicken'],
+    description: 'A mature Improved Kienyeji chicken raised on ChickMagnet’s clean farm by trained farm managers, with every vaccination due by its age completed and recorded.',
     price: 1_200,
     category: 'live-birds',
     subCategory: 'growers-broilers',
@@ -224,7 +226,7 @@ export const STOREFRONT_PRODUCTS: Product[] = [
   catalogProduct({
     id: 'mature-broiler-chicken',
     name: 'Mature Broiler Chicken',
-    description: 'A mature broiler raised on ChickMagnet’s clean farm with age-appropriate vaccinations completed, sold per bird.',
+    description: 'A mature broiler raised on ChickMagnet’s clean farm by trained farm managers, with every vaccination due by its age completed and recorded. Sold per bird.',
     price: 600,
     category: 'live-birds',
     subCategory: 'growers-broilers',
@@ -311,6 +313,7 @@ export const STOREFRONT_PRODUCTS: Product[] = [
   catalogProduct({
     id: 'retail-live-turkey',
     name: 'Mature Turkey',
+    previousSlugs: ['live-turkey'],
     description: 'A mature turkey, sold per bird.',
     price: 7_000,
     category: 'live-birds',

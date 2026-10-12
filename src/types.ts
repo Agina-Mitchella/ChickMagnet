@@ -184,6 +184,29 @@ export interface ProductGuide {
   note?: string;
 }
 
+export type ProductSearchVisibility = 'index' | 'noindex';
+export type ProductCatalogStatus = 'published' | 'temporarilyUnavailable' | 'archived';
+
+export interface ProductContentSection {
+  id: string;
+  heading: string;
+  body: string;
+  bullets?: string[];
+}
+
+export interface ProductSeoFields {
+  slug: string;
+  previousSlugs: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  seoImage?: string;
+  imageAlt?: string;
+  searchVisibility: ProductSearchVisibility;
+  catalogStatus: ProductCatalogStatus;
+  contentSections: ProductContentSection[];
+  updatedAt?: string | { seconds: number; nanoseconds?: number };
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -242,6 +265,20 @@ export interface Product {
   supplyData?: FarmSupplyProductData;
   
   reviewsList?: Review[];
+
+  // Public URL, indexing and long-form catalogue content. These remain
+  // optional at the persistence boundary so older Firestore documents can be
+  // normalized without breaking the existing cart and order records.
+  slug?: ProductSeoFields['slug'];
+  previousSlugs?: ProductSeoFields['previousSlugs'];
+  seoTitle?: ProductSeoFields['seoTitle'];
+  seoDescription?: ProductSeoFields['seoDescription'];
+  seoImage?: ProductSeoFields['seoImage'];
+  imageAlt?: ProductSeoFields['imageAlt'];
+  searchVisibility?: ProductSeoFields['searchVisibility'];
+  catalogStatus?: ProductSeoFields['catalogStatus'];
+  contentSections?: ProductSeoFields['contentSections'];
+  updatedAt?: ProductSeoFields['updatedAt'];
 }
 
 export interface CartItem {

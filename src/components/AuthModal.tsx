@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
-import { getFirebaseAuthorization, signInWithGoogle, signInWithEmail, registerWithEmail } from '../config/firebase';
+import { getFirebaseAuthorization, signInWithGoogle, signInWithEmail, registerWithEmail } from '../config/firebaseAuth';
 import { useBrandLogo } from '../utils/cms';
 
 interface AuthModalProps {
@@ -10,6 +10,7 @@ interface AuthModalProps {
   onClose: () => void;
   onAuthSuccess: (user: User) => void;
   initialMode?: 'signin' | 'register';
+  returnFocusSelector?: string;
 }
 
 const AVATAR_SYMBOLS = [
@@ -21,8 +22,16 @@ const AVATAR_SYMBOLS = [
   { symbol: '🚜', label: 'Tractor' },
 ];
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signin' }: AuthModalProps) {
+export default function AuthModal({
+  isOpen,
+  onClose,
+  onAuthSuccess,
+  initialMode = 'signin',
+  returnFocusSelector,
+}: AuthModalProps) {
   const brand = useBrandLogo();
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const returnFocusRef = React.useRef<HTMLElement | null>(null);
   const [mode, setMode] = useState<'signin' | 'register' | 'welcome'>(initialMode);
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   
@@ -40,7 +49,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const resetForm = () => {
+  const resetForm = React.useCallback(() => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -52,13 +61,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     setError(null);
     setSuccessMsg(null);
     setIsSubmitting(false);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     resetForm();
     setRegisteredUser(null);
     onClose();
-  };
+  }, [onClose, resetForm]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -66,7 +75,66 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
       resetForm();
       setRegisteredUser(null);
     }
-  }, [isOpen, initialMode]);
+  }, [isOpen, initialMode, resetForm]);
+
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
+
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const focusableSelector = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+
+    const focusDialog = window.requestAnimationFrame(() => {
+      dialogRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus();
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusableElements = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+      ).filter(element => !element.hasAttribute('hidden'));
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusDialog);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (returnFocusRef.current?.isConnected) {
+        returnFocusRef.current.focus();
+      } else if (returnFocusSelector) {
+        document.querySelector<HTMLElement>(returnFocusSelector)?.focus();
+      }
+    };
+  }, [handleClose, isOpen, returnFocusSelector]);
 
   if (!isOpen) return null;
 
@@ -217,7 +285,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
         aria-hidden="true"
       />
 
-      <motion.div 
+      <motion.div
+        ref={dialogRef}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}

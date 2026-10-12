@@ -37,6 +37,9 @@ jobs:
       - name: Run TypeScript checks
         run: npm run lint
 
+      - name: Verify server status and catalogue cache contracts
+        run: npm run test:server-contracts
+
       - name: Build application
         run: npm run build
 

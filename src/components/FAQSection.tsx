@@ -1,12 +1,13 @@
-import { useState } from 'react';
 import { ChevronDown, HelpCircle } from 'lucide-react';
-import { useDynamicFAQs } from '../utils/cms';
+import { useStorefrontFAQs } from '../hooks/useStorefrontFAQs';
 
 interface FAQSectionProps {
   id?: string;
   title?: string;
   description?: string;
   forceLight?: boolean;
+  limit?: number;
+  showAllLink?: boolean;
 }
 
 export default function FAQSection({
@@ -14,9 +15,11 @@ export default function FAQSection({
   title = 'Frequently asked questions',
   description = 'Clear answers about breeds, vaccinations, wholesale orders, delivery and payment.',
   forceLight = false,
+  limit,
+  showAllLink = false,
 }: FAQSectionProps) {
-  const { faqs } = useDynamicFAQs();
-  const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.id ?? null);
+  const faqs = useStorefrontFAQs();
+  const visibleFaqs = typeof limit === 'number' ? faqs.slice(0, limit) : faqs;
 
   return (
     <section
@@ -36,13 +39,10 @@ export default function FAQSection({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
-        {faqs.map((faq) => (
-          <div key={faq.id} className={`overflow-hidden rounded-2xl border border-slate-200 ${forceLight ? '' : 'dark:border-white/10'}`}>
-            <button
-              type="button"
-              aria-expanded={openFaq === faq.id}
-              onClick={() => setOpenFaq(openFaq === faq.id ? null : faq.id)}
-              className={`flex min-h-20 w-full cursor-pointer items-center justify-between gap-4 bg-slate-50 p-4 text-left text-sm font-bold text-emerald-950 transition-colors hover:bg-slate-100 ${forceLight ? '' : 'dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10'}`}
+        {visibleFaqs.map((faq, index) => (
+          <details key={faq.id} open={index === 0} className={`group overflow-hidden rounded-2xl border border-slate-200 ${forceLight ? '' : 'dark:border-white/10'}`}>
+            <summary
+              className={`flex min-h-20 w-full cursor-pointer list-none items-center justify-between gap-4 bg-slate-50 p-4 text-left text-sm font-bold text-emerald-950 transition-colors hover:bg-slate-100 marker:content-none ${forceLight ? '' : 'dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10'}`}
             >
               <span>
                 {faq.category ? (
@@ -50,16 +50,20 @@ export default function FAQSection({
                 ) : null}
                 {faq.q}
               </span>
-              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${openFaq === faq.id ? 'rotate-180' : ''}`} aria-hidden="true" />
-            </button>
-            {openFaq === faq.id ? (
-              <p className={`border-t border-slate-200 p-4 text-sm leading-6 text-slate-600 ${forceLight ? '' : 'dark:border-white/10 dark:text-emerald-100/70'}`}>
-                {faq.a}
-              </p>
-            ) : null}
-          </div>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <p className={`border-t border-slate-200 p-4 text-sm leading-6 text-slate-600 ${forceLight ? '' : 'dark:border-white/10 dark:text-emerald-100/70'}`}>
+              {faq.a}
+            </p>
+          </details>
         ))}
       </div>
+
+      {showAllLink ? (
+        <a href="/faqs" className="mt-6 inline-flex rounded-full bg-emerald-950 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-900">
+          Read all questions
+        </a>
+      ) : null}
     </section>
   );
 }

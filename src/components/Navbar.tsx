@@ -18,26 +18,23 @@ import {
   Utensils,
   X,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { Link } from 'react-router';
 import { BuyerType, MainCategory, Product, User } from '../types';
 import { productMatchesSearch } from '../utils/storefrontProducts';
+import { getCategoryPath, getProductPath } from '../utils/productSeo';
 import { useBrandLogo } from '../utils/cms';
 import { ColorSchemePreference } from '../utils/colorScheme';
-import poultryChicksImage from '../assets/images/hero_poultry_chicks_1785408878635.jpg';
-import roosterHenImage from '../assets/images/live_rooster_hen_1785409332530.jpg';
-import freshChickenImage from '../assets/images/category-fresh-chicken.jpg';
-import eggsImage from '../assets/images/category-eggs.jpg';
 
 type StorefrontTab = 'shop' | 'about' | 'profile';
 type StorefrontCategory = MainCategory | 'all';
 
 const CATEGORY_ARTWORK: Record<StorefrontCategory, { src: string; position: string }> = {
-  all: { src: poultryChicksImage, position: '50% 67%' },
-  'live-birds': { src: roosterHenImage, position: '52% 43%' },
-  'fresh-poultry': { src: freshChickenImage, position: '50% 48%' },
-  eggs: { src: eggsImage, position: '50% 50%' },
-  processed: { src: freshChickenImage, position: '50% 48%' },
-  'farm-supplies': { src: poultryChicksImage, position: '50% 67%' },
+  all: { src: '/images/navigation/all-products.webp', position: '50% 50%' },
+  'live-birds': { src: '/images/navigation/live-chicken.webp', position: '50% 50%' },
+  'fresh-poultry': { src: '/images/navigation/fresh-chicken.webp', position: '50% 50%' },
+  eggs: { src: '/images/navigation/eggs.webp', position: '50% 50%' },
+  processed: { src: '/images/navigation/fresh-chicken.webp', position: '50% 50%' },
+  'farm-supplies': { src: '/images/navigation/all-products.webp', position: '50% 50%' },
 };
 
 const CATEGORY_OPTIONS = [
@@ -60,6 +57,8 @@ function CategoryArtwork({ category, compact = false }: { category: StorefrontCa
       <img
         src={artwork.src}
         alt=""
+        width="96"
+        height="96"
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         style={{ objectPosition: artwork.position }}
       />
@@ -82,7 +81,6 @@ interface NavbarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   searchableProducts: Product[];
-  onSelectProduct: (product: Product) => void;
   onApplySearch: () => void;
   colorScheme: ColorSchemePreference;
   onColorSchemeChange: (preference: ColorSchemePreference) => void;
@@ -107,7 +105,6 @@ export default function Navbar({
   searchQuery,
   setSearchQuery,
   searchableProducts,
-  onSelectProduct,
   onApplySearch,
   colorScheme,
   onColorSchemeChange,
@@ -150,12 +147,6 @@ export default function Navbar({
   const selectBuyerType = (type: BuyerType) => {
     setBuyerType(type);
     if (activeTab !== 'shop') setActiveTab('shop');
-  };
-
-  const chooseProduct = (product: Product) => {
-    setDesktopSearchOpen(false);
-    setMobileSearchOpen(false);
-    onSelectProduct(product);
   };
 
   const applySearch = () => {
@@ -234,13 +225,8 @@ export default function Navbar({
     <>
     <header className="sticky top-0 z-40 w-full border-b border-stone-200/80 bg-[#fffdf9]/90 text-[#173b2a] shadow-[0_10px_35px_rgba(18,53,36,0.07)] backdrop-blur-2xl supports-[not_(backdrop-filter:blur(1px))]:bg-[#fffdf9] dark:border-white/10 dark:bg-[#071c13]/92 dark:text-emerald-50 dark:shadow-[0_10px_35px_rgba(0,0,0,0.28)] dark:supports-[not_(backdrop-filter:blur(1px))]:bg-[#071c13]">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-1.5 px-3 py-2.5 min-[360px]:gap-2 min-[360px]:px-4 sm:px-6 sm:py-3 xl:gap-5 xl:px-8">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('shop');
-            selectCategory('all');
-            setSearchQuery('');
-          }}
+        <Link
+          to={getCategoryPath('all', buyerType === 'wholesale')}
           className="group flex h-11 min-w-0 shrink items-center rounded-2xl bg-[#123524] px-2 shadow-[0_6px_18px_rgba(18,53,36,0.18)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 dark:bg-[#123524] dark:focus-visible:ring-offset-[#071c13] sm:h-14 sm:shrink-0 sm:px-3"
           aria-label="Go to all products"
         >
@@ -249,6 +235,8 @@ export default function Navbar({
               <img
                 src={brand.logoImageUrl}
                 alt={brand.brandName || 'ChickMagnet'}
+                width="240"
+                height="108"
                 className="h-8 w-auto max-w-[84px] object-contain transition-transform group-hover:scale-[1.03] min-[360px]:max-w-[104px] sm:h-11 sm:max-w-[176px]"
               />
               {brand.logoDisplayMode === 'image_with_text' ? (
@@ -262,17 +250,16 @@ export default function Navbar({
               {brand.brandName || 'ChickMagnet'}
             </span>
           )}
-        </button>
+        </Link>
 
         <nav className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex" aria-label="Product categories">
           {visibleCategories.map(category => {
             const selected = selectedCategory === category.id;
             return (
-              <button
+              <Link
                 key={category.id}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => selectCategory(category.id)}
+                to={getCategoryPath(category.id, buyerType === 'wholesale')}
+                aria-current={selected ? 'page' : undefined}
                 className={`group flex min-w-0 items-center gap-2.5 rounded-[1.35rem] border px-2.5 py-2 text-left transition-all ${
                   selected
                     ? 'border-emerald-900 bg-emerald-950 text-white shadow-[0_8px_18px_rgba(6,46,31,0.2)]'
@@ -286,7 +273,7 @@ export default function Navbar({
                     {category.description}
                   </span>
                 </span>
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -326,14 +313,8 @@ export default function Navbar({
                 <ChevronDown className="hidden h-3.5 w-3.5 text-stone-500 sm:block" />
               </button>
 
-              <AnimatePresence>
-                {profileOpen ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                    className="absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-stone-200 bg-white p-3 text-xs text-[#173b2a] shadow-[0_18px_50px_rgba(18,53,36,0.18)] dark:border-white/12 dark:bg-[#0d281c] dark:text-emerald-50 dark:shadow-[0_18px_50px_rgba(0,0,0,0.4)]"
-                  >
+              {profileOpen ? (
+                  <div className="animate-popover-enter absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-stone-200 bg-white p-3 text-xs text-[#173b2a] shadow-[0_18px_50px_rgba(18,53,36,0.18)] dark:border-white/12 dark:bg-[#0d281c] dark:text-emerald-50 dark:shadow-[0_18px_50px_rgba(0,0,0,0.4)]">
                     <div className="mb-2 border-b border-stone-100 px-2 pb-3 dark:border-white/10">
                       <div className="font-bold">{currentUser.name} {isAdmin ? '(Admin)' : ''}</div>
                       <div className="truncate pt-0.5 text-[11px] text-stone-500 dark:text-emerald-100/55">{currentUser.email}</div>
@@ -387,9 +368,8 @@ export default function Navbar({
                         Sign Out
                       </button>
                     </div>
-                  </motion.div>
+                  </div>
                 ) : null}
-              </AnimatePresence>
             </div>
           ) : (
             <button
@@ -425,18 +405,17 @@ export default function Navbar({
         {visibleCategories.map(category => {
           const selected = selectedCategory === category.id;
           return (
-            <button
+            <Link
               key={category.id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => selectCategory(category.id)}
+              to={getCategoryPath(category.id, buyerType === 'wholesale')}
+              aria-current={selected ? 'page' : undefined}
               className={`group flex shrink-0 snap-start items-center gap-2 rounded-2xl border px-2 py-1.5 text-xs font-bold transition-all ${
                 selected ? 'border-emerald-950 bg-emerald-950 text-white shadow-sm' : 'border-stone-200 bg-white text-[#173b2a] dark:border-white/12 dark:bg-white/[0.07] dark:text-emerald-50'
               }`}
             >
               <CategoryArtwork category={category.id} compact />
               <span className="whitespace-nowrap pr-1">{category.label}</span>
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -491,16 +470,11 @@ export default function Navbar({
           </button>
         </div>
 
-        <AnimatePresence>
-          {desktopSearchOpen ? (
-            <motion.div
+        {desktopSearchOpen ? (
+            <div
               role="dialog"
               aria-label="Search options"
-              initial={{ opacity: 0, y: -8, scale: 0.99 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.99 }}
-              transition={{ duration: 0.16 }}
-              className="absolute left-1/2 top-[calc(100%-4px)] z-50 grid w-[min(860px,calc(100vw-48px))] -translate-x-1/2 grid-cols-[0.8fr_0.9fr_1.4fr] gap-4 rounded-[2rem] border border-white/90 bg-white/92 p-5 shadow-[0_26px_80px_rgba(18,53,36,0.2)] backdrop-blur-2xl supports-[not_(backdrop-filter:blur(1px))]:bg-white dark:border-white/12 dark:bg-[#0d281c]/95 dark:shadow-[0_28px_80px_rgba(0,0,0,0.45)] dark:supports-[not_(backdrop-filter:blur(1px))]:bg-[#0d281c]"
+              className="animate-popover-enter absolute left-1/2 top-[calc(100%-4px)] z-50 grid w-[min(860px,calc(100vw-48px))] -translate-x-1/2 grid-cols-[0.8fr_0.9fr_1.4fr] gap-4 rounded-[2rem] border border-white/90 bg-white/92 p-5 shadow-[0_26px_80px_rgba(18,53,36,0.2)] backdrop-blur-2xl supports-[not_(backdrop-filter:blur(1px))]:bg-white dark:border-white/12 dark:bg-[#0d281c]/95 dark:shadow-[0_28px_80px_rgba(0,0,0,0.45)] dark:supports-[not_(backdrop-filter:blur(1px))]:bg-[#0d281c]"
             >
               <SearchOptions
                 buyerType={buyerType}
@@ -509,11 +483,9 @@ export default function Navbar({
                 suggestions={suggestions}
                 onSelectBuyer={selectBuyerType}
                 onSelectCategory={selectCategory}
-                onSelectProduct={chooseProduct}
               />
-            </motion.div>
+            </div>
           ) : null}
-        </AnimatePresence>
       </div>
 
       <div className="border-t border-stone-100/80 px-3 pb-3 pt-2 dark:border-white/10 min-[360px]:px-4 xl:hidden">
@@ -536,27 +508,19 @@ export default function Navbar({
       </div>
     </header>
 
-      <AnimatePresence>
-        {mobileSearchOpen ? (
-          <motion.div
-            className="fixed inset-0 z-[70] flex items-end bg-emerald-950/45 p-0 backdrop-blur-sm xl:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+      {mobileSearchOpen ? (
+          <div
+            className="animate-fade-enter fixed inset-0 z-[70] flex items-end bg-emerald-950/45 p-0 backdrop-blur-sm xl:hidden"
             onMouseDown={event => {
               if (event.target === event.currentTarget) setMobileSearchOpen(false);
             }}
           >
-            <motion.div
+            <div
               ref={mobileSheetRef}
               role="dialog"
               aria-modal="true"
               aria-labelledby="mobile-search-title"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 360, damping: 34 }}
-              className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-[#fffdf9] shadow-[0_-20px_60px_rgba(18,53,36,0.25)] dark:bg-[#0b2117] dark:text-emerald-50 dark:shadow-[0_-20px_60px_rgba(0,0,0,0.5)] sm:mx-auto sm:mb-4 sm:max-w-2xl sm:rounded-[2rem]"
+              className="animate-sheet-enter flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-[#fffdf9] shadow-[0_-20px_60px_rgba(18,53,36,0.25)] dark:bg-[#0b2117] dark:text-emerald-50 dark:shadow-[0_-20px_60px_rgba(0,0,0,0.5)] sm:mx-auto sm:mb-4 sm:max-w-2xl sm:rounded-[2rem]"
             >
               <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4 dark:border-white/10">
                 <div>
@@ -630,7 +594,7 @@ export default function Navbar({
                       className="min-w-0 flex-1 bg-transparent text-sm text-emerald-950 outline-none placeholder:text-stone-400 dark:text-white dark:placeholder:text-emerald-100/45"
                     />
                   </label>
-                  <SuggestionList products={suggestions} onSelectProduct={chooseProduct} />
+                  <SuggestionList products={suggestions} />
                 </section>
               </div>
 
@@ -644,10 +608,9 @@ export default function Navbar({
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         ) : null}
-      </AnimatePresence>
     </>
   );
 }
@@ -659,7 +622,6 @@ function SearchOptions({
   suggestions,
   onSelectBuyer,
   onSelectCategory,
-  onSelectProduct,
 }: {
   buyerType: BuyerType;
   selectedCategory: StorefrontCategory;
@@ -667,7 +629,6 @@ function SearchOptions({
   suggestions: Product[];
   onSelectBuyer: (buyer: BuyerType) => void;
   onSelectCategory: (category: StorefrontCategory) => void;
-  onSelectProduct: (product: Product) => void;
 }) {
   return (
     <>
@@ -711,13 +672,13 @@ function SearchOptions({
 
       <section aria-labelledby="desktop-suggestions-heading">
         <h2 id="desktop-suggestions-heading" className="mb-2 text-xs font-extrabold uppercase tracking-[0.1em] text-stone-500 dark:text-emerald-100/60">Products in this selection</h2>
-        <SuggestionList products={suggestions} onSelectProduct={onSelectProduct} />
+        <SuggestionList products={suggestions} />
       </section>
     </>
   );
 }
 
-function SuggestionList({ products, onSelectProduct }: { products: Product[]; onSelectProduct: (product: Product) => void }) {
+function SuggestionList({ products }: { products: Product[] }) {
   if (products.length === 0) {
     return <p className="rounded-xl bg-stone-50 px-3 py-4 text-sm text-stone-500 dark:bg-white/[0.06] dark:text-emerald-100/60">No products match this search.</p>;
   }
@@ -725,10 +686,10 @@ function SuggestionList({ products, onSelectProduct }: { products: Product[]; on
   return (
     <div className="mt-2 space-y-1">
       {products.map(product => (
-        <button
+        <Link
           key={product.id}
-          type="button"
-          onClick={() => onSelectProduct(product)}
+          to={getProductPath(product)}
+          prefetch="intent"
           className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:hover:bg-white/[0.07] dark:focus-visible:ring-amber-300"
         >
           <img
@@ -741,7 +702,7 @@ function SuggestionList({ products, onSelectProduct }: { products: Product[]; on
             <strong className="block truncate text-sm text-emerald-950 dark:text-white">{product.name}</strong>
             <span className="block text-xs text-stone-500 dark:text-emerald-100/60">Ksh {product.price.toLocaleString()}{product.unit ? ` /${product.unit}` : ''}</span>
           </span>
-        </button>
+        </Link>
       ))}
     </div>
   );

@@ -2,6 +2,9 @@ node_modules/
 build/
 dist/
 coverage/
+.react-router/
+.vercel/
+output/
 .playwright-cli/
 .DS_Store
 *.log

@@ -22,6 +22,64 @@ export default function CartDrawer({
   onRemoveItem,
   onProceedToCheckout
 }: CartDrawerProps) {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const returnFocusRef = React.useRef<HTMLElement | null>(null);
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
+
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusableSelector = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+    const focusPanel = window.requestAnimationFrame(() => {
+      panelRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus();
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+
+      const focusableElements = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+      ).filter(element => !element.hasAttribute('hidden'));
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusPanel);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      returnFocusRef.current?.focus();
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // Split Cart Items by Fulfillment Group
@@ -79,14 +137,19 @@ export default function CartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0b2217]/80 backdrop-blur-md flex justify-end">
-      <div className="bg-white w-full max-w-lg h-full flex flex-col justify-between shadow-2xl relative text-emerald-950 dark:bg-[#0b2117] dark:text-emerald-50">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-[#0b2217]/80 backdrop-blur-md"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cart-drawer-title"
+    >
+      <div ref={panelRef} className="bg-white w-full max-w-lg h-full flex flex-col justify-between shadow-2xl relative text-emerald-950 dark:bg-[#0b2117] dark:text-emerald-50">
         
         {/* Header */}
         <div className="p-4 bg-[#123524] text-amber-50 flex items-center justify-between border-b border-emerald-900">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-amber-400" />
-            <h2 className="font-serif font-black text-lg">Your cart</h2>
+            <h2 id="cart-drawer-title" className="font-serif font-black text-lg">Your cart</h2>
             <span className="bg-amber-400 text-emerald-950 text-xs font-mono font-bold px-2 py-0.5 rounded-full">
               {cartItems.length} items
             </span>

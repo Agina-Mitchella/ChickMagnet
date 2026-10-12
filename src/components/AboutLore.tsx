@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   ArrowRight,
   HeartHandshake,
@@ -9,7 +8,6 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import FAQSection from './FAQSection';
 
 const VALUES = [
   {
@@ -30,14 +28,6 @@ const VALUES = [
 ];
 
 export default function AboutLore() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = 'About ChickMagnet';
-    return () => {
-      document.title = previousTitle;
-    };
-  }, []);
-
   return (
     <div className="bg-white text-[#15251d]">
       <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
@@ -59,10 +49,17 @@ export default function AboutLore() {
           </div>
 
           <picture>
-            <source media="(max-width: 640px)" srcSet="/images/hero-commercial-farm-mobile.jpg" />
+            <source media="(max-width: 640px)" type="image/avif" srcSet="/images/hero-commercial-farm-mobile.avif" />
+            <source media="(max-width: 640px)" type="image/webp" srcSet="/images/hero-commercial-farm-mobile.webp" />
+            <source media="(min-width: 641px)" type="image/avif" srcSet="/images/hero-commercial-farm-desktop.avif" />
+            <source media="(min-width: 641px)" type="image/webp" srcSet="/images/hero-commercial-farm-desktop.webp" />
             <img
               src="/images/hero-commercial-farm-desktop.jpg"
               alt="A bright commercial poultry house with feeding and watering lines"
+              width="1983"
+              height="793"
+              loading="lazy"
+              decoding="async"
               className="h-[430px] w-full rounded-[2rem] object-cover shadow-[0_24px_70px_rgba(18,53,36,0.12)] sm:h-[520px] lg:h-[650px]"
             />
           </picture>
@@ -166,7 +163,7 @@ export default function AboutLore() {
               Email the team
             </a>
             <a
-              href="/"
+              href="/shop"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-950 px-6 py-3.5 text-sm font-black text-white transition-colors hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
             >
               Explore products
@@ -174,10 +171,6 @@ export default function AboutLore() {
             </a>
           </div>
         </section>
-
-        <div className="pb-12 sm:pb-16">
-          <FAQSection forceLight />
-        </div>
       </div>
     </div>
   );

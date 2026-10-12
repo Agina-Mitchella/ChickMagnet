@@ -1,4 +1,8 @@
 import type { Product, ProductGuide } from '../types';
+import {
+  CHICKMAGNET_VACCINATION_BULLETS,
+  CHICKMAGNET_VACCINATION_SUMMARY,
+} from '../data/vaccinationSchedule';
 
 type BreedName = 'Improved Kienyeji' | 'Sasso' | 'Kenbro' | 'Kuroiler';
 export type BirdStage = 'day-old' | 'one-two-weeks' | 'three-eighteen-weeks' | 'mature';
@@ -156,25 +160,18 @@ const STAGE_SECTIONS: Record<BirdStage, ProductGuide['sections'][number]> = {
 };
 
 const VACCINATION_SUMMARIES: Record<BirdStage, string> = {
-  'day-old': 'Day-old chicks receive the hatchery vaccinations due on Day 1. The standard programme then continues on the buyer’s farm, beginning with the next booster when it becomes due.',
-  'one-two-weeks': 'ChickMagnet administers every vaccine due by the selected age. A one-week chick has received its Day 1 vaccines; a two-week chick will also have received the Day 10 to 12 Newcastle and infectious bronchitis booster when due.',
-  'three-eighteen-weeks': 'ChickMagnet administers every vaccine due by the exact age selected. The batch record shows what has been given and what the buyer must continue after delivery.',
-  mature: 'ChickMagnet administers the age-appropriate chicken vaccines due before sale and provides the current batch record. Newcastle protection still requires regular boosters after the bird leaves the farm.',
+  'day-old': 'Day-old chicks leave with every hatchery vaccination due on Day 1 completed and recorded. The buyer continues the schedule after delivery.',
+  'one-two-weeks': 'Every vaccine due by the exact dispatch age is completed and recorded. A one-week chick has received the Day 1 doses; a two-week chick has also received the Days 10 to 12 booster when due.',
+  'three-eighteen-weeks': 'Every vaccine due by the selected week is completed and recorded. The batch record shows what ChickMagnet has administered and which later doses the buyer must continue after delivery.',
+  mature: 'Every vaccine due through the bird’s current age is completed and recorded. The batch record is provided, and later Newcastle boosters continue under veterinary guidance.',
 };
 
 export function createChickenFarmCareSections(stage: BirdStage): ProductGuide['sections'] {
   return [
     {
-      title: 'Vaccinations completed by this age',
-      summary: VACCINATION_SUMMARIES[stage],
-      bullets: [
-        'Day 1: Marek’s disease, Gumboro, Newcastle disease and infectious bronchitis vaccines at the hatchery.',
-        'Days 10 to 12: Newcastle disease and infectious bronchitis booster.',
-        'Days 18 to 21: Gumboro booster.',
-        'Week 6: Fowl pox vaccine.',
-        'Week 8: Fowl typhoid vaccine.',
-        'Week 18: Newcastle disease booster, then repeat every 3 to 4 months under veterinary guidance.',
-      ],
+      title: 'Veterinarian-certified vaccination schedule',
+      summary: `${CHICKMAGNET_VACCINATION_SUMMARY} ${VACCINATION_SUMMARIES[stage]}`,
+      bullets: [...CHICKMAGNET_VACCINATION_BULLETS],
     },
     {
       title: 'How ChickMagnet cares for the flock',
@@ -202,7 +199,7 @@ export function createBreedProductGuide(breed: BreedName, stage: BirdStage): Pro
       { ...STAGE_SECTIONS[stage], bullets: STAGE_SECTIONS[stage].bullets ? [...STAGE_SECTIONS[stage].bullets] : undefined },
       ...createChickenFarmCareSections(stage),
     ],
-    note: `${profile.note ?? ''} Chicks are sold unsexed. ChickMagnet does not guarantee sex, but the farm tries to balance male and female chicks where possible. Vaccination timing can be adjusted by a veterinary professional for local disease risk.`,
+    note: `${profile.note ?? ''} Chicks are sold unsexed. ChickMagnet does not guarantee sex, but the farm tries to balance male and female chicks where possible. ChickMagnet completes every vaccination due before delivery; the buyer is responsible for continuing later doses.`,
   };
 }
 

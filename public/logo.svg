@@ -1,16 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 280" width="100%" height="100%">
   <defs>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&amp;display=swap');
       .logo-text-chick {
-        font-family: 'Fredoka', 'Arial Rounded MT Bold', 'Comfortaa', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Arial Rounded MT Bold', sans-serif;
         font-weight: 700;
         font-size: 102px;
         fill: #FFFFFF;
         letter-spacing: -1.5px;
       }
       .logo-text-magnet {
-        font-family: 'Fredoka', 'Arial Rounded MT Bold', 'Comfortaa', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Arial Rounded MT Bold', sans-serif;
         font-weight: 700;
         font-size: 104px;
         fill: #FFFFFF;

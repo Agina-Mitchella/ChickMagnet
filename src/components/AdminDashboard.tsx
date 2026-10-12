@@ -13,6 +13,7 @@ import { getStoredCMSData, updateCMSBlock, saveStoredCMSData, CMSBlock, getStore
 import BusinessPlanHub from './BusinessPlanHub';
 import FarmOperationsModule from './FarmOperationsModule';
 import { getWholesaleMinimumForCategory } from '../utils/orderRules';
+import { normalizeProductSeo, slugifyProductName, validateProductSeo } from '../utils/productSeo';
 import {
   subscribeAdminOrders,
   updateOrderStatusInFirestore,
@@ -498,10 +499,20 @@ export default function AdminDashboard({
   const [productForm, setProductForm] = useState<Partial<Product>>({
     name: '',
     description: '',
+    slug: '',
+    previousSlugs: [],
+    seoTitle: '',
+    seoDescription: '',
+    imageAlt: '',
+    searchVisibility: 'index',
+    catalogStatus: 'published',
+    contentSections: [],
     showOnStorefront: true,
     price: 150,
-    wholesalePrice: 130,
-    wholesaleMinQty: 50,
+    wholesalePrice: 150,
+    wholesaleMinQty: 10,
+    unit: 'bird',
+    minOrderQty: 1,
     category: 'live-birds',
     subCategory: 'day-old-chicks',
     stock: 500,
@@ -532,6 +543,7 @@ export default function AdminDashboard({
     const retailPrice = Number(productForm.price);
     const stock = Number(productForm.stock ?? 0);
     const image = productForm.image?.trim() || '';
+    const unit = productForm.unit?.trim() || (category === 'eggs' ? 'tray' : category === 'live-birds' ? 'bird' : 'kg');
 
     if (!productForm.name?.trim() || !productForm.description?.trim()) {
       setProductSaveError('Add a product title and short description.');
@@ -561,24 +573,55 @@ export default function AdminDashboard({
     setProductSaveError(null);
 
     try {
+      const productId = isAddingNewProduct ? `prod-${Date.now()}` : selectedProductModal?.id;
+      if (!productId) throw new Error('The product ID is missing. Close the editor and try again.');
+
+      const requestedSlug = productForm.slug?.trim() || slugifyProductName(productForm.name.trim());
+      const existingSlug = selectedProductModal ? normalizeProductSeo(selectedProductModal).slug : '';
+      const previousSlugs = Array.from(new Set([
+        ...(productForm.previousSlugs ?? []),
+        ...(existingSlug && existingSlug !== requestedSlug ? [existingSlug] : []),
+      ]));
+      const sharedProductFields = {
+        ...productForm,
+        id: productId,
+        name: productForm.name.trim(),
+        description: productForm.description.trim(),
+        slug: requestedSlug,
+        previousSlugs,
+        showOnStorefront: productForm.catalogStatus !== 'archived' && (productForm.showOnStorefront ?? true),
+        price: retailPrice,
+        wholesalePrice: retailPrice,
+        wholesaleMinQty: getWholesaleMinimumForCategory(category),
+        minOrderQty: Math.max(1, Number(productForm.minOrderQty || 1)),
+        unit,
+        category,
+        stock,
+        image,
+        imageAlt: productForm.imageAlt?.trim() || productForm.name.trim(),
+        contentSections: productForm.productGuide?.sections?.length
+          ? productForm.productGuide.sections.map((section, index) => ({
+              id: slugifyProductName(section.title) || `section-${index + 1}`,
+              heading: section.title,
+              body: section.summary || '',
+              bullets: section.bullets,
+            }))
+          : productForm.contentSections,
+        fulfillmentType,
+        sellerName: 'ChickMagnet',
+        sellerId: 'chickmagnet',
+        sellerBadge: 'Sold by ChickMagnet',
+      } as Product;
+      const normalizedProduct = normalizeProductSeo(sharedProductFields);
+      const validationErrors = validateProductSeo(normalizedProduct, products);
+      if (validationErrors.length) {
+        throw new Error(validationErrors.join(' '));
+      }
+
       if (isAddingNewProduct) {
         const createdProd: Product = {
-          ...productForm,
-          id: `prod-${Date.now()}`,
-          name: productForm.name.trim(),
-          description: productForm.description.trim(),
-          showOnStorefront: productForm.showOnStorefront ?? true,
-          price: retailPrice,
-          wholesalePrice: Number(productForm.wholesalePrice || retailPrice),
-          wholesaleMinQty: getWholesaleMinimumForCategory(category),
-          category,
+          ...normalizedProduct,
           subCategory: productForm.subCategory as any || (category === 'eggs' ? 'table-eggs' : 'day-old-chicks'),
-          stock,
-          image,
-          sellerName: 'ChickMagnet',
-          sellerId: 'chickmagnet',
-          sellerBadge: 'Sold by ChickMagnet',
-          fulfillmentType,
           tags: productForm.tags || ['Chicken'],
           rating: 4.9,
           reviewsCount: 0
@@ -589,18 +632,7 @@ export default function AdminDashboard({
       } else if (selectedProductModal) {
         const updatedProd: Product = {
           ...selectedProductModal,
-          ...productForm,
-          name: productForm.name.trim(),
-          description: productForm.description.trim(),
-          price: retailPrice,
-          stock,
-          image,
-          category,
-          fulfillmentType,
-          sellerName: 'ChickMagnet',
-          sellerId: 'chickmagnet',
-          sellerBadge: 'Sold by ChickMagnet',
-          wholesaleMinQty: getWholesaleMinimumForCategory(category)
+          ...normalizedProduct,
         } as Product;
 
         await onUpdateProduct(updatedProd);
@@ -617,13 +649,13 @@ export default function AdminDashboard({
   };
 
   const handleDeleteProduct = async (product: Product) => {
-    const confirmed = window.confirm(`Remove "${product.name}" from the catalog? This cannot be undone.`);
+    const confirmed = window.confirm(`Archive "${product.name}"? It will leave the storefront, but its old link will remain reserved.`);
     if (!confirmed) return;
 
     try {
       await onDeleteProduct(product.id);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'The product could not be removed.');
+      window.alert(error instanceof Error ? error.message : 'The product could not be archived.');
     }
   };
 
@@ -720,13 +752,24 @@ export default function AdminDashboard({
         label: 'Add New SKU',
         action: () => {
           setIsAddingNewProduct(true);
-          setSelectedProductModal(null);
+          setSelectedProductModal({} as Product);
           setProductForm({
             name: '',
+            description: '',
+            slug: '',
+            previousSlugs: [],
+            seoTitle: '',
+            seoDescription: '',
+            imageAlt: '',
+            searchVisibility: 'index',
+            catalogStatus: 'published',
+            contentSections: [],
             showOnStorefront: true,
             price: 150,
-            wholesalePrice: 130,
-            wholesaleMinQty: 50,
+            wholesalePrice: 150,
+            wholesaleMinQty: 10,
+            unit: 'bird',
+            minOrderQty: 1,
             category: 'live-birds',
             subCategory: 'day-old-chicks',
             stock: 500,
@@ -1598,11 +1641,31 @@ export default function AdminDashboard({
                   setProductForm({
                     name: '',
                     description: '',
+                    slug: '',
+                    previousSlugs: [],
+                    seoTitle: '',
+                    seoDescription: '',
+                    imageAlt: '',
+                    searchVisibility: 'index',
+                    catalogStatus: 'published',
+                    contentSections: [],
                     showOnStorefront: true,
                     price: 150,
-                    wholesalePrice: 130,
+                    wholesalePrice: 150,
+                    wholesaleMinQty: 10,
+                    unit: 'bird',
+                    minOrderQty: 1,
                     stock: 500,
-                    category: 'live-birds'
+                    category: 'live-birds',
+                    subCategory: 'day-old-chicks',
+                    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=800&q=80',
+                    sellerName: 'ChickMagnet',
+                    sellerId: 'chickmagnet',
+                    sellerBadge: 'Sold by ChickMagnet',
+                    fulfillmentType: 'live-climate',
+                    tags: ['Chicken'],
+                    rating: 4.9,
+                    reviewsCount: 0,
                   });
                 }}
                 className="bg-amber-400 hover:bg-amber-500 text-emerald-950 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -1629,7 +1692,7 @@ export default function AdminDashboard({
 
                     <div className="font-bold text-slate-900 text-sm leading-snug">{product.name}</div>
                     <div className="text-xs text-emerald-900 font-bold font-mono">
-                      Ksh {product.price} <span className="text-slate-500 text-[10px] font-normal">(Wholesale: Ksh {product.wholesalePrice || product.price})</span>
+                      Ksh {product.price} / {product.unit || 'unit'}
                     </div>
                   </div>
 
@@ -1653,7 +1716,7 @@ export default function AdminDashboard({
                       className="text-rose-600 hover:text-rose-700 hover:underline font-medium flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove</span>
+                      <span>Archive</span>
                     </button>
                   </div>
                 </div>
@@ -2148,7 +2211,7 @@ export default function AdminDashboard({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label className="block text-slate-800 font-bold mb-1">Retail Price (Ksh)</label>
                   <input
@@ -2160,11 +2223,26 @@ export default function AdminDashboard({
                 </div>
 
                 <div>
-                  <label className="block text-slate-800 font-bold mb-1">Wholesale Price (Ksh)</label>
+                  <label className="block text-slate-800 font-bold mb-1">Unit</label>
+                  <select
+                    value={productForm.unit || 'bird'}
+                    onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl text-slate-900 font-bold focus:outline-none focus:border-emerald-600"
+                  >
+                    <option value="bird">Bird</option>
+                    <option value="tray">Tray</option>
+                    <option value="kg">Kilogram</option>
+                    <option value="pack">Pack</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 font-bold mb-1">Retail minimum</label>
                   <input
                     type="number"
-                    value={productForm.wholesalePrice}
-                    onChange={(e) => setProductForm({ ...productForm, wholesalePrice: Number(e.target.value) })}
+                    min="1"
+                    value={productForm.minOrderQty || 1}
+                    onChange={(e) => setProductForm({ ...productForm, minOrderQty: Number(e.target.value) })}
                     className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl font-mono text-slate-900 font-bold focus:outline-none focus:border-emerald-600"
                   />
                 </div>
@@ -2211,7 +2289,7 @@ export default function AdminDashboard({
               </label>
 
               <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                Wholesale minimums are applied automatically: 10 for chicken and 5 for egg products.
+                Retail and wholesale use the same unit price. Wholesale minimums are applied automatically: 10 for chicken and 5 for egg products.
               </p>
 
               <div>
@@ -2222,6 +2300,92 @@ export default function AdminDashboard({
                   onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-600"
                 />
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
+                <div>
+                  <div className="text-sm font-bold text-emerald-950">Search and sharing</div>
+                  <p className="mt-0.5 text-[11px] leading-4 text-slate-600">
+                    The URL is permanent by default. If it changes, the old URL is kept as a redirect.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Product URL</label>
+                  <div className="flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-emerald-600">
+                    <span className="shrink-0 border-r border-slate-200 bg-slate-100 px-2 py-2 text-[11px] text-slate-500">/products/</span>
+                    <input
+                      type="text"
+                      value={productForm.slug || ''}
+                      onChange={(e) => setProductForm({ ...productForm, slug: slugifyProductName(e.target.value) })}
+                      placeholder={slugifyProductName(productForm.name || 'product-name')}
+                      className="min-w-0 flex-1 bg-white p-2 font-mono text-xs text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-bold text-slate-700">Catalogue status</label>
+                    <select
+                      value={productForm.catalogStatus || 'published'}
+                      onChange={(e) => setProductForm({
+                        ...productForm,
+                        catalogStatus: e.target.value as Product['catalogStatus'],
+                        showOnStorefront: e.target.value !== 'archived' && productForm.showOnStorefront !== false,
+                      })}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    >
+                      <option value="published">Published</option>
+                      <option value="temporarilyUnavailable">Temporarily unavailable</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-bold text-slate-700">Google visibility</label>
+                    <select
+                      value={productForm.searchVisibility || 'index'}
+                      onChange={(e) => setProductForm({ ...productForm, searchVisibility: e.target.value as Product['searchVisibility'] })}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    >
+                      <option value="index">Allow indexing</option>
+                      <option value="noindex">Do not index</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Search title</label>
+                  <input
+                    type="text"
+                    value={productForm.seoTitle || ''}
+                    onChange={(e) => setProductForm({ ...productForm, seoTitle: e.target.value })}
+                    placeholder={`${productForm.name || 'Product name'} | ChickMagnet`}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Search description</label>
+                  <textarea
+                    rows={2}
+                    value={productForm.seoDescription || ''}
+                    onChange={(e) => setProductForm({ ...productForm, seoDescription: e.target.value })}
+                    placeholder="Leave blank to use the short summary."
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Image description</label>
+                  <input
+                    type="text"
+                    value={productForm.imageAlt || ''}
+                    onChange={(e) => setProductForm({ ...productForm, imageAlt: e.target.value })}
+                    placeholder="Describe what is visible in the product image."
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5">

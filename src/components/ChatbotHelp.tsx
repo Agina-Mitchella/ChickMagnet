@@ -103,7 +103,7 @@ export default function ChatbotHelp({
         botReplyText = "Report weak, injured or dead chicks to ChickMagnet immediately after delivery. Include your order number, delivery details and clear evidence so the farm can review what happened.";
         botAction = onOpenClaims ? { label: 'Report a delivery problem', type: 'open_claims' } : undefined;
       } else if (lower.includes('vaccin') || lower.includes('health')) {
-        botReplyText = "ChickMagnet gives every chicken vaccine due by the selected age and provides the current batch record. The standard programme covers hatchery vaccines on Day 1, boosters around Days 10 to 12 and 18 to 21, Fowl pox at Week 6, Fowl typhoid at Week 8, and a Newcastle booster at Week 18. Future doses after delivery are the buyer’s responsibility and may be adjusted by a veterinary professional.";
+        botReplyText = "ChickMagnet follows a veterinarian-certified schedule: hatchery vaccines on Day 1, Newcastle and infectious bronchitis at Days 10 to 12, Gumboro at Days 18 to 21, fowl pox at Week 6, fowl typhoid at Week 8, and a Newcastle booster at Week 18. Every bird receives every dose due by its selected age, and we provide the current batch record. The buyer continues any later doses after delivery.";
       } else if (lower.includes('wholesale') || lower.includes('discount') || lower.includes('minimum')) {
         botReplyText = "The wholesale minimum for chicken is 10 birds from one listing: one breed and one age. Different breeds or ages cannot be combined to reach 10. There is no automatic wholesale discount, although ChickMagnet may offer one at its discretion for larger quantities.";
         botAction = { label: 'Explore Wholesale Portal', type: 'open_wholesale' };

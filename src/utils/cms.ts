@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../config/firebase';
-import defaultLogoImg from '../assets/images/regenerated_image_1787820822648.png';
+import { INITIAL_FAQS, normalizeStoredFAQs, type FAQItem } from '../data/faqs';
+import { CHICKMAGNET_VACCINATION_SCHEDULE } from '../data/vaccinationSchedule';
 
-export const DEFAULT_BRAND_LOGO_IMAGE = defaultLogoImg;
+export { INITIAL_FAQS };
+export type { FAQItem };
+
+export const DEFAULT_BRAND_LOGO_IMAGE = '/images/chickmagnet-logo.webp';
 
 export type CMSBlockType = 'text' | 'heading' | 'image' | 'button' | 'toggle' | 'datetime' | 'json';
 
@@ -52,138 +54,7 @@ export const CMS_PAGES: CMSPageMeta[] = [
   { id: 'farm-plan-marketing', title: 'Farm Plan: Sales & Pitch', category: 'farm_plan' },
 ];
 
-export const INITIAL_FAQS = [
-  {
-    id: 'faq-1',
-    q: 'What is the difference between Improved Kienyeji, Sasso, Kenbro and Kuroiler?',
-    a: 'In Kenya, Sasso, Kenbro and Kuroiler are often grouped under improved kienyeji because they are improved dual-purpose birds for meat and eggs. They are still distinct types. Improved Kienyeji is the locally rooted option, Sasso is commonly chosen for stronger meat growth, Kenbro is a balanced free-range bird, and Kuroiler is known for active foraging and adaptability in lower-input systems. Results depend on feed, housing and flock management.',
-    category: 'Choosing Live Chicken'
-  },
-  {
-    id: 'faq-2',
-    q: 'Are chicks male or female?',
-    a: 'Chicks are sold unsexed, so ChickMagnet cannot guarantee a particular number of male or female birds. The farm team tries to provide a balanced mix where possible.',
-    category: 'Choosing Live Chicken'
-  },
-  {
-    id: 'faq-3',
-    q: 'Which vaccinations do ChickMagnet birds receive?',
-    a: 'ChickMagnet vaccinates birds according to age. The standard schedule covers the day-old hatchery vaccines, Newcastle and infectious bronchitis at days 10 to 12, Gumboro at days 18 to 21, fowl pox at week 6, fowl typhoid at week 8, and a Newcastle booster at week 18. A bird receives every dose due by its selected age. The buyer is responsible for later doses after delivery and should confirm the continuing schedule with a veterinary or livestock professional.',
-    category: 'Vaccination & Care'
-  },
-  {
-    id: 'faq-4',
-    q: 'What should I prepare before chicks arrive?',
-    a: 'Prepare clean, dry and secure housing before delivery. Day-old and young chicks need a pre-heated brooder, suitable lighting, fresh air without cold draughts, dry litter, chick feed, clean water, feeders and drinkers. Keep basic farm records and arrange the remaining vaccination and veterinary plan. Older birds still need secure housing, ventilation, clean water, suitable feed and a gradual transition into the new flock.',
-    category: 'Vaccination & Care'
-  },
-  {
-    id: 'faq-5',
-    q: 'Does a product shown on the website mean it is available immediately?',
-    a: 'No. Place the order and make the product payment first. ChickMagnet will then confirm the current batch and contact you with the exact delivery date.',
-    category: 'Availability & Delivery'
-  },
-  {
-    id: 'faq-6',
-    q: 'Can I mix breeds or ages to reach the wholesale minimum?',
-    a: 'No. The minimum is 10 chickens of one breed and one age from the same product listing. Different breeds or age groups cannot be combined to reach that minimum.',
-    category: 'Commercial Wholesale'
-  },
-  {
-    id: 'faq-7',
-    q: 'Do wholesale orders receive a discount?',
-    a: 'There is no automatic wholesale discount. ChickMagnet may offer a discount at its discretion depending on the quantity ordered.',
-    category: 'Commercial Wholesale'
-  },
-  {
-    id: 'faq-8',
-    q: 'Where does ChickMagnet deliver and how much does delivery cost?',
-    a: 'ChickMagnet delivers countrywide in Kenya. Delivery is quoted separately after the order is reviewed because the fee depends on distance, order size and the handling required for live birds, chilled products or eggs. The website product total does not include delivery.',
-    category: 'Availability & Delivery'
-  },
-  {
-    id: 'faq-9',
-    q: 'What should I do if chicks arrive weak, injured or dead?',
-    a: 'Report the problem to ChickMagnet immediately after delivery. Keep the affected chicks and order details available so the farm team can review what happened and advise the next step.',
-    category: 'After Delivery'
-  },
-  {
-    id: 'faq-10',
-    q: 'How does ChickMagnet keep dressed chicken and cuts fresh?',
-    a: 'Fresh chicken and cuts are kept refrigerated. ChickMagnet aims to dress the chicken on the delivery day or one day before delivery, then keeps it cold until handover.',
-    category: 'Fresh Chicken'
-  },
-  {
-    id: 'faq-11',
-    q: 'What happens if my requested product becomes unavailable after payment?',
-    a: 'You can choose a suitable substitute or receive a full refund for the unavailable product.',
-    category: 'Availability & Delivery'
-  },
-  {
-    id: 'faq-12',
-    q: 'How long does M-Pesa confirmation take?',
-    a: 'Manual M-Pesa confirmation usually takes between 2 and 24 hours after you send the full confirmation message to ChickMagnet.',
-    category: 'Payment'
-  }
-];
-
-const LEGACY_FAQ_QUESTIONS = new Set([
-  'How does ChickMagnet guarantee 100% Live Arrival for Day-Old Chicks?',
-  'What bio-security measures are taken at partner hatcheries?',
-  'How does Wholesale Net-30 work for commercial buyers?',
-  'How are fresh dressed poultry weights handled for billing?',
-]);
-
-export const INITIAL_VACCINE_SCHEDULE = [
-  {
-    id: 'vax-1',
-    dayOrWeek: 'Day 1',
-    vaccine: "Marek's HVT In-Ovo + NCD/IB Spray",
-    route: 'Subcutaneous / Spray at Hatchery',
-    instructions: 'Administered at partner hatchery facility prior to box sealing.',
-    notes: 'Mandatory bio-security clearance before dispatch.'
-  },
-  {
-    id: 'vax-2',
-    dayOrWeek: 'Day 7',
-    vaccine: 'Gumboro (IBD) Intermediate Plus',
-    route: 'Drinking Water (with Skim Milk Stabilizer)',
-    instructions: 'Withdraw water for 1.5 hours prior. Mix vaccine with 2g/L skim milk.',
-    notes: 'Ensure all birds consume within 2 hours.'
-  },
-  {
-    id: 'vax-3',
-    dayOrWeek: 'Day 14',
-    vaccine: 'Gumboro (IBD) 2nd Booster',
-    route: 'Drinking Water',
-    instructions: 'Repeat intermediate plus strain booster for high maternal antibody protection.',
-    notes: 'Crucial for 98%+ flock livability.'
-  },
-  {
-    id: 'vax-4',
-    dayOrWeek: 'Day 21',
-    vaccine: 'Newcastle (Lasota) + Infectious Bronchitis',
-    route: 'Ocular Drop / Drinking Water',
-    instructions: 'Eye drop preferred for 100% individual coverage, or clean unchlorinated water.',
-    notes: 'Provides solid respiratory immunity.'
-  },
-  {
-    id: 'vax-5',
-    dayOrWeek: 'Day 28',
-    vaccine: 'Deworming (Levamisole) + Multi-Vitamins',
-    route: 'Drinking Water',
-    instructions: 'Full 24-hour treatment followed by 3 days of stress-pack vitamins.',
-    notes: 'Prepares digestive tract for rapid grower transition.'
-  },
-  {
-    id: 'vax-6',
-    dayOrWeek: 'Week 6 (Day 42)',
-    vaccine: 'Fowl Pox + Fowl Typhoid',
-    route: 'Wing Web Puncture / Intramuscular',
-    instructions: 'Wing web stab applicator for Fowl Pox; 0.5ml breast IM for Typhoid.',
-    notes: 'Lifetime protection for adult layers & kienyeji growers.'
-  }
-];
+export const INITIAL_VACCINE_SCHEDULE = CHICKMAGNET_VACCINATION_SCHEDULE.map(item => ({ ...item }));
 
 export const INITIAL_HOUSING_SPECS = [
   {
@@ -299,7 +170,7 @@ export const DEFAULT_CMS_BLOCKS: CMSBlock[] = [
     pageId: 'global',
     label: 'Brand Logo Image (URL or Data URI)',
     type: 'image',
-    value: defaultLogoImg,
+    value: DEFAULT_BRAND_LOGO_IMAGE,
     lastEditedBy: 'System Core',
     lastEditedAt: '2026-08-05 00:00',
     history: [],
@@ -1284,8 +1155,9 @@ export const compressImageDataUrl = (dataUrl: string, maxDim: number = 1600): Pr
 };
 
 export const getStoredCMSData = (): CMSBlock[] => {
+  if (typeof window === 'undefined') return DEFAULT_CMS_BLOCKS;
   try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const saved = window.localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!saved) return DEFAULT_CMS_BLOCKS;
     const parsed: CMSBlock[] = JSON.parse(saved);
     
@@ -1307,8 +1179,9 @@ export const getStoredCMSData = (): CMSBlock[] => {
 };
 
 export const saveStoredCMSData = (blocks: CMSBlock[]) => {
+  if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(blocks));
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(blocks));
     window.dispatchEvent(new Event('sol_cms_updated'));
   } catch (e) {
     console.error('Failed to save CMS blocks to localStorage', e);
@@ -1370,6 +1243,10 @@ export const updateCMSBlock = async (
 
   // Sync to Firestore in background
   try {
+    const [{ doc, setDoc }, { db }] = await Promise.all([
+      import('firebase/firestore'),
+      import('../config/firebaseDb'),
+    ]);
     const blockDocRef = doc(db, 'cms_blocks', blockId);
     await setDoc(
       blockDocRef,
@@ -1385,7 +1262,7 @@ export const updateCMSBlock = async (
       { merge: true }
     );
   } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `cms_blocks/${blockId}`);
+    console.warn(`CMS block ${blockId} was saved locally but could not be synced.`, err);
   }
 };
 
@@ -1411,12 +1288,15 @@ export const getCMSToggle = (blockId: string, fallback: boolean = false): boolea
 };
 
 export function useCMSBlock(blockId: string, fallback?: string): string {
-  const [val, setVal] = useState<string>(() => getCMSValue(blockId, fallback));
+  const defaultBlock = DEFAULT_CMS_BLOCKS.find(block => block.id === blockId);
+  const initialValue = fallback ?? (typeof defaultBlock?.value === 'string' ? defaultBlock.value : '');
+  const [val, setVal] = useState<string>(initialValue);
 
   useEffect(() => {
     const handleUpdate = () => {
       setVal(getCMSValue(blockId, fallback));
     };
+    handleUpdate();
     window.addEventListener('sol_cms_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -1429,12 +1309,15 @@ export function useCMSBlock(blockId: string, fallback?: string): string {
 }
 
 export function useCMSToggle(blockId: string, fallback: boolean = false): boolean {
-  const [val, setVal] = useState<boolean>(() => getCMSToggle(blockId, fallback));
+  const defaultBlock = DEFAULT_CMS_BLOCKS.find(block => block.id === blockId);
+  const initialValue = typeof defaultBlock?.value === 'boolean' ? defaultBlock.value : fallback;
+  const [val, setVal] = useState<boolean>(initialValue);
 
   useEffect(() => {
     const handleUpdate = () => {
       setVal(getCMSToggle(blockId, fallback));
     };
+    handleUpdate();
     window.addEventListener('sol_cms_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -1449,25 +1332,11 @@ export function useCMSToggle(blockId: string, fallback: boolean = false): boolea
 // ----------------------------------------------------
 // DYNAMIC FAQS HOOK & HANDLERS
 // ----------------------------------------------------
-export interface FAQItem {
-  id: string;
-  q: string;
-  a: string;
-  category?: string;
-}
-
 export const getStoredFAQs = (): FAQItem[] => {
   try {
     const raw = getCMSValue('faqs_data_json');
-    if (!raw) return INITIAL_FAQS;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return INITIAL_FAQS;
-
-    const isUneditedLegacySet = parsed.length === LEGACY_FAQ_QUESTIONS.size
-      && parsed.every((faq) => typeof faq?.q === 'string' && LEGACY_FAQ_QUESTIONS.has(faq.q));
-
-    return isUneditedLegacySet ? INITIAL_FAQS : parsed;
-  } catch (e) {
+    return raw ? normalizeStoredFAQs(JSON.parse(raw)) : INITIAL_FAQS;
+  } catch {
     return INITIAL_FAQS;
   }
 };
@@ -1477,12 +1346,13 @@ export const saveStoredFAQs = async (faqs: FAQItem[], adminName: string = 'Admin
 };
 
 export function useDynamicFAQs() {
-  const [faqs, setFaqs] = useState<FAQItem[]>(getStoredFAQs);
+  const [faqs, setFaqs] = useState<FAQItem[]>(INITIAL_FAQS);
 
   useEffect(() => {
     const handleUpdate = () => {
       setFaqs(getStoredFAQs());
     };
+    handleUpdate();
     window.addEventListener('sol_cms_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -1745,8 +1615,7 @@ export interface BrandLogoConfig {
   brandName: string;
 }
 
-export const getStoredBrandLogo = (): BrandLogoConfig => {
-  const blocks = getStoredCMSData();
+function getBrandLogoFromBlocks(blocks: CMSBlock[]): BrandLogoConfig {
   const logoTypeBlock = blocks.find(b => b.id === 'global_logo_type');
   const logoDisplayModeBlock = blocks.find(b => b.id === 'global_logo_display_mode');
   const logoEmojiBlock = blocks.find(b => b.id === 'global_logo_emoji');
@@ -1754,7 +1623,10 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
   const brandNameBlock = blocks.find(b => b.id === 'global_platform_name');
 
   const rawLogoUrl = logoImageBlock?.value as string;
-  const logoImageUrl = (!rawLogoUrl || rawLogoUrl === '/logo.svg') ? defaultLogoImg : rawLogoUrl;
+  const usesLegacyDefault = rawLogoUrl?.includes('regenerated_image_1787820822648');
+  const logoImageUrl = (!rawLogoUrl || rawLogoUrl === '/logo.svg' || usesLegacyDefault)
+    ? DEFAULT_BRAND_LOGO_IMAGE
+    : rawLogoUrl;
   const rawType = logoTypeBlock?.value as 'emoji' | 'image' | undefined;
   const logoType = rawType || 'image';
   const rawDisplayMode = logoDisplayModeBlock?.value as 'image_only' | 'image_with_text' | 'emoji_with_text' | undefined;
@@ -1767,7 +1639,9 @@ export const getStoredBrandLogo = (): BrandLogoConfig => {
     logoImageUrl,
     brandName: (brandNameBlock?.value as string) || 'ChickMagnet',
   };
-};
+}
+
+export const getStoredBrandLogo = (): BrandLogoConfig => getBrandLogoFromBlocks(getStoredCMSData());
 
 export const updateBrandLogo = async (config: Partial<BrandLogoConfig>, adminName: string = 'Admin') => {
   if (config.logoType !== undefined) {
@@ -1793,12 +1667,13 @@ export const updateBrandLogo = async (config: Partial<BrandLogoConfig>, adminNam
 };
 
 export function useBrandLogo(): BrandLogoConfig {
-  const [brand, setBrand] = useState<BrandLogoConfig>(getStoredBrandLogo);
+  const [brand, setBrand] = useState<BrandLogoConfig>(() => getBrandLogoFromBlocks(DEFAULT_CMS_BLOCKS));
 
   useEffect(() => {
     const handleUpdate = () => {
       setBrand(getStoredBrandLogo());
     };
+    handleUpdate();
     window.addEventListener('sol_cms_updated', handleUpdate);
     window.addEventListener('chickmagnet_brand_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);

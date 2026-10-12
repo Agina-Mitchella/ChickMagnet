@@ -11,7 +11,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npm run build:legacy-server
 
 # Stage 3: Production runner
 FROM node:20-alpine AS production
@@ -25,8 +25,11 @@ RUN adduser -S expressapp -u 1001
 COPY --from=build --chown=expressapp:nodejs /app/package*.json ./
 COPY --from=build --chown=expressapp:nodejs /app/dist ./dist
 
-# Install strictly production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install strictly production dependencies. The legacy service stores its
+# bounded local audit buffers in the working directory, so the non-root runtime
+# user must be able to create those files.
+RUN npm ci --omit=dev && npm cache clean --force
+RUN chown expressapp:nodejs /app
 
 USER expressapp
 
@@ -35,4 +38,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD node -e "fetch('http://localhost:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1))"
 
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "start:legacy-server"]

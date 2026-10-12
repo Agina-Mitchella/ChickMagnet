@@ -1,66 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { MOCK_BATCH_TRACE_RECORDS } from './data/products';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { STOREFRONT_PRODUCTS } from './data/storefrontCatalog';
 import { Product, CartItem, BuyerType, MainCategory, User } from './types';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import ProductDetail from './components/ProductDetail';
-import CartDrawer from './components/CartDrawer';
-import CheckoutRitual from './components/CheckoutRitual';
-import BatchTraceabilityPortal from './components/BatchTraceabilityPortal';
-import MortalityClaimRitual from './components/MortalityClaimRitual';
-import CongratsModal from './components/CongratsModal';
-import AboutLore from './components/AboutLore';
-import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
-import AccountDashboard from './components/AccountDashboard';
-import AdminDashboard from './components/AdminDashboard';
-import BusinessPlanHub from './components/BusinessPlanHub';
 import StorefrontHero from './components/StorefrontHero';
 import FAQSection from './components/FAQSection';
 import { useColorScheme } from './utils/colorScheme';
-import {
-  subscribeProducts,
-  filterCachedStorefrontProducts,
-  saveProductToFirestore,
-  deleteProductFromFirestore,
-  subscribeUserOrders,
-  saveOrderToFirestore,
-  subscribeCMSBlocks
-} from './services/firestoreSync';
-import { getFirebaseAuthorization, logoutUser, subscribeAuthUser } from './config/firebase';
 import {
   applyStorefrontCopy,
   isCurrentStorefrontProduct,
   isProductAvailableForBuyer,
   productMatchesSearch,
 } from './utils/storefrontProducts';
+import { getCategoryPath, normalizeProductSeo } from './utils/productSeo';
 
-export default function App() {
+const AccountDashboard = lazy(() => import('./components/AccountDashboard'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const AuthModal = lazy(() => import('./components/AuthModal'));
+const BatchTraceabilityPortal = lazy(() => import('./components/BatchTraceabilityPortal'));
+const BusinessPlanHub = lazy(() => import('./components/BusinessPlanHub'));
+const CartDrawer = lazy(() => import('./components/CartDrawer'));
+const CheckoutRitual = lazy(() => import('./components/CheckoutRitual'));
+const CongratsModal = lazy(() => import('./components/CongratsModal'));
+const MortalityClaimRitual = lazy(() => import('./components/MortalityClaimRitual'));
+
+type AppPage = 'shop' | 'profile' | 'product';
+
+interface AppProps {
+  initialProducts?: Product[];
+  initialPage?: AppPage;
+  initialBuyerType?: BuyerType;
+  initialCategory?: MainCategory | 'all';
+  initialSearchQuery?: string;
+  initialProduct?: Product;
+  initialAgeWeeks?: number;
+}
+
+function LoadingSurface() {
+  return <div className="min-h-[45vh] bg-[#fffdf9]" aria-hidden="true" />;
+}
+
+export default function App({
+  initialProducts = STOREFRONT_PRODUCTS,
+  initialPage = 'shop',
+  initialBuyerType = 'retail',
+  initialCategory = 'all',
+  initialSearchQuery = '',
+  initialProduct,
+  initialAgeWeeks,
+}: AppProps) {
   const { preference: colorScheme, setPreference: setColorScheme } = useColorScheme();
-  const [activeTab, setActiveTab] = useState<'shop' | 'about' | 'profile'>(() => (
-    window.location.pathname.replace(/\/+$/, '') === '/about' ? 'about' : 'shop'
-  ));
-  const [buyerType, setBuyerType] = useState<BuyerType>('retail');
-  const [selectedCategory, setSelectedCategory] = useState<MainCategory | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<AppPage>(initialPage);
+  const [buyerType, setBuyerType] = useState<BuyerType>(initialBuyerType);
+  const [selectedCategory, setSelectedCategory] = useState<MainCategory | 'all'>(initialCategory);
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearchQuery);
   
-  // Selected product modal
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
   // Products State
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_products');
-    let rawProducts = STOREFRONT_PRODUCTS;
-    if (saved) {
-      try {
-        const parsed: Product[] = JSON.parse(saved);
-        const visibleCachedProducts = filterCachedStorefrontProducts(parsed);
-        if (visibleCachedProducts.length > 0) rawProducts = visibleCachedProducts;
-      } catch {
-        rawProducts = STOREFRONT_PRODUCTS;
-      }
-    }
+    const rawProducts = initialProducts;
     const validCategories = ['live-birds', 'fresh-poultry', 'eggs'];
     const initialMap = new Map(STOREFRONT_PRODUCTS.map(ip => [ip.id, ip]));
     return rawProducts
@@ -80,7 +79,8 @@ export default function App() {
           displayOrder: initP?.displayOrder ?? p.displayOrder,
           imagePosition: initP?.imagePosition || p.imagePosition,
         };
-      });
+      })
+      .map(normalizeProductSeo);
   });
 
   // Admin Dashboard Mode
@@ -88,10 +88,8 @@ export default function App() {
   const [isBusinessPlanOpen, setIsBusinessPlanOpen] = useState<boolean>(false);
 
   // Cart state
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('chickmagnet_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
   // Checkout ritual state
@@ -109,97 +107,106 @@ export default function App() {
   const [resumeCheckoutAfterAuth, setResumeCheckoutAfterAuth] = useState(false);
   // Default to null until Firebase Auth initializes
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [, setAuthLoading] = useState<boolean>(true);
   const isCurrentUserAdmin = Boolean(
     currentUser?.customClaims?.admin === true || currentUser?.customClaims?.role === 'ADMIN'
   );
 
-  // Sync Cart to localStorage
   useEffect(() => {
-    localStorage.setItem('chickmagnet_cart', JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  useEffect(() => {
-    const syncPageFromLocation = () => {
-      const isAboutPage = window.location.pathname.replace(/\/+$/, '') === '/about';
-      setActiveTab(isAboutPage ? 'about' : 'shop');
-      if (isAboutPage && window.location.hash) {
-        window.setTimeout(() => {
-          document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: 'start' });
-        }, 0);
-      }
-    };
-
-    window.addEventListener('popstate', syncPageFromLocation);
-    syncPageFromLocation();
-    return () => window.removeEventListener('popstate', syncPageFromLocation);
+    try {
+      const saved = window.localStorage.getItem('chickmagnet_cart');
+      if (saved) setCartItems(JSON.parse(saved));
+    } catch {
+      // A blocked storage API should not stop shopping.
+    } finally {
+      setCartHydrated(true);
+    }
   }, []);
 
-  const navigateToTab = (tab: 'shop' | 'about' | 'profile', sectionId?: string) => {
-    setActiveTab(tab);
-    const nextUrl = tab === 'about'
-      ? `/about${sectionId ? `#${sectionId}` : ''}`
-      : `/${sectionId ? `#${sectionId}` : ''}`;
-    const currentUrl = `${window.location.pathname}${window.location.hash}`;
-    if (currentUrl !== nextUrl) window.history.pushState({}, '', nextUrl);
+  useEffect(() => {
+    if (!cartHydrated) return;
+    try {
+      window.localStorage.setItem('chickmagnet_cart', JSON.stringify(cartItems));
+    } catch {
+      // The cart remains usable for the current session.
+    }
+  }, [cartHydrated, cartItems]);
 
-    window.setTimeout(() => {
-      if (sectionId) {
-        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }, 0);
+  const navigateToTab = (tab: 'shop' | 'about' | 'profile', sectionId?: string) => {
+    if (tab === 'profile') {
+      setActiveTab('profile');
+      window.history.replaceState({}, '', '/#account');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const nextUrl = tab === 'about' ? '/about' : '/shop';
+    window.location.assign(`${nextUrl}${sectionId ? `#${sectionId}` : ''}`);
   };
 
   // Real-time Firebase Auth session and profile sync
   useEffect(() => {
-    const unsubAuth = subscribeAuthUser(async (firebaseUser, profileData) => {
-      if (firebaseUser) {
-        let customClaims: any = {};
-        let isAdmin = false;
-        try {
-          const authorization = await getFirebaseAuthorization(firebaseUser);
-          customClaims = authorization.claims;
-          isAdmin = authorization.isAdmin;
-        } catch (e) {
-          console.warn('Could not read id token result:', e);
-        }
+    let disposed = false;
+    let unsubscribe = () => {};
+    let authSyncStarted = false;
 
-        const userEmail = firebaseUser.email || '';
+    const startAuthSync = () => {
+      if (authSyncStarted || disposed) return;
+      authSyncStarted = true;
+      window.clearTimeout(authTimer);
+      window.removeEventListener('pointerdown', startAuthSync);
+      window.removeEventListener('keydown', startAuthSync);
 
-        const userObj: User = {
-          uid: firebaseUser.uid,
-          email: userEmail,
-          name: profileData?.displayName || firebaseUser.displayName || userEmail.split('@')[0] || 'Poultry Member',
-          role: isAdmin ? 'ADMIN' : 'BUYER',
-          buyerType: profileData?.buyerType === 'wholesale' ? 'wholesale' : 'retail',
-          avatarEmoji: profileData?.avatarEmoji || (isAdmin ? '👑' : '🐣'),
-          photoURL: firebaseUser.photoURL || undefined,
-          customClaims: customClaims
-        };
-        setCurrentUser(userObj);
-      } else {
-        setCurrentUser(null);
-      }
-      setAuthLoading(false);
-    });
+      void import('./config/firebaseAuth').then(({ getFirebaseAuthorization, subscribeAuthUser }) => {
+        if (disposed) return;
+        unsubscribe = subscribeAuthUser(async (firebaseUser, profileData) => {
+          if (firebaseUser) {
+            let customClaims: Record<string, unknown> = {};
+            let isAdmin = false;
+            try {
+              const authorization = await getFirebaseAuthorization(firebaseUser);
+              customClaims = authorization.claims;
+              isAdmin = authorization.isAdmin;
+            } catch (error) {
+              console.warn('Could not read account permissions:', error);
+            }
 
-    return () => {
-      unsubAuth();
+            const userEmail = firebaseUser.email || '';
+            const userObj: User = {
+              uid: firebaseUser.uid,
+              email: userEmail,
+              name: profileData?.displayName || firebaseUser.displayName || userEmail.split('@')[0] || 'Poultry Member',
+              role: isAdmin ? 'ADMIN' : 'BUYER',
+              buyerType: profileData?.buyerType === 'wholesale' ? 'wholesale' : 'retail',
+              avatarEmoji: profileData?.avatarEmoji || (isAdmin ? '👑' : '🐣'),
+              photoURL: firebaseUser.photoURL || undefined,
+              customClaims,
+            };
+            setCurrentUser(userObj);
+          } else {
+            setCurrentUser(null);
+          }
+          setAuthLoading(false);
+        });
+      }).catch(error => {
+        console.error('Account services could not start.', error);
+        setAuthLoading(false);
+      });
     };
-  }, []);
 
-  // Public products and CMS content are independent of the signed-in account.
-  useEffect(() => {
-    const unsubProducts = subscribeProducts((updatedProducts) => {
-      setProducts(updatedProducts);
-    });
-    const unsubCMS = subscribeCMSBlocks();
+    // Authentication is essential once a shopper interacts, but it should not
+    // compete with the hero image during the first render. Existing sessions
+    // still restore automatically after this short handoff.
+    const authTimer = window.setTimeout(startAuthSync, 1600);
+    window.addEventListener('pointerdown', startAuthSync, { once: true, passive: true });
+    window.addEventListener('keydown', startAuthSync, { once: true });
 
     return () => {
-      unsubProducts();
-      unsubCMS();
+      disposed = true;
+      window.clearTimeout(authTimer);
+      window.removeEventListener('pointerdown', startAuthSync);
+      window.removeEventListener('keydown', startAuthSync);
+      unsubscribe();
     };
   }, []);
 
@@ -251,7 +258,15 @@ export default function App() {
       return;
     }
 
-    return subscribeUserOrders(currentUser.uid, setUserOrders);
+    let disposed = false;
+    let unsubscribe = () => {};
+    void import('./services/firestoreSync').then(({ subscribeUserOrders }) => {
+      if (!disposed) unsubscribe = subscribeUserOrders(currentUser.uid, setUserOrders);
+    });
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
   }, [currentUser?.uid]);
 
   const handleOrderCompleted = async (summary: any) => {
@@ -276,6 +291,7 @@ export default function App() {
       paymentCovers: summary.paymentCovers,
     };
 
+    const { saveOrderToFirestore } = await import('./services/firestoreSync');
     await saveOrderToFirestore(newOrderRecord);
     setCompletedOrderSummary(summary);
     setCartItems([]);
@@ -284,16 +300,19 @@ export default function App() {
 
   // Product CRUD Handlers (Writing to Firestore)
   const handleUpdateProduct = async (updatedProduct: Product) => {
+    const { saveProductToFirestore } = await import('./services/firestoreSync');
     await saveProductToFirestore(updatedProduct);
     setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
   };
 
   const handleAddProduct = async (newProduct: Product) => {
+    const { saveProductToFirestore } = await import('./services/firestoreSync');
     await saveProductToFirestore(newProduct);
     setProducts(prev => [newProduct, ...prev.filter(p => p.id !== newProduct.id)]);
   };
 
   const handleDeleteProduct = async (productId: string) => {
+    const { deleteProductFromFirestore } = await import('./services/firestoreSync');
     await deleteProductFromFirestore(productId);
     setProducts(prev => prev.filter(p => p.id !== productId));
   };
@@ -312,11 +331,19 @@ export default function App() {
 
     return matchesCategory && matchesSearch;
   });
+  const catalogueHeading = selectedCategory === 'all'
+    ? (buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Retail Products')
+    : selectedCategory === 'live-birds'
+      ? 'Live Chicken'
+      : selectedCategory === 'fresh-poultry'
+        ? 'Fresh Chicken'
+        : 'Eggs';
 
   const handleBuyerTypeChange = (type: BuyerType) => {
     setBuyerType(type);
-    setSelectedCategory('all');
-    setSearchQuery('');
+    if (type === 'wholesale' && selectedCategory === 'fresh-poultry') {
+      setSelectedCategory('all');
+    }
   };
 
   const scrollToCatalog = () => {
@@ -325,29 +352,43 @@ export default function App() {
     }, 0);
   };
 
-  const handleFooterCategorySelect = (category: MainCategory | 'all') => {
-    navigateToTab('shop');
-    if (category === 'fresh-poultry' && buyerType === 'wholesale') {
-      setBuyerType('retail');
+  const handleApplySearch = () => {
+    const targetUrl = new URL(
+      getCategoryPath(selectedCategory, buyerType === 'wholesale'),
+      window.location.origin,
+    );
+    const normalizedQuery = searchQuery.trim();
+    if (normalizedQuery) targetUrl.searchParams.set('q', normalizedQuery);
+
+    const targetPath = `${targetUrl.pathname}${targetUrl.search}`;
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (targetPath === currentPath) {
+      scrollToCatalog();
+      return;
     }
-    setSelectedCategory(category);
-    setSearchQuery('');
-    scrollToCatalog();
+
+    window.location.assign(`${targetPath}#catalog-section`);
+  };
+
+  const handleFooterCategorySelect = (category: MainCategory | 'all') => {
+    window.location.assign(getCategoryPath(category, buyerType === 'wholesale'));
   };
 
   // If Admin Dashboard mode is active, render full-screen Admin View
   if (isAdminOpen && isCurrentUserAdmin) {
     return (
-      <AdminDashboard
-        products={products}
-        onUpdateProduct={handleUpdateProduct}
-        onAddProduct={handleAddProduct}
-        onDeleteProduct={handleDeleteProduct}
-        userOrders={userOrders}
-        onOpenStorefrontPreview={() => setIsAdminOpen(false)}
-        currentUser={currentUser}
-        onCloseAdmin={() => setIsAdminOpen(false)}
-      />
+      <Suspense fallback={<LoadingSurface />}>
+        <AdminDashboard
+          products={products}
+          onUpdateProduct={handleUpdateProduct}
+          onAddProduct={handleAddProduct}
+          onDeleteProduct={handleDeleteProduct}
+          userOrders={userOrders}
+          onOpenStorefrontPreview={() => setIsAdminOpen(false)}
+          currentUser={currentUser}
+          onCloseAdmin={() => setIsAdminOpen(false)}
+        />
+      </Suspense>
     );
   }
 
@@ -356,7 +397,7 @@ export default function App() {
       
       {/* Sticky Header Navigation */}
       <Navbar
-        activeTab={activeTab}
+        activeTab={activeTab === 'product' ? 'shop' : activeTab}
         setActiveTab={(tab) => navigateToTab(tab)}
         cartCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
         onOpenCart={() => setIsCartOpen(true)}
@@ -367,12 +408,13 @@ export default function App() {
         }}
         onSignOut={async () => {
           try {
+            const { logoutUser } = await import('./config/firebaseAuth');
             await logoutUser();
           } catch (e) {
             console.warn('Logout note:', e);
           }
           setCurrentUser(null);
-          localStorage.removeItem('chickmagnet_user');
+          window.localStorage.removeItem('chickmagnet_user');
         }}
         buyerType={buyerType}
         setBuyerType={handleBuyerTypeChange}
@@ -381,8 +423,7 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         searchableProducts={storefrontProducts}
-        onSelectProduct={setSelectedProduct}
-        onApplySearch={scrollToCatalog}
+        onApplySearch={handleApplySearch}
         colorScheme={colorScheme}
         onColorSchemeChange={setColorScheme}
         onOpenTraceability={() => setIsTraceabilityOpen(true)}
@@ -394,23 +435,27 @@ export default function App() {
       {/* Admin Dashboard Command Overlay View */}
       {isAdminOpen && isCurrentUserAdmin && (
         <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
-          <AdminDashboard
-            products={products}
-            onUpdateProduct={handleUpdateProduct}
-            onAddProduct={handleAddProduct}
-            onDeleteProduct={handleDeleteProduct}
-            userOrders={userOrders}
-            onOpenStorefrontPreview={() => setIsAdminOpen(false)}
-            currentUser={currentUser}
-            onCloseAdmin={() => setIsAdminOpen(false)}
-          />
+          <Suspense fallback={<LoadingSurface />}>
+            <AdminDashboard
+              products={products}
+              onUpdateProduct={handleUpdateProduct}
+              onAddProduct={handleAddProduct}
+              onDeleteProduct={handleDeleteProduct}
+              userOrders={userOrders}
+              onOpenStorefrontPreview={() => setIsAdminOpen(false)}
+              currentUser={currentUser}
+              onCloseAdmin={() => setIsAdminOpen(false)}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* Business Plan Command Hub Overlay View */}
       {isBusinessPlanOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
-          <BusinessPlanHub onClose={() => setIsBusinessPlanOpen(false)} />
+          <Suspense fallback={<LoadingSurface />}>
+            <BusinessPlanHub onClose={() => setIsBusinessPlanOpen(false)} />
+          </Suspense>
         </div>
       )}
 
@@ -419,28 +464,40 @@ export default function App() {
         
         {/* CHECKOUT RITUAL SCREEN */}
         {isCheckoutOpen ? (
-          <CheckoutRitual
-            cartItems={cartItems}
-            buyerType={buyerType}
-            currentUser={currentUser}
-            onOrderCompleted={handleOrderCompleted}
-            onCancel={() => setIsCheckoutOpen(false)}
-          />
-        ) : activeTab === 'about' ? (
-          <AboutLore />
+          <Suspense fallback={<LoadingSurface />}>
+            <CheckoutRitual
+              cartItems={cartItems}
+              buyerType={buyerType}
+              currentUser={currentUser}
+              onOrderCompleted={handleOrderCompleted}
+              onCancel={() => setIsCheckoutOpen(false)}
+            />
+          </Suspense>
         ) : activeTab === 'profile' ? (
-          <AccountDashboard
-            currentUser={currentUser}
-            buyerType={buyerType}
-            userOrders={userOrders}
-            onOpenTraceability={(batchId) => {
-              handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
-            }}
-            onOpenClaims={() => setIsClaimsOpen(true)}
-            onNavigateToShop={() => navigateToTab('shop')}
-            onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
-            onOpenBusinessPlan={isCurrentUserAdmin ? () => setIsBusinessPlanOpen(true) : undefined}
-          />
+          <Suspense fallback={<LoadingSurface />}>
+            <AccountDashboard
+              currentUser={currentUser}
+              buyerType={buyerType}
+              userOrders={userOrders}
+              onOpenTraceability={(batchId) => {
+                handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
+              }}
+              onOpenClaims={() => setIsClaimsOpen(true)}
+              onNavigateToShop={() => navigateToTab('shop')}
+              onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
+              onOpenBusinessPlan={isCurrentUserAdmin ? () => setIsBusinessPlanOpen(true) : undefined}
+            />
+          </Suspense>
+        ) : activeTab === 'product' && initialProduct ? (
+          <div className="mx-auto w-full max-w-[1440px] px-3 py-5 min-[360px]:px-4 sm:px-6 sm:py-8 lg:px-8">
+            <ProductDetail
+              product={storefrontProducts.find(product => product.id === initialProduct.id) || initialProduct}
+              buyerType={buyerType}
+              onAddToCart={(product, quantity) => handleAddToCart(product, quantity)}
+              standalone
+              initialAgeWeeks={initialAgeWeeks}
+            />
+          </div>
         ) : (
           /* MARKETPLACE SHOP VIEW */
           <div className="mx-auto max-w-[1440px] space-y-8 px-3 pt-4 min-[360px]:px-4 sm:space-y-9 sm:px-6 sm:pt-6 lg:px-8">
@@ -457,8 +514,8 @@ export default function App() {
               <div className="flex flex-col items-center justify-between gap-4 rounded-[1.5rem] border border-stone-200 bg-white p-3 shadow-[0_10px_30px_rgba(18,53,36,0.06)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_14px_34px_rgba(0,0,0,0.22)] sm:flex-row sm:p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                   <div className="flex w-full rounded-xl bg-stone-100 p-1 dark:bg-black/25 sm:w-auto">
-                    <button
-                      onClick={() => handleBuyerTypeChange('retail')}
+                    <a
+                      href="/shop"
                       className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         buyerType === 'retail'
                           ? 'bg-emerald-950 text-amber-300 shadow-sm'
@@ -466,9 +523,9 @@ export default function App() {
                       }`}
                     >
                       <span>Retail</span>
-                    </button>
-                    <button
-                      onClick={() => handleBuyerTypeChange('wholesale')}
+                    </a>
+                    <a
+                      href="/wholesale"
                       className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         buyerType === 'wholesale'
                           ? 'bg-emerald-950 text-amber-300 shadow-sm'
@@ -476,7 +533,7 @@ export default function App() {
                       }`}
                     >
                       <span>Commercial Wholesale</span>
-                    </button>
+                    </a>
                   </div>
                 </div>
 
@@ -488,15 +545,15 @@ export default function App() {
                   <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.13em] text-amber-700">
                     {buyerType === 'wholesale' ? 'For commercial buyers' : 'For your table and flock'}
                   </p>
-                  <h2 className="text-2xl font-black tracking-[-0.035em] text-emerald-950 dark:text-white sm:text-3xl">
-                    {selectedCategory === 'all'
-                      ? (buyerType === 'wholesale' ? 'Commercial Wholesale' : 'Retail Products')
-                      : selectedCategory === 'live-birds'
-                        ? 'Live Chicken'
-                        : selectedCategory === 'fresh-poultry'
-                          ? 'Fresh Chicken'
-                          : 'Eggs'}
-                  </h2>
+                  {selectedCategory === 'all' ? (
+                    <h2 className="text-2xl font-black tracking-[-0.035em] text-emerald-950 dark:text-white sm:text-3xl">
+                      {catalogueHeading}
+                    </h2>
+                  ) : (
+                    <h1 className="text-2xl font-black tracking-[-0.035em] text-emerald-950 dark:text-white sm:text-3xl">
+                      {catalogueHeading}
+                    </h1>
+                  )}
                 </div>
 
                 <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-extrabold text-amber-900 dark:bg-amber-300/15 dark:text-amber-200">
@@ -512,7 +569,6 @@ export default function App() {
                   key={product.id}
                   product={product}
                   buyerType={buyerType}
-                  onSelectProduct={(p) => setSelectedProduct(p)}
                 />
               ))}
             </div>
@@ -536,7 +592,7 @@ export default function App() {
               </div>
             )}
 
-            <FAQSection />
+            <FAQSection limit={6} showAllLink />
 
           </div>
         )}
@@ -554,74 +610,81 @@ export default function App() {
         }}
       />
 
-      {/* Product Detail Modal */}
-      {selectedProduct && (
-        <ProductDetail
-          product={storefrontProducts.find(p => p.id === selectedProduct.id) || selectedProduct}
-          buyerType={buyerType}
-          onClose={() => setSelectedProduct(null)}
-          onAddToCart={(p, qty) => handleAddToCart(p, qty)}
-        />
-      )}
-
       {/* Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        buyerType={buyerType}
-        onUpdateQuantity={handleUpdateCartQty}
-        onRemoveItem={handleRemoveCartItem}
-        onProceedToCheckout={() => {
-          setSelectedProduct(null);
-          if (!currentUser) {
-            setAuthMode('signin');
-            setResumeCheckoutAfterAuth(true);
-            setAuthModalOpen(true);
-            return;
-          }
-          setIsCheckoutOpen(true);
-        }}
-      />
+      {isCartOpen ? (
+        <Suspense fallback={null}>
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cartItems={cartItems}
+            buyerType={buyerType}
+            onUpdateQuantity={handleUpdateCartQty}
+            onRemoveItem={handleRemoveCartItem}
+            onProceedToCheckout={() => {
+              if (!currentUser) {
+                setAuthMode('signin');
+                setResumeCheckoutAfterAuth(true);
+                setAuthModalOpen(true);
+                return;
+              }
+              setIsCheckoutOpen(true);
+            }}
+          />
+        </Suspense>
+      ) : null}
 
       {/* Batch Traceability Portal */}
-      <BatchTraceabilityPortal
-        isOpen={isTraceabilityOpen}
-        onClose={() => setIsTraceabilityOpen(false)}
-        initialBatchId={traceBatchId}
-      />
+      {isTraceabilityOpen ? (
+        <Suspense fallback={null}>
+          <BatchTraceabilityPortal
+            isOpen={isTraceabilityOpen}
+            onClose={() => setIsTraceabilityOpen(false)}
+            initialBatchId={traceBatchId}
+          />
+        </Suspense>
+      ) : null}
 
       {/* 24h Mortality Claim Ritual */}
-      <MortalityClaimRitual
-        isOpen={isClaimsOpen}
-        onClose={() => setIsClaimsOpen(false)}
-      />
+      {isClaimsOpen ? (
+        <Suspense fallback={null}>
+          <MortalityClaimRitual isOpen={isClaimsOpen} onClose={() => setIsClaimsOpen(false)} />
+        </Suspense>
+      ) : null}
 
       {/* Congrats Order Confirmation Modal */}
-      <CongratsModal
-        orderSummary={completedOrderSummary}
-        onClose={() => setCompletedOrderSummary(null)}
-        onOpenTraceability={handleOpenTraceabilityWithBatch}
-        onOpenClaims={() => setIsClaimsOpen(true)}
-      />
+      {completedOrderSummary ? (
+        <Suspense fallback={null}>
+          <CongratsModal
+            orderSummary={completedOrderSummary}
+            onClose={() => setCompletedOrderSummary(null)}
+            onOpenTraceability={handleOpenTraceabilityWithBatch}
+            onOpenClaims={() => setIsClaimsOpen(true)}
+          />
+        </Suspense>
+      ) : null}
 
       {/* Auth Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => {
-          setAuthModalOpen(false);
-          setResumeCheckoutAfterAuth(false);
-        }}
-        initialMode={authMode}
-        onAuthSuccess={(user) => {
-          setCurrentUser(user);
-          setAuthModalOpen(false);
-          if (resumeCheckoutAfterAuth) {
-            setResumeCheckoutAfterAuth(false);
-            setIsCheckoutOpen(true);
-          }
-        }}
-      />
+      {authModalOpen ? (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => {
+              setAuthModalOpen(false);
+              setResumeCheckoutAfterAuth(false);
+            }}
+            initialMode={authMode}
+            returnFocusSelector={resumeCheckoutAfterAuth ? '#header-cart-button' : undefined}
+            onAuthSuccess={(user) => {
+              setCurrentUser(user);
+              setAuthModalOpen(false);
+              if (resumeCheckoutAfterAuth) {
+                setResumeCheckoutAfterAuth(false);
+                setIsCheckoutOpen(true);
+              }
+            }}
+          />
+        </Suspense>
+      ) : null}
 
     </div>
   );

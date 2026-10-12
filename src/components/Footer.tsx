@@ -2,11 +2,12 @@ import React from 'react';
 import { ArrowUp, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { BuyerType, MainCategory } from '../types';
 import { useBrandLogo } from '../utils/cms';
+import { getCategoryPath } from '../utils/productSeo';
 
 interface FooterProps {
   buyerType: BuyerType;
   onNavigate?: (tab: string, sectionId?: string) => void;
-  onSelectCategory: (category: MainCategory | 'all') => void;
+  onSelectCategory?: (category: MainCategory | 'all') => void;
 }
 
 const SHOP_LINKS: Array<{ label: string; category: MainCategory | 'all' }> = [
@@ -17,9 +18,10 @@ const SHOP_LINKS: Array<{ label: string; category: MainCategory | 'all' }> = [
 ];
 
 const HELP_LINKS = [
-  { label: 'About ChickMagnet', tab: 'about', sectionId: 'about' },
-  { label: 'Quality Guarantee', tab: 'about', sectionId: 'quality-guarantees' },
-  { label: 'Frequently Asked Questions', tab: 'shop', sectionId: 'faqs' },
+  { label: 'About ChickMagnet', href: '/about' },
+  { label: 'Quality Guarantee', href: '/about#quality-guarantees' },
+  { label: 'Frequently Asked Questions', href: '/faqs' },
+  { label: 'Chicken Prices by Age', href: '/guides/chicken-prices-by-age' },
 ];
 
 export default function Footer({ buyerType, onNavigate, onSelectCategory }: FooterProps) {
@@ -45,7 +47,7 @@ export default function Footer({ buyerType, onNavigate, onSelectCategory }: Foot
               className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-extrabold text-emerald-950 transition-colors hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <Phone className="h-4 w-4" />
-              254700356023
+              +254 700 356 023
             </a>
             <a
               href="mailto:logansteve@gmail.com"
@@ -63,6 +65,8 @@ export default function Footer({ buyerType, onNavigate, onSelectCategory }: Foot
               <img
                 src={brand.logoImageUrl}
                 alt={brand.brandName || 'ChickMagnet'}
+                width="240"
+                height="108"
                 className="h-12 w-auto max-w-[210px] object-contain"
               />
             ) : (
@@ -75,27 +79,26 @@ export default function Footer({ buyerType, onNavigate, onSelectCategory }: Foot
 
           <FooterColumn title="Shop">
             {visibleShopLinks.map(link => (
-              <button
+              <a
                 key={link.category}
-                type="button"
-                onClick={() => onSelectCategory(link.category)}
+                href={getCategoryPath(link.category, buyerType === 'wholesale')}
+                onClick={(event) => {
+                  if (!onSelectCategory) return;
+                  event.preventDefault();
+                  onSelectCategory(link.category);
+                }}
                 className="text-left text-sm text-emerald-100/75 transition-colors hover:text-amber-300 focus:outline-none focus-visible:text-amber-300"
               >
                 {link.label}
-              </button>
+              </a>
             ))}
           </FooterColumn>
 
           <FooterColumn title="Help">
             {HELP_LINKS.map(link => (
               <a
-                key={link.sectionId}
-                href={link.tab === 'about' ? `/about#${link.sectionId}` : `/#${link.sectionId}`}
-                onClick={(event) => {
-                  if (!onNavigate) return;
-                  event.preventDefault();
-                  onNavigate(link.tab, link.sectionId);
-                }}
+                key={link.href}
+                href={link.href}
                 className="text-left text-sm text-emerald-100/75 transition-colors hover:text-amber-300 focus:outline-none focus-visible:text-amber-300"
               >
                 {link.label}
@@ -105,21 +108,20 @@ export default function Footer({ buyerType, onNavigate, onSelectCategory }: Foot
 
           <FooterColumn title="Contact">
             <a href="tel:254700356023" className="text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
-              254700356023
+              +254 700 356 023
             </a>
             <a href="mailto:logansteve@gmail.com" className="break-all text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
               logansteve@gmail.com
             </a>
+            <span className="text-sm leading-6 text-emerald-100/75">
+              Kisii-Tanzania Highway, next to Fairmont International School, Suneka. Black gate.
+            </span>
+            <span className="text-sm leading-6 text-emerald-100/75">Monday to Friday, 9:00 AM to 3:00 PM</span>
           </FooterColumn>
         </div>
 
         <a
           href="/about#quality-guarantees"
-          onClick={(event) => {
-            if (!onNavigate) return;
-            event.preventDefault();
-            onNavigate('about', 'quality-guarantees');
-          }}
           className="flex flex-col gap-4 rounded-[1.75rem] border border-amber-300/25 bg-amber-300/[0.08] p-5 transition-colors hover:bg-amber-300/[0.12] sm:flex-row sm:items-center sm:p-6"
         >
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-300 text-emerald-950 shadow-lg shadow-black/10">

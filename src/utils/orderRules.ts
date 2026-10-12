@@ -27,10 +27,8 @@ export function getMinimumOrderQuantity(product: Product, buyerType: BuyerType):
 }
 
 export function getUnitPrice(product: Product, buyerType: BuyerType): number {
-  if (buyerType === 'wholesale' && product.wholesalePrice) {
-    return product.wholesalePrice;
-  }
-
+  // Buyer type changes minimum quantities, not the unit price.
+  void buyerType;
   return product.price;
 }
 
