@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "react-router",
   "installCommand": "npm ci --no-audit --no-fund",
   "buildCommand": "npm run build",
   "headers": [
