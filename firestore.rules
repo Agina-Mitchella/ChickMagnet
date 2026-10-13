@@ -18,6 +18,18 @@ service cloud.firestore {
       return value == 'retail' || value == 'wholesale';
     }
 
+    function isAnonymousUser() {
+      return isAuthenticated()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function validOrderBuyerEmail() {
+      return (isAnonymousUser() && request.resource.data.buyerEmail == '')
+        || (!isAnonymousUser()
+          && request.auth.token.keys().hasAll(['email'])
+          && request.resource.data.buyerEmail == request.auth.token.email);
+    }
+
     function validProfileCreate(userId) {
       return request.resource.data.keys().hasAll([
           'uid', 'email', 'displayName', 'buyerType', 'avatarEmoji',
@@ -78,17 +90,21 @@ service cloud.firestore {
           'id', 'buyerId', 'buyerEmail', 'date', 'items', 'itemCount',
           'status', 'statusColor', 'total', 'batchId', 'fulfillment', 'eta',
           'deliverySlots', 'buyerType', 'paymentMethod', 'paymentNumber',
-          'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt'
+          'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt',
+          'customerName', 'customerEmail', 'customerPhone', 'deliveryZone',
+          'deliveryAddress', 'isGuest'
         ])
         && request.resource.data.keys().hasOnly([
           'id', 'buyerId', 'buyerEmail', 'date', 'items', 'itemCount',
           'status', 'statusColor', 'total', 'batchId', 'fulfillment', 'eta',
           'deliverySlots', 'buyerType', 'paymentMethod', 'paymentNumber',
-          'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt'
+          'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt',
+          'customerName', 'customerEmail', 'customerPhone', 'deliveryZone',
+          'deliveryAddress', 'isGuest'
         ])
         && request.resource.data.id == orderId
         && request.resource.data.buyerId == request.auth.uid
-        && request.resource.data.buyerEmail == request.auth.token.email
+        && validOrderBuyerEmail()
         && request.resource.data.date is string
         && request.resource.data.items is string
         && request.resource.data.items.size() >= 1
@@ -106,6 +122,22 @@ service cloud.firestore {
         && request.resource.data.eta is string
         && request.resource.data.deliverySlots is map
         && validBuyerType(request.resource.data.buyerType)
+        && request.resource.data.customerName is string
+        && request.resource.data.customerName.size() >= 1
+        && request.resource.data.customerName.size() <= 100
+        && request.resource.data.customerEmail is string
+        && request.resource.data.customerEmail.size() <= 254
+        && request.resource.data.customerPhone is string
+        && request.resource.data.customerPhone.size() >= 9
+        && request.resource.data.customerPhone.size() <= 30
+        && request.resource.data.deliveryZone is string
+        && request.resource.data.deliveryZone.size() >= 1
+        && request.resource.data.deliveryZone.size() <= 200
+        && request.resource.data.deliveryAddress is string
+        && request.resource.data.deliveryAddress.size() >= 1
+        && request.resource.data.deliveryAddress.size() <= 500
+        && request.resource.data.isGuest is bool
+        && request.resource.data.isGuest == isAnonymousUser()
         && request.resource.data.paymentMethod == 'M-Pesa Send Money'
         && request.resource.data.paymentNumber == '0724300781'
         && request.resource.data.paymentConfirmationStatus == 'pending_manual_review'

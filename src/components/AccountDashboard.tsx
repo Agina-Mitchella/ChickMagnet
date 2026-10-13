@@ -66,9 +66,13 @@ export default function AccountDashboard({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-200">My account</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-200">
+                {currentUser.isGuest ? 'Guest checkout' : 'My account'}
+              </p>
               <h1 className="truncate text-2xl font-black text-amber-300 sm:text-3xl">{currentUser.name}</h1>
-              <p className="truncate text-sm text-emerald-100/80">{currentUser.email}</p>
+              <p className="truncate text-sm text-emerald-100/80">
+                {currentUser.isGuest ? 'Orders saved to this browser' : currentUser.email}
+              </p>
             </div>
           </div>
 
@@ -111,7 +115,11 @@ export default function AccountDashboard({
           <div className="py-14 text-center">
             <Package className="mx-auto h-9 w-9 text-slate-300" />
             <h3 className="mt-4 text-base font-bold text-emerald-950">No orders yet</h3>
-            <p className="mt-1 text-sm text-slate-600">Orders you submit will be saved to this account.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {currentUser.isGuest
+                ? 'Guest orders submitted in this browser will appear here.'
+                : 'Orders you submit will be saved to this account.'}
+            </p>
             <button
               type="button"
               onClick={onNavigateToShop}

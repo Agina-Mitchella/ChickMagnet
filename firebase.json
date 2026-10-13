@@ -17,5 +17,10 @@
   "firestore": {
     "database": "(default)",
     "rules": "firestore.rules"
+  },
+  "auth": {
+    "providers": {
+      "anonymous": true
+    }
   }
 }

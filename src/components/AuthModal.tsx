@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { X, AlertCircle, Eye, EyeOff, ShoppingBag } from 'lucide-react';
 import { User } from '../types';
-import { getFirebaseAuthorization, signInWithGoogle, signInWithEmail, registerWithEmail } from '../config/firebaseAuth';
+import {
+  continueAsGuest,
+  getFirebaseAuthorization,
+  signInWithGoogle,
+  signInWithEmail,
+  registerWithEmail,
+} from '../config/firebaseAuth';
 import { useBrandLogo } from '../utils/cms';
 
 interface AuthModalProps {
@@ -163,6 +169,32 @@ export default function AuthModal({
     } catch (err: any) {
       console.error(err);
       setError('Google sign-in could not be completed. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleContinueAsGuest = async () => {
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const guest = await continueAsGuest();
+      onAuthSuccess({
+        uid: guest.uid,
+        email: '',
+        name: 'Guest shopper',
+        avatarEmoji: '🐣',
+        role: 'BUYER',
+        buyerType: 'retail',
+        isGuest: true,
+      });
+    } catch (err: any) {
+      console.warn('Firebase guest sign-in failed:', err);
+      setError(
+        err?.code === 'auth/operation-not-allowed' || err?.code === 'auth/admin-restricted-operation'
+          ? 'Guest checkout is not available right now. Please sign in or create an account.'
+          : 'Guest checkout could not be started. Please try again.',
+      );
       setIsSubmitting(false);
     }
   };
@@ -492,6 +524,27 @@ export default function AuthModal({
               >
                 Sign in with Google
               </button>
+
+              <div className="flex items-center gap-3 py-1" aria-hidden="true">
+                <span className="h-px flex-1 bg-emerald-100 dark:bg-white/10" />
+                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-emerald-100/45">
+                  or
+                </span>
+                <span className="h-px flex-1 bg-emerald-100 dark:bg-white/10" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleContinueAsGuest}
+                disabled={isSubmitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white py-3 text-xs font-bold text-emerald-950 transition-colors hover:border-emerald-700 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-60 dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
+              >
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+                Continue as guest
+              </button>
+              <p className="px-2 text-center text-[11px] leading-relaxed text-slate-500 dark:text-emerald-100/55">
+                No account needed. Guest orders stay with this browser and will not move into a future account.
+              </p>
             </form>
           </>
         )}

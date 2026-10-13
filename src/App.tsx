@@ -161,26 +161,32 @@ export default function App({
         if (disposed) return;
         unsubscribe = subscribeAuthUser(async (firebaseUser, profileData) => {
           if (firebaseUser) {
+            const isGuest = firebaseUser.isAnonymous;
             let customClaims: Record<string, unknown> = {};
             let isAdmin = false;
-            try {
-              const authorization = await getFirebaseAuthorization(firebaseUser);
-              customClaims = authorization.claims;
-              isAdmin = authorization.isAdmin;
-            } catch (error) {
-              console.warn('Could not read account permissions:', error);
+            if (!isGuest) {
+              try {
+                const authorization = await getFirebaseAuthorization(firebaseUser);
+                customClaims = authorization.claims;
+                isAdmin = authorization.isAdmin;
+              } catch (error) {
+                console.warn('Could not read account permissions:', error);
+              }
             }
 
             const userEmail = firebaseUser.email || '';
             const userObj: User = {
               uid: firebaseUser.uid,
               email: userEmail,
-              name: profileData?.displayName || firebaseUser.displayName || userEmail.split('@')[0] || 'Poultry Member',
+              name: isGuest
+                ? 'Guest shopper'
+                : profileData?.displayName || firebaseUser.displayName || userEmail.split('@')[0] || 'Poultry Member',
               role: isAdmin ? 'ADMIN' : 'BUYER',
               buyerType: profileData?.buyerType === 'wholesale' ? 'wholesale' : 'retail',
               avatarEmoji: profileData?.avatarEmoji || (isAdmin ? '👑' : '🐣'),
               photoURL: firebaseUser.photoURL || undefined,
               customClaims,
+              isGuest,
             };
             setCurrentUser(userObj);
           } else {
@@ -289,6 +295,11 @@ export default function App({
       paymentConfirmationStatus: summary.paymentConfirmationStatus,
       deliveryFeeStatus: summary.deliveryFeeStatus,
       paymentCovers: summary.paymentCovers,
+      customerName: summary.name,
+      customerEmail: summary.email,
+      customerPhone: summary.phone,
+      deliveryZone: summary.deliveryZone,
+      deliveryAddress: summary.address,
     };
 
     const { saveOrderToFirestore } = await import('./services/firestoreSync');

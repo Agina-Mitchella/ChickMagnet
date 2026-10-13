@@ -2,6 +2,7 @@ import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -52,6 +53,15 @@ export async function registerWithEmail(
   return result.user;
 }
 
+export async function continueAsGuest() {
+  if (auth.currentUser?.isAnonymous) {
+    return auth.currentUser;
+  }
+
+  const result = await signInAnonymously(auth);
+  return result.user;
+}
+
 export function logoutUser() {
   return signOut(auth);
 }
@@ -62,6 +72,11 @@ export function subscribeAuthUser(
   return onAuthStateChanged(auth, async firebaseUser => {
     if (!firebaseUser) {
       callback(null, null);
+      return;
+    }
+
+    if (firebaseUser.isAnonymous) {
+      callback(firebaseUser, null);
       return;
     }
 

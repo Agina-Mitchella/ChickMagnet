@@ -355,6 +355,7 @@ export interface User {
   uid: string;
   email: string;
   name: string;
+  isGuest?: boolean;
   avatarEmoji?: string;
   photoURL?: string;
   role: 'BUYER' | 'FARMER' | 'WHOLESALE' | 'KEEPER' | 'ADMIN' | 'admin' | 'buyer' | string;

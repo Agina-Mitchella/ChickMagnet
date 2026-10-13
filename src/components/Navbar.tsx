@@ -307,7 +307,7 @@ export default function Navbar({
                 aria-label="Open account menu"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-950 text-sm font-extrabold text-amber-300">
-                  {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                  {currentUser.isGuest ? 'G' : currentUser.name ? currentUser.name.charAt(0) : 'U'}
                 </span>
                 <span className="hidden max-w-[120px] truncate text-xs font-bold md:inline">{currentUser.name}</span>
                 <ChevronDown className="hidden h-3.5 w-3.5 text-stone-500 sm:block" />
@@ -317,8 +317,36 @@ export default function Navbar({
                   <div className="animate-popover-enter absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-stone-200 bg-white p-3 text-xs text-[#173b2a] shadow-[0_18px_50px_rgba(18,53,36,0.18)] dark:border-white/12 dark:bg-[#0d281c] dark:text-emerald-50 dark:shadow-[0_18px_50px_rgba(0,0,0,0.4)]">
                     <div className="mb-2 border-b border-stone-100 px-2 pb-3 dark:border-white/10">
                       <div className="font-bold">{currentUser.name} {isAdmin ? '(Admin)' : ''}</div>
-                      <div className="truncate pt-0.5 text-[11px] text-stone-500 dark:text-emerald-100/55">{currentUser.email}</div>
+                      <div className="truncate pt-0.5 text-[11px] text-stone-500 dark:text-emerald-100/55">
+                        {currentUser.isGuest ? 'Checkout without an account' : currentUser.email}
+                      </div>
                     </div>
+                    {currentUser.isGuest ? (
+                      <div className="mb-2 space-y-1 border-b border-stone-100 pb-2 dark:border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            onOpenAuth('signin');
+                          }}
+                          className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50 dark:hover:bg-white/10"
+                        >
+                          <LogIn className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+                          Sign in to an account
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            onOpenAuth('register');
+                          }}
+                          className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50 dark:hover:bg-white/10"
+                        >
+                          <UserIcon className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+                          Create an account
+                        </button>
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => {
@@ -328,7 +356,7 @@ export default function Navbar({
                       className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50 dark:hover:bg-white/10"
                     >
                       <UserIcon className="h-4 w-4 text-emerald-800" />
-                      My Account & Orders
+                      {currentUser.isGuest ? 'Guest orders' : 'My Account & Orders'}
                     </button>
                     {onOpenAdmin && isAdmin ? (
                       <button
@@ -360,12 +388,18 @@ export default function Navbar({
                       <button
                         type="button"
                         onClick={() => {
+                          if (
+                            currentUser.isGuest
+                            && !window.confirm('Ending this guest session will remove access to its order history from this browser. Continue?')
+                          ) {
+                            return;
+                          }
                           setProfileOpen(false);
                           onSignOut();
                         }}
                         className="w-full rounded-xl px-2 py-2.5 text-left font-semibold text-rose-700 hover:bg-rose-50"
                       >
-                        Sign Out
+                        {currentUser.isGuest ? 'End guest session' : 'Sign Out'}
                       </button>
                     </div>
                   </div>

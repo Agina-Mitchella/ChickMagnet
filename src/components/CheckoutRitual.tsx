@@ -240,6 +240,11 @@ export default function CheckoutRitual({
               {currentStep === 'fulfillment' && '1. Delivery details'}
               {currentStep === 'payment' && '2. Pay with M-Pesa'}
             </h1>
+            {currentUser?.isGuest ? (
+              <p className="mt-1 text-xs text-emerald-800">
+                Checking out as a guest. We will use the details below for this order.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-3">
