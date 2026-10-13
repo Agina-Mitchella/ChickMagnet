@@ -19,8 +19,6 @@ import { getCategoryPath, normalizeProductSeo } from './utils/productSeo';
 const AccountDashboard = lazy(() => import('./components/AccountDashboard'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const AuthModal = lazy(() => import('./components/AuthModal'));
-const BatchTraceabilityPortal = lazy(() => import('./components/BatchTraceabilityPortal'));
-const BusinessPlanHub = lazy(() => import('./components/BusinessPlanHub'));
 const CartDrawer = lazy(() => import('./components/CartDrawer'));
 const CheckoutRitual = lazy(() => import('./components/CheckoutRitual'));
 const CongratsModal = lazy(() => import('./components/CongratsModal'));
@@ -85,7 +83,6 @@ export default function App({
 
   // Admin Dashboard Mode
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
-  const [isBusinessPlanOpen, setIsBusinessPlanOpen] = useState<boolean>(false);
 
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -96,9 +93,7 @@ export default function App({
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [completedOrderSummary, setCompletedOrderSummary] = useState<any>(null);
 
-  // Portals & Modals
-  const [isTraceabilityOpen, setIsTraceabilityOpen] = useState<boolean>(false);
-  const [traceBatchId, setTraceBatchId] = useState<string>('BATCH-2026-CHX9');
+  // Customer support modal
   const [isClaimsOpen, setIsClaimsOpen] = useState<boolean>(false);
 
   // Auth Modal State
@@ -114,6 +109,14 @@ export default function App({
 
   useEffect(() => {
     try {
+      [
+        'chickmagnet_admin_claims',
+        'chickmagnet_admin_wholesale',
+        'chickmagnet_admin_badges',
+        'chickmagnet_admin_batches',
+        'chickmagnet_admin_audit_logs',
+      ].forEach(key => window.localStorage.removeItem(key));
+
       const saved = window.localStorage.getItem('chickmagnet_cart');
       if (saved) setCartItems(JSON.parse(saved));
     } catch {
@@ -250,11 +253,6 @@ export default function App({
     setCartItems(cartItems.filter(i => i.product.id !== productId));
   };
 
-  const handleOpenTraceabilityWithBatch = (batchId: string) => {
-    setTraceBatchId(batchId);
-    setIsTraceabilityOpen(true);
-  };
-
   const [userOrders, setUserOrders] = useState<any[]>([]);
 
   // A buyer only subscribes to documents whose buyerId matches their Firebase UID.
@@ -285,7 +283,7 @@ export default function App({
       status: 'Payment confirmation pending',
       statusColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
       total: summary.grandTotal,
-      batchId: summary.batchIds?.[0] || '',
+      batchId: '',
       fulfillment: summary.items?.[0]?.fulfillmentGroup === 'live-climate' ? 'Live Express Transport' : 'Express Delivery',
       eta: firstSlot,
       deliverySlots: summary.deliverySlots,
@@ -329,7 +327,7 @@ export default function App({
   };
 
   // Filter Products
-  const VALID_CATEGORIES = ['live-birds', 'fresh-poultry', 'eggs', 'farm-supplies', 'processed'];
+  const VALID_CATEGORIES = ['live-birds', 'fresh-poultry', 'eggs'];
   const storefrontProducts = products
     .filter(isCurrentStorefrontProduct)
     .map(applyStorefrontCopy)
@@ -394,7 +392,6 @@ export default function App({
           onUpdateProduct={handleUpdateProduct}
           onAddProduct={handleAddProduct}
           onDeleteProduct={handleDeleteProduct}
-          userOrders={userOrders}
           onOpenStorefrontPreview={() => setIsAdminOpen(false)}
           currentUser={currentUser}
           onCloseAdmin={() => setIsAdminOpen(false)}
@@ -437,10 +434,7 @@ export default function App({
         onApplySearch={handleApplySearch}
         colorScheme={colorScheme}
         onColorSchemeChange={setColorScheme}
-        onOpenTraceability={() => setIsTraceabilityOpen(true)}
-        onOpenClaims={() => setIsClaimsOpen(true)}
         onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
-        onOpenBusinessPlan={() => setIsBusinessPlanOpen(true)}
       />
 
       {/* Admin Dashboard Command Overlay View */}
@@ -452,20 +446,10 @@ export default function App({
               onUpdateProduct={handleUpdateProduct}
               onAddProduct={handleAddProduct}
               onDeleteProduct={handleDeleteProduct}
-              userOrders={userOrders}
               onOpenStorefrontPreview={() => setIsAdminOpen(false)}
               currentUser={currentUser}
               onCloseAdmin={() => setIsAdminOpen(false)}
             />
-          </Suspense>
-        </div>
-      )}
-
-      {/* Business Plan Command Hub Overlay View */}
-      {isBusinessPlanOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
-          <Suspense fallback={<LoadingSurface />}>
-            <BusinessPlanHub onClose={() => setIsBusinessPlanOpen(false)} />
           </Suspense>
         </div>
       )}
@@ -490,13 +474,9 @@ export default function App({
               currentUser={currentUser}
               buyerType={buyerType}
               userOrders={userOrders}
-              onOpenTraceability={(batchId) => {
-                handleOpenTraceabilityWithBatch(batchId || 'BATCH-2026-CHX9');
-              }}
               onOpenClaims={() => setIsClaimsOpen(true)}
               onNavigateToShop={() => navigateToTab('shop')}
               onOpenAdmin={isCurrentUserAdmin ? () => setIsAdminOpen(true) : undefined}
-              onOpenBusinessPlan={isCurrentUserAdmin ? () => setIsBusinessPlanOpen(true) : undefined}
             />
           </Suspense>
         ) : activeTab === 'product' && initialProduct ? (
@@ -644,17 +624,6 @@ export default function App({
         </Suspense>
       ) : null}
 
-      {/* Batch Traceability Portal */}
-      {isTraceabilityOpen ? (
-        <Suspense fallback={null}>
-          <BatchTraceabilityPortal
-            isOpen={isTraceabilityOpen}
-            onClose={() => setIsTraceabilityOpen(false)}
-            initialBatchId={traceBatchId}
-          />
-        </Suspense>
-      ) : null}
-
       {/* 24h Mortality Claim Ritual */}
       {isClaimsOpen ? (
         <Suspense fallback={null}>
@@ -668,7 +637,6 @@ export default function App({
           <CongratsModal
             orderSummary={completedOrderSummary}
             onClose={() => setCompletedOrderSummary(null)}
-            onOpenTraceability={handleOpenTraceabilityWithBatch}
             onOpenClaims={() => setIsClaimsOpen(true)}
           />
         </Suspense>

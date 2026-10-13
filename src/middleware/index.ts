@@ -160,16 +160,6 @@ export function errorHandler(err: any, req: Request & { requestId?: string; user
     statusCode
   });
 
-  // Mock Sentry integration hook for 500 errors
-  if (statusCode === 500) {
-    if (process.env.SENTRY_DSN) {
-      StructuredLogger.warn(`[SENTRY_CAPTURE] Logged 500 server error to Sentry DSN`, {
-        requestId: req.requestId,
-        error: { name: err.name, message: err.message, stack: err.stack }
-      });
-    }
-  }
-
   res.status(statusCode).json({
     success: false,
     error: {

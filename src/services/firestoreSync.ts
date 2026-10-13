@@ -6,7 +6,6 @@ import { auth } from '../config/firebaseClient';
 import { db, handleFirestoreError, OperationType } from '../config/firebaseDb';
 import { Product } from '../types';
 import { STOREFRONT_PRODUCTS } from '../data/storefrontCatalog';
-import { getStoredCMSData, saveStoredCMSData, CMSBlock } from '../utils/cms';
 import { isCurrentStorefrontProduct } from '../utils/storefrontProducts';
 import { normalizeProductSeo } from '../utils/productSeo';
 
@@ -278,223 +277,36 @@ export async function updateOrderStatusInFirestore(orderId: string, status: stri
   }
 }
 
-// 3. Claims Realtime Sync
-export function subscribeClaims(
-  onUpdate: (claims: any[]) => void,
-  initialClaims: any[] = []
+export async function reviewOrderPaymentInFirestore(
+  orderId: string,
+  decision: 'confirmed' | 'rejected',
 ) {
-  const collectionRef = collection(db, 'claims');
-
-  return onSnapshot(collectionRef, async (snapshot) => {
-    try {
-      if (snapshot.empty && initialClaims && initialClaims.length > 0) {
-        for (const claim of initialClaims) {
-          const docId = claim.id || `claim-${Date.now()}`;
-          await setDoc(doc(db, 'claims', docId), { ...claim, id: docId });
-        }
-        onUpdate(initialClaims);
-      } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_admin_claims', JSON.stringify(items));
-      }
-    } catch (err) {
-      console.error('Claims snapshot error:', err);
-    }
-  }, (error) => {
-    handleFirestoreError(error, OperationType.GET, 'claims');
-    const saved = localStorage.getItem('chickmagnet_admin_claims');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
-      } catch {}
-    }
-    onUpdate(initialClaims);
-  });
-}
-
-export async function saveClaimToFirestore(claim: any) {
   try {
-    const docId = claim.id || `claim-${Date.now()}`;
-    await setDoc(doc(db, 'claims', docId), { ...claim, id: docId });
+    await updateDoc(doc(db, 'orders', orderId), {
+      paymentConfirmationStatus: decision,
+      pricingVerificationStatus: decision === 'confirmed' ? 'verified' : 'rejected',
+      updatedAt: serverTimestamp(),
+    });
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `claims/${claim.id}`);
+    handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+    throw new Error('The payment review could not be saved.');
   }
 }
 
-// 4. Wholesale Applications Sync
-export function subscribeWholesale(
-  onUpdate: (accounts: any[]) => void,
-  initialAccounts: any[] = []
-) {
-  const collectionRef = collection(db, 'wholesale_applications');
-
-  return onSnapshot(collectionRef, async (snapshot) => {
-    try {
-      if (snapshot.empty && initialAccounts && initialAccounts.length > 0) {
-        for (const acc of initialAccounts) {
-          const docId = acc.id || `ws-${Date.now()}`;
-          await setDoc(doc(db, 'wholesale_applications', docId), { ...acc, id: docId });
-        }
-        onUpdate(initialAccounts);
-      } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_admin_wholesale', JSON.stringify(items));
-      }
-    } catch (err) {
-      console.error('Wholesale snapshot error:', err);
-    }
-  }, (error) => {
-    handleFirestoreError(error, OperationType.GET, 'wholesale_applications');
-    const saved = localStorage.getItem('chickmagnet_admin_wholesale');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
-      } catch {}
-    }
-    onUpdate(initialAccounts);
-  });
-}
-
-export async function saveWholesaleAccountToFirestore(account: any) {
-  try {
-    const docId = account.id || `ws-${Date.now()}`;
-    await setDoc(doc(db, 'wholesale_applications', docId), { ...account, id: docId });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `wholesale_applications/${account.id}`);
-  }
-}
-
-// 5. Trust Badges Sync
-export function subscribeBadges(
-  onUpdate: (badges: any[]) => void,
-  initialBadges: any[] = []
-) {
-  const collectionRef = collection(db, 'seller_badges');
-
-  return onSnapshot(collectionRef, async (snapshot) => {
-    try {
-      if (snapshot.empty && initialBadges && initialBadges.length > 0) {
-        for (const badge of initialBadges) {
-          const docId = badge.id || `badge-${Date.now()}`;
-          await setDoc(doc(db, 'seller_badges', docId), { ...badge, id: docId });
-        }
-        onUpdate(initialBadges);
-      } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_admin_badges', JSON.stringify(items));
-        window.dispatchEvent(new Event('chickmagnet_badges_updated'));
-      }
-    } catch (err) {
-      console.error('Badges snapshot error:', err);
-    }
-  }, (error) => {
-    handleFirestoreError(error, OperationType.GET, 'seller_badges');
-    const saved = localStorage.getItem('chickmagnet_admin_badges');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
-      } catch {}
-    }
-    onUpdate(initialBadges);
-  });
-}
-
-export async function saveBadgeToFirestore(badge: any) {
-  try {
-    const docId = badge.id || `badge-${Date.now()}`;
-    await setDoc(doc(db, 'seller_badges', docId), { ...badge, id: docId });
-    window.dispatchEvent(new Event('chickmagnet_badges_updated'));
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `seller_badges/${badge.id}`);
-  }
-}
-
-// 6. Hatchery Batches Sync
-export function subscribeBatches(
-  onUpdate: (batches: any[]) => void,
-  initialBatches: any[] = []
-) {
-  const collectionRef = collection(db, 'hatchery_batches');
-
-  return onSnapshot(collectionRef, async (snapshot) => {
-    try {
-      if (snapshot.empty && initialBatches && initialBatches.length > 0) {
-        for (const batch of initialBatches) {
-          const docId = batch.batchId || `batch-${Date.now()}`;
-          await setDoc(doc(db, 'hatchery_batches', docId), { ...batch, id: docId, batchId: docId });
-        }
-        onUpdate(initialBatches);
-      } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_admin_batches', JSON.stringify(items));
-        window.dispatchEvent(new Event('chickmagnet_batch_updated'));
-      }
-    } catch (err) {
-      console.error('Batches snapshot error:', err);
-    }
-  }, (error) => {
-    handleFirestoreError(error, OperationType.GET, 'hatchery_batches');
-    const saved = localStorage.getItem('chickmagnet_admin_batches');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
-      } catch {}
-    }
-    onUpdate(initialBatches);
-  });
-}
-
-export async function saveBatchToFirestore(batch: any) {
-  try {
-    const docId = batch.batchId || `batch-${Date.now()}`;
-    await setDoc(doc(db, 'hatchery_batches', docId), { ...batch, id: docId, batchId: docId });
-    window.dispatchEvent(new Event('chickmagnet_batch_updated'));
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `hatchery_batches/${batch.batchId}`);
-  }
-}
-
-// 7. Admin Audit Logs Sync
+// 3. Admin Audit Logs Sync
 export function subscribeAuditLogs(
-  onUpdate: (logs: any[]) => void,
-  initialLogs: any[] = []
+  onUpdate: (logs: any[]) => void
 ) {
   const collectionRef = collection(db, 'admin_audit_logs');
 
-  return onSnapshot(collectionRef, async (snapshot) => {
-    try {
-      if (snapshot.empty && initialLogs && initialLogs.length > 0) {
-        for (const logItem of initialLogs) {
-          const docId = logItem.id || `log-${Date.now()}`;
-          await setDoc(doc(db, 'admin_audit_logs', docId), { ...logItem, id: docId });
-        }
-        onUpdate(initialLogs);
-      } else {
-        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        onUpdate(items);
-        safeSetLocalStorage('chickmagnet_admin_audit_logs', JSON.stringify(items));
-      }
-    } catch (err) {
-      console.error('Audit logs snapshot error:', err);
-    }
+  return onSnapshot(collectionRef, (snapshot) => {
+    const items = snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((left: any, right: any) => String(right.timestamp || '').localeCompare(String(left.timestamp || '')));
+    onUpdate(items);
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, 'admin_audit_logs');
-    const saved = localStorage.getItem('chickmagnet_admin_audit_logs');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) { onUpdate(parsed); return; }
-      } catch {}
-    }
-    onUpdate(initialLogs);
+    onUpdate([]);
   });
 }
 
@@ -505,39 +317,4 @@ export async function saveAuditLogToFirestore(logItem: any) {
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `admin_audit_logs/${logItem.id}`);
   }
-}
-
-// 8. CMS Blocks Global Realtime Sync
-export function subscribeCMSBlocks() {
-  const collectionRef = collection(db, 'cms_blocks');
-
-  return onSnapshot(collectionRef, (snapshot) => {
-    try {
-      if (!snapshot.empty) {
-        const currentBlocks = getStoredCMSData();
-        const map = new Map(currentBlocks.map(b => [b.id, b]));
-        snapshot.docs.forEach(docSnap => {
-          const data = docSnap.data();
-          if (data && data.id) {
-            const existing = map.get(data.id);
-            map.set(data.id, {
-              id: data.id,
-              pageId: data.pageId || existing?.pageId || 'global',
-              label: data.label || existing?.label || data.id,
-              type: data.type || existing?.type || 'text',
-              value: data.value !== undefined ? data.value : existing?.value,
-              lastEditedBy: data.lastEditedBy || existing?.lastEditedBy,
-              lastEditedAt: data.lastEditedAt || existing?.lastEditedAt,
-              history: data.history || existing?.history || []
-            });
-          }
-        });
-        saveStoredCMSData(Array.from(map.values()));
-      }
-    } catch (err) {
-      console.error('Error syncing CMS blocks snapshot:', err);
-    }
-  }, (error) => {
-    handleFirestoreError(error, OperationType.GET, 'cms_blocks');
-  });
 }

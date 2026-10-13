@@ -78,41 +78,6 @@ adminRouter.post('/suspend-user/:id', requireAuth, requireRoles('ADMIN'), tryCat
   res.json({ success: true, message: 'User suspended, all sessions and access credentials revoked.' });
 }));
 
-// @route   POST /api/v1/admin/gdpr/access/:id
-adminRouter.post('/gdpr/access/:id', requireAuth, requireRoles('ADMIN'), tryCatch(async (req: AuthRequest, res: any) => {
-  const { id } = req.params;
-
-  const userRecord = await prisma.user.findUnique({
-    where: { id },
-    include: { addresses: true, orders: true, reviews: true }
-  });
-
-  if (!userRecord) return res.status(404).json({ success: false, error: { message: 'User not found.' } });
-
-  // Generate downloadable mock package
-  const downloadUrl = `https://r2.solhandmades.com/gdpr-exports/user_${id}_export.json`;
-  
-  await prisma.gDPRRequest.create({
-    data: {
-      userId: id,
-      type: 'ACCESS',
-      status: 'COMPLETED',
-      downloadUrl,
-      processedAt: new Date()
-    }
-  });
-
-  DevOpsService.recordAuditLog(
-    'GDPR_ACCESS_COMPILED',
-    req.user?.email || 'ADMIN',
-    `Compiled and generated GDPR Access download package for user id: ${id}.`,
-    req.ip || '127.0.0.1',
-    'INFO'
-  );
-
-  res.json({ success: true, message: 'GDPR Access file compiled and ready for retrieval.', data: { downloadUrl, data: userRecord } });
-}));
-
 // @route   POST /api/v1/admin/gdpr/erase/:id
 adminRouter.post('/gdpr/erase/:id', requireAuth, requireRoles('ADMIN'), tryCatch(async (req: AuthRequest, res: any) => {
   const { id } = req.params;
@@ -169,27 +134,9 @@ adminRouter.get('/devops/metrics', requireAuth, requireRoles('ADMIN'), tryCatch(
   res.json({ success: true, data: DevOpsService.getSystemMetrics() });
 }));
 
-// @route   POST /api/v1/admin/devops/simulate-incident
-adminRouter.post('/devops/simulate-incident', requireAuth, requireRoles('ADMIN'), tryCatch(async (req: AuthRequest, res: any) => {
-  const { ip, reason, endpoint } = req.body;
-  const inc = DevOpsService.recordIncident(
-    ip || '185.220.101.5',
-    reason || 'XSS_INJECTION_ATTEMPT_BLOCKED',
-    endpoint || '/api/v1/products/review'
-  );
-  DevOpsService.recordAuditLog(
-    'SECURITY_INCIDENT_CREATED',
-    'WAF_AUTOPILOT',
-    `Blocked malicious payload pattern from IP ${inc.ip}: ${inc.reason}`,
-    inc.ip,
-    'CRITICAL'
-  );
-  res.json({ success: true, message: 'Security incident simulated successfully!', data: inc });
-}));
-
 // @route   POST /api/v1/admin/devops/clear-incidents
 adminRouter.post('/devops/clear-incidents', requireAuth, requireRoles('ADMIN'), tryCatch(async (req: AuthRequest, res: any) => {
-  // Directly empty the local list for demo reset
+  DevOpsService.clearIncidents();
   DevOpsService.recordAuditLog(
     'INCIDENTS_RESET',
     req.user?.email || 'ADMIN',

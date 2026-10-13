@@ -1,5 +1,4 @@
 import type { Product } from '../types';
-import { INITIAL_PRODUCTS as LEGACY_INITIAL_PRODUCTS } from './products';
 import { createBreedProductGuide, createChickenFarmCareSections, createFreshPoultryGuide } from '../utils/productGuides';
 import { normalizeProductSeo } from '../utils/productSeo';
 
@@ -366,6 +365,37 @@ export const STOREFRONT_PRODUCT_IDS = new Set(STOREFRONT_PRODUCTS.map(product =>
 
 // Old seeded marketplace products must not reappear from a stale browser cache
 // or an old Firestore document. New CMS-created products remain publishable.
-export const LEGACY_STOREFRONT_PRODUCT_IDS = new Set(
-  LEGACY_INITIAL_PRODUCTS.map(product => product.id),
-);
+export const LEGACY_STOREFRONT_PRODUCT_IDS = new Set([
+  'prod-layer-pullet',
+  'prod-kuroiler-rooster',
+  'prod-rainbow-rooster-chicks',
+  'prod-improved-kienyeji-dressed',
+  'prod-boneless-breast-skinless',
+  'prod-jumbo-golden-table-eggs',
+  'prod-fertile-hatching-eggs-kuroiler',
+  'prod-chick-starter-mash-50kg',
+  'prod-tube-feeder-15l',
+  'prod-avian-multivitamin-1kg',
+  'prod-fresh-wings-1kg',
+  'prod-fresh-drumsticks-1kg',
+  'prod-sasso-chicks',
+  'prod-cobb500-broiler-chicks',
+  'prod-kenbro-pullet',
+  'prod-black-australorp-chicks',
+  'prod-grower-broilers',
+  'prod-fresh-gizzards-1kg',
+  'prod-fresh-thighs-1kg',
+  'prod-whole-dressed-broiler',
+  'prod-artisan-chicken-sausages',
+  'prod-smoked-chicken-breast',
+  'prod-fertile-hatching-eggs-sasso',
+  'prod-jumbo-quail-eggs',
+  'prod-organic-omega3-table-eggs',
+  'prod-chick-grower-pellets-50kg',
+  'prod-automatic-bell-drinker',
+  'prod-infrared-heat-lamp',
+  'prod-digital-egg-incubator-56',
+  'prod-gumboro-newcastle-vaccine-combo',
+  'prod-poultry-dewormer-piperazine',
+  'prod-biosecurity-disinfectant-5l',
+]);

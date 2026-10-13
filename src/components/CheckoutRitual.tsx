@@ -190,7 +190,6 @@ export default function CheckoutRitual({
       paymentMethod: 'M-Pesa Send Money',
       paymentNumber: MPESA_PAYMENT_NUMBER,
       paymentConfirmationStatus: 'pending_manual_review',
-      batchIds: Array.from(new Set(cartItems.map(i => i.product.liveData?.batchId || i.product.freshData?.batchId || i.product.processedData?.batchId).filter(Boolean)))
     };
 
     setIsSubmitting(true);

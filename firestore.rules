@@ -184,44 +184,9 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    match /cms_audit_logs/{logId} {
-      allow read, create: if isAdmin();
-      allow update, delete: if false;
-    }
-
     match /admin_audit_logs/{logId} {
       allow read, create: if isAdmin();
       allow update, delete: if false;
-    }
-
-    match /seller_badges/{badgeId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /hatchery_batches/{batchId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /claims/{claimId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.buyerId == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.buyerId == request.auth.uid;
-      allow update: if isAdmin();
-      allow delete: if false;
-    }
-
-    match /wholesale_applications/{appId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.applicantId == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.applicantId == request.auth.uid;
-      allow update: if isAdmin();
-      allow delete: if false;
-    }
-
-    match /custom_creations/{creationId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isAdmin();
     }
 
     match /{document=**} {

@@ -1,76 +1,50 @@
 # ChickMagnet
 
-A poultry marketplace and hatchery platform for the 
-Kenyan market — connecting buyers directly with verified, 
-health-certified flocks, fresh poultry, eggs, and farm supplies.
+ChickMagnet is a Kenyan storefront for chicken and eggs sold directly by ChickMagnet. It supports retail and commercial wholesale browsing, individual product URLs, carts, guest checkout, Firebase accounts, order history, and administrator product and order management.
 
-## What This Is
+## Current storefront
 
-ChickMagnet covers the full range of poultry commerce in one 
-platform:
+- Retail: mature chicken, fresh dressed chicken and cuts, eggs, and turkey.
+- Commercial wholesale: chicks and chicken by breed and age, plus eligible egg products.
+- Wholesale pricing uses the same unit price as retail. Minimum quantities are enforced per product: 10 for chicken and 5 for eggs.
+- Checkout records the product total only. Delivery is quoted separately after the order is reviewed.
+- Customers send product payment to `0724300781` using M-Pesa Send Money, then send the confirmation message for manual review.
+- A product shown on the site is not a promise of immediate availability. ChickMagnet confirms the fulfilment date after reviewing the order and payment.
 
-- **Live Birds** — day-old chicks, growers, layers, breeding stock
-- **Fresh & Whole Poultry** — dressed birds, cuts, giblets
-- **Processed & Value-Added** — marinated, breaded, ready-to-cook
-- **Eggs** — table eggs and fertile/hatching eggs
-- **Farm Supplies** — feed, vaccines, equipment
+## Current architecture
 
-It serves two distinct buyer types:
-- **Homesteaders** — retail buyers, standard checkout
-- **Commercial Wholesale** — Net-30 invoice billing, bulk pricing
+- React 19 with React Router 7 framework mode and server rendering.
+- Vercel serves the public site.
+- Firebase Authentication provides email/password, Google, and anonymous guest sessions.
+- Firestore stores customer profiles, product overrides, orders, brand settings, and administrator activity.
+- The source catalogue is the safe public fallback. Firestore product documents can update or archive those listings, and new products appear only after an administrator explicitly publishes them.
 
-Beyond the storefront, ChickMagnet includes a full **Farm Operations 
-module** — feed planning, vaccination scheduling, mortality/weight 
-tracking, staff task management, and cost/pricing tools — so the 
-business running the marketplace is managed with the same rigor as 
-the platform selling on its behalf.
+## Administrator CMS
 
-## Tech Stack
+The CMS is intentionally limited to functions connected to live data:
 
-**Frontend**
-- Built via Google AI Studio
-- Hosted on Firebase Hosting
+- Overview: real product and order totals.
+- Products: names, descriptions, prices, stock, images, status, and SEO fields.
+- Orders: payment review and fulfilment progress.
+- Brand: storefront name and logo URL.
+- Activity: changes made through the CMS.
 
-**Backend**
-- Node.js / Express, containerized with Docker
-- Deployed on Google Cloud Run
+Empty Firestore collections remain empty. The application must never generate sample orders, customers, claims, certifications, batches, farm metrics, or activity records.
 
-**Auth & Database**
-- Firebase Authentication (including Google OAuth)
-- Firestore
+## Legacy Express server
 
-**Storage**
-- Cloudflare R2 (product images, PDF exports)
+`src/server.ts` and the `build:legacy-server` script build an older Express API. It is not part of the Vercel storefront runtime. Its M-Pesa STK endpoint fails closed unless complete Daraja credentials and a callback URL are configured; it must never simulate a successful payment.
 
-**Payments**
-- M-Pesa Daraja API (STK Push) — sole payment method
+## Validation
 
-**Communications**
-- Resend (transactional email)
-- Africa's Talking (SMS — optional, pending confirmation)
+```bash
+npm ci
+npm run lint
+npm run build
+npm run test:server-contracts
+npm run start
+npm run test:seo
+git diff --check
+```
 
-**Version Control**
-- Git / GitHub
-
-## Project Structure Notes
-
-- **Header breed dropdown** (Kienyeji, Broiler, Kenbro, Chicks, etc.) 
-  replaces a traditional search bar — options are managed via the 
-  Admin Dashboard, not hardcoded
-- **Buyer segmentation**: "Homesteaders" and "Commercial Wholesale 
-  (Net-30)" — all account-type labels should use this terminology 
-  consistently across storefront and admin
-- **Payment**: M-Pesa only. Stripe, Apple Pay, and Airtel Money have 
-  been removed — do not reintroduce without an explicit product 
-  decision
-- **Admin Dashboard**: covers order tracking, claims management, 
-  product/inventory content editing, and the Farm Operations module — 
-  all customer-facing content should be editable here without a code 
-  change
-
-## Ownership Note
-
-Production credentials (Firebase, M-Pesa, Google Cloud) should be 
-tied to the client's business accounts, not developer personal 
-accounts, to ensure the client retains full ownership and access 
-after handoff.
+`test:seo` expects the built server to be running at `http://127.0.0.1:3000`.

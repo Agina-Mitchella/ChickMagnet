@@ -29,38 +29,6 @@ let securityIncidents: SecurityIncident[] = [];
 try {
   if (fs.existsSync(LOG_FILE)) {
     auditLogs = JSON.parse(fs.readFileSync(LOG_FILE, 'utf8'));
-  } else {
-    // Seed default logs for rich demo
-    auditLogs = [
-      {
-        id: 'log-1',
-        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-        action: 'SYSTEM_STARTUP',
-        actor: 'SYSTEM',
-        details: 'Sylvan Forest application cluster initialized on port 3000.',
-        ip: '127.0.0.1',
-        severity: 'INFO'
-      },
-      {
-        id: 'log-2',
-        timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(),
-        action: 'DB_CONNECTION_SECURED',
-        actor: 'SYSTEM',
-        details: 'PostgreSQL prisma client verified. Schema synchronized.',
-        ip: '127.0.0.1',
-        severity: 'INFO'
-      },
-      {
-        id: 'log-3',
-        timestamp: new Date(Date.now() - 3600000 * 0.8).toISOString(),
-        action: 'HELMET_HEADERS_ENFORCED',
-        actor: 'SYSTEM',
-        details: 'Strict CSP and anti-sniffing headers injected.',
-        ip: '127.0.0.1',
-        severity: 'INFO'
-      }
-    ];
-    fs.writeFileSync(LOG_FILE, JSON.stringify(auditLogs, null, 2), 'utf8');
   }
 } catch (e) {
   console.error('Failed to load devops audit logs:', e);
@@ -69,25 +37,6 @@ try {
 try {
   if (fs.existsSync(INCIDENT_FILE)) {
     securityIncidents = JSON.parse(fs.readFileSync(INCIDENT_FILE, 'utf8'));
-  } else {
-    // Seed default incidents for visual validation
-    securityIncidents = [
-      {
-        id: 'inc-1',
-        timestamp: new Date(Date.now() - 3600000 * 1.2).toISOString(),
-        ip: '198.51.100.42',
-        reason: 'SQL_INJECTION_HEURISTIC_TRIGGER',
-        endpoint: '/api/v1/products'
-      },
-      {
-        id: 'inc-2',
-        timestamp: new Date(Date.now() - 3600000 * 0.5).toISOString(),
-        ip: '203.0.113.88',
-        reason: 'RATE_LIMIT_EXCEEDED_AUTH',
-        endpoint: '/api/v1/auth/login'
-      }
-    ];
-    fs.writeFileSync(INCIDENT_FILE, JSON.stringify(securityIncidents, null, 2), 'utf8');
   }
 } catch (e) {
   console.error('Failed to load devops security incidents:', e);
@@ -156,12 +105,13 @@ export const DevOpsService = {
       memoryHeapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
       nodeVersion: process.version,
       platform: process.platform,
-      totalRequestsTracked: auditLogs.length + securityIncidents.length + 420, // offset for visual realism
-      activeConnections: 12 + Math.floor(Math.random() * 5),
-      integrityStatus: 'SECURE',
-      securityShield: 'ACTIVE',
-      firewallRulesLoaded: 18,
-      lastBackupTimestamp: new Date(Date.now() - 3600000 * 8).toISOString()
+      auditLogCount: auditLogs.length,
+      securityIncidentCount: securityIncidents.length,
     };
+  },
+
+  clearIncidents() {
+    securityIncidents = [];
+    saveIncidents();
   }
 };

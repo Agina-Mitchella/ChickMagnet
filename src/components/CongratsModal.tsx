@@ -4,14 +4,12 @@ import { Calendar, HelpCircle, Scale } from 'lucide-react';
 interface CongratsModalProps {
   orderSummary: any;
   onClose: () => void;
-  onOpenTraceability: (batchId: string) => void;
   onOpenClaims?: () => void;
 }
 
 export default function CongratsModal({
   orderSummary,
   onClose,
-  onOpenTraceability,
   onOpenClaims
 }: CongratsModalProps) {
   if (!orderSummary) return null;
@@ -88,27 +86,6 @@ export default function CongratsModal({
               </div>
             ))}
           </div>
-
-          {/* Traceable Batch IDs per Item */}
-          {orderSummary.batchIds && orderSummary.batchIds.length > 0 && (
-            <div className="pt-2 border-t border-emerald-800 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-emerald-400 font-bold text-[11px]">Traceable Batch IDs:</span>
-              <div className="flex gap-1.5 flex-wrap">
-                {orderSummary.batchIds.map((bid: string) => (
-                  <button
-                    key={bid}
-                    onClick={() => {
-                      onClose();
-                      onOpenTraceability(bid);
-                    }}
-                    className="bg-amber-500/20 text-amber-300 hover:text-white border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer"
-                  >
-                    {bid} 🔍
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Live bird delivery support */}
           {hasLiveBirds && (

@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Egg,
   Feather,
-  FileText,
   LayoutDashboard,
   LogIn,
   Monitor,
@@ -84,10 +83,7 @@ interface NavbarProps {
   onApplySearch: () => void;
   colorScheme: ColorSchemePreference;
   onColorSchemeChange: (preference: ColorSchemePreference) => void;
-  onOpenTraceability: () => void;
-  onOpenClaims: () => void;
   onOpenAdmin?: () => void;
-  onOpenBusinessPlan?: () => void;
 }
 
 export default function Navbar({
@@ -109,7 +105,6 @@ export default function Navbar({
   colorScheme,
   onColorSchemeChange,
   onOpenAdmin,
-  onOpenBusinessPlan,
 }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
@@ -369,19 +364,6 @@ export default function Navbar({
                       >
                         <LayoutDashboard className="h-4 w-4 text-amber-600" />
                         Admin Dashboard
-                      </button>
-                    ) : null}
-                    {onOpenBusinessPlan && isAdmin ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onOpenBusinessPlan();
-                          setProfileOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left font-semibold hover:bg-emerald-50 dark:hover:bg-white/10"
-                      >
-                        <FileText className="h-4 w-4 text-emerald-800" />
-                        Farm Plan
                       </button>
                     ) : null}
                     <div className="mt-2 border-t border-stone-100 pt-2 dark:border-white/10">

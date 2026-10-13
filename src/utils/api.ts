@@ -199,12 +199,6 @@ export const api = {
     async getMetrics(): Promise<any> {
       return fetchJson<any>(`/api/v1/admin/devops/metrics`);
     },
-    async simulateIncident(ip?: string, reason?: string, endpoint?: string): Promise<any> {
-      return fetchJson<any>(`/api/v1/admin/devops/simulate-incident`, {
-        method: 'POST',
-        body: JSON.stringify({ ip, reason, endpoint }),
-      });
-    },
     async clearIncidents(): Promise<any> {
       return fetchJson<any>(`/api/v1/admin/devops/clear-incidents`, {
         method: 'POST',

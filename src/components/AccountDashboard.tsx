@@ -1,15 +1,13 @@
-import { ChevronRight, ExternalLink, LayoutDashboard, Package, ShoppingBag, User as UserIcon } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Package, ShoppingBag, User as UserIcon } from 'lucide-react';
 import { BuyerType, User } from '../types';
 
 interface AccountDashboardProps {
   currentUser?: User | null;
   buyerType: BuyerType;
   userOrders?: any[];
-  onOpenTraceability: (batchId?: string) => void;
   onOpenClaims: () => void;
   onNavigateToShop: () => void;
   onOpenAdmin?: () => void;
-  onOpenBusinessPlan?: () => void;
 }
 
 function formatMoney(value: unknown) {
@@ -21,7 +19,6 @@ export default function AccountDashboard({
   currentUser,
   buyerType,
   userOrders = [],
-  onOpenTraceability,
   onOpenClaims,
   onNavigateToShop,
   onOpenAdmin
@@ -152,16 +149,6 @@ export default function AccountDashboard({
                   <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
                     <strong className="text-base text-emerald-950">{formatMoney(order.total ?? order.grandTotal)}</strong>
                     <div className="flex flex-wrap gap-2">
-                      {order.batchId ? (
-                        <button
-                          type="button"
-                          onClick={() => onOpenTraceability(order.batchId)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100"
-                        >
-                          Trace batch
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </button>
-                      ) : null}
                       <button
                         type="button"
                         onClick={onOpenClaims}

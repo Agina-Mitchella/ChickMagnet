@@ -1,8 +1,8 @@
 {
   "entities": {
     "CMSBlock": {
-      "title": "CMS Content Block",
-      "description": "Dynamic content block for site customization, customer-facing copy, and farm plan equations",
+      "title": "Brand setting",
+      "description": "An editable ChickMagnet name or logo setting",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -15,115 +15,70 @@
       },
       "required": ["id", "pageId", "value"]
     },
-    "FarmPlanMetrics": {
-      "title": "Farm Plan Metrics",
-      "description": "Master farm operational variables, costs, profit targets, feed inventory, and SOPs",
-      "type": "object",
-      "properties": {
-        "sunkCost": { "type": "number" },
-        "initialPlaced": { "type": "number" },
-        "currentLive": { "type": "number" },
-        "mortalityCount": { "type": "number" },
-        "futureBufferPct": { "type": "number" },
-        "remainingCostR": { "type": "number" },
-        "starterBagsOnHand": { "type": "number" },
-        "updatedAt": { "type": "string" }
-      },
-      "required": ["sunkCost", "initialPlaced", "currentLive"]
-    },
     "Product": {
-      "title": "Product Catalog Item",
-      "description": "Poultry product, feed, egg, or farm supply item",
+      "title": "Product",
+      "description": "A ChickMagnet chicken or egg listing and its storefront content",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
-        "wholesalePrice": { "type": "number" },
         "category": { "type": "string" },
         "image": { "type": "string" },
-        "stock": { "type": "number" }
+        "stock": { "type": "number" },
+        "catalogStatus": { "type": "string" },
+        "showOnStorefront": { "type": "boolean" }
       },
-      "required": ["id", "name", "price", "category"]
+      "required": ["id", "name", "description", "price", "category", "catalogStatus"]
     },
     "Order": {
-      "title": "Customer Order",
-      "description": "Marketplace purchase order record",
+      "title": "Customer order",
+      "description": "A submitted order with manual M-Pesa and price review state",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
+        "buyerId": { "type": "string" },
         "customerName": { "type": "string" },
         "total": { "type": "number" },
         "status": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "paymentConfirmationStatus": { "type": "string" },
+        "pricingVerificationStatus": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
       },
-      "required": ["id", "customerName", "total", "status"]
-    },
-    "Claim": {
-      "title": "Mortality / Insurance Claim",
-      "description": "Buyer mortality claim submission",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "orderId": { "type": "string" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "string" }
-      },
-      "required": ["id", "orderId", "status"]
-    },
-    "HatcheryBatch": {
-      "title": "Hatchery Traceability Batch",
-      "description": "Bio-secure batch record",
-      "type": "object",
-      "properties": {
-        "batchNumber": { "type": "string" },
-        "breed": { "type": "string" },
-        "vaccinationStatus": { "type": "string" }
-      },
-      "required": ["batchNumber", "breed"]
+      "required": [
+        "id",
+        "buyerId",
+        "customerName",
+        "total",
+        "status",
+        "paymentConfirmationStatus",
+        "pricingVerificationStatus",
+        "createdAt"
+      ]
     }
   },
   "firestore": {
     "/cms_blocks/{blockId}": {
       "schema": { "$ref": "#/entities/CMSBlock" },
-      "description": "Global CMS content blocks, customer-facing content, and farm plan configurations"
-    },
-    "/cms_audit_logs/{logId}": {
-      "schema": { "type": "object" },
-      "description": "CMS block edit history logs"
+      "description": "ChickMagnet name and logo settings"
     },
     "/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },
-      "description": "Live storefront products and inventory"
+      "description": "Published, unavailable, and archived storefront products"
     },
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
-      "description": "Marketplace orders and fulfillment tracking"
-    },
-    "/claims/{claimId}": {
-      "schema": { "$ref": "#/entities/Claim" },
-      "description": "Buyer mortality and warranty claims"
-    },
-    "/wholesale_applications/{appId}": {
-      "schema": { "type": "object" },
-      "description": "Wholesale vendor verification applications"
-    },
-    "/seller_badges/{badgeId}": {
-      "schema": { "type": "object" },
-      "description": "Verified seller badges and health certifications"
-    },
-    "/hatchery_batches/{batchId}": {
-      "schema": { "$ref": "#/entities/HatcheryBatch" },
-      "description": "Bio-security parent flock and lab traceability clearance records"
+      "description": "Customer orders and fulfilment state"
     },
     "/admin_audit_logs/{logId}": {
       "schema": { "type": "object" },
-      "description": "Admin operational audit trail"
+      "description": "Append-only record of administrator changes"
     },
     "/users/{userId}": {
       "schema": { "type": "object" },
-      "description": "User profile accounts and preferences"
+      "description": "Customer account profiles"
     }
   }
 }
