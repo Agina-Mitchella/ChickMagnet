@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, ChevronDown, Heart, Minus, Plus, ShoppingBag, Star, X } from 'lucide-react';
 import { BuyerType, Product, ProductGuide as ProductGuideData } from '../types';
 import { getMinimumOrderQuantity, getUnitPrice } from '../utils/orderRules';
 import { getProductGuide } from '../utils/productGuides';
+import { trackViewedProduct } from '../services/klaviyoEvents';
 import ResponsiveProductImage from './ResponsiveProductImage';
 
 interface ProductDetailProps {
@@ -191,6 +192,13 @@ export default function ProductDetail({
     ?? (basePrice + (selectedWeight?.priceDiff || 0));
   const totalPrice = unitPrice * quantity;
   const isAvailable = product.stock > 0 && product.catalogStatus !== 'temporarilyUnavailable';
+  const lastViewedProduct = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (lastViewedProduct.current === product.id) return;
+    lastViewedProduct.current = product.id;
+    trackViewedProduct(product, unitPrice, buyerType);
+  }, [product, unitPrice, buyerType]);
 
   const selectAge = (label: string) => {
     const nextIndex = ageOptions.findIndex(item => item.label === label);

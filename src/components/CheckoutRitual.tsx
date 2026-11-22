@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FirebaseError } from 'firebase/app';
 import { 
   ShieldCheck, 
@@ -17,6 +17,7 @@ import { CartItem, BuyerType, FulfillmentType, User } from '../types';
 import {
   findMinimumOrderViolations, getRetailWelcomeTotal, getUnitPrice, RETAIL_WELCOME_CODE,
 } from '../utils/orderRules';
+import { normalizeCheckoutEmail, trackStartedCheckout } from '../services/klaviyoEvents';
 import mpesaLogo from '../assets/images/mpesa-logo.svg';
 
 interface CheckoutRitualProps {
@@ -149,6 +150,15 @@ export default function CheckoutRitual({
   );
   const minimumOrderViolations = findMinimumOrderViolations(cartItems, buyerType);
   const hasMinimumOrderViolation = minimumOrderViolations.length > 0;
+  const checkoutTracked = useRef(false);
+  const checkoutEmail = normalizeCheckoutEmail(email);
+  const trackingEmail = currentUser?.isGuest && currentStep !== 'payment' ? '' : checkoutEmail;
+
+  useEffect(() => {
+    if (checkoutTracked.current || !trackingEmail || cartItems.length === 0 || hasMinimumOrderViolation) return;
+    checkoutTracked.current = true;
+    trackStartedCheckout(newOrderId, trackingEmail, cartItems, buyerType, grandTotal);
+  }, [trackingEmail, newOrderId, cartItems, buyerType, grandTotal, hasMinimumOrderViolation]);
 
   const filteredLocations = KENYA_DELIVERY_LOCATIONS.filter(loc =>
     loc.toLowerCase().includes(deliveryZone.toLowerCase())
@@ -184,6 +194,10 @@ export default function CheckoutRitual({
       setDeliveryDetailsError('Enter the recipient name, a valid phone number, delivery area, and full address before continuing.');
       return;
     }
+    if (currentUser?.isGuest && email.trim() && !checkoutEmail) {
+      setDeliveryDetailsError('Enter a valid email address or leave it blank.');
+      return;
+    }
 
     setDeliveryDetailsError(null);
     setIsZoneOpen(false);
@@ -209,7 +223,7 @@ export default function CheckoutRitual({
       orderId,
       date: new Date().toISOString(),
       name,
-      email,
+      email: checkoutEmail,
       phone,
       deliveryZone,
       address,
@@ -344,6 +358,26 @@ export default function CheckoutRitual({
                     className="w-full bg-white border-2 border-emerald-200 rounded-xl px-3.5 py-2 text-emerald-950 font-medium focus:outline-none focus:border-emerald-700 font-mono"
                   />
                 </div>
+
+                {currentUser?.isGuest && (
+                  <div className="sm:col-span-2">
+                    <label htmlFor="checkout-email" className="mb-1 block text-[11px] font-mono font-bold text-emerald-900">
+                      Email (optional)
+                    </label>
+                    <input
+                      id="checkout-email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        setDeliveryDetailsError(null);
+                      }}
+                      autoComplete="email"
+                      maxLength={254}
+                      className="w-full rounded-xl border-2 border-emerald-200 bg-white px-3.5 py-2 font-medium text-emerald-950 focus:border-emerald-700 focus:outline-none"
+                    />
+                  </div>
+                )}
 
                 {/* Searchable Delivery Zone for Kenya */}
                 <div className="relative sm:col-span-2">

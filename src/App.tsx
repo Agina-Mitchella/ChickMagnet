@@ -15,6 +15,7 @@ import {
   productMatchesSearch,
 } from './utils/storefrontProducts';
 import { getCategoryPath, normalizeProductSeo } from './utils/productSeo';
+import { trackCartAddition } from './services/klaviyoEvents';
 
 const AccountDashboard = lazy(() => import('./components/AccountDashboard'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
@@ -229,16 +230,15 @@ export default function App({
       ? 'frozen-deep' 
       : 'dry-ambient';
 
-    const existingIndex = cartItems.findIndex(i => i.product.id === product.id);
-    if (existingIndex > -1) {
-      const updated = [...cartItems];
-      updated[existingIndex].quantity += quantity;
-      setCartItems(updated);
-    } else {
-      setCartItems([...cartItems, { product, quantity, fulfillmentGroup }]);
-    }
+    const nextCart: CartItem[] = cartItems.some(item => item.product.id === product.id)
+      ? cartItems.map(item => item.product.id === product.id
+        ? { ...item, quantity: item.quantity + quantity }
+        : item)
+      : [...cartItems, { product, quantity, fulfillmentGroup }];
 
+    setCartItems(nextCart);
     setIsCartOpen(true);
+    trackCartAddition(product, quantity, nextCart, buyerType);
   };
 
   const handleUpdateCartQty = (productId: string, quantity: number) => {
