@@ -14,7 +14,7 @@ function securityHeaders(nonce: string): Record<string, string> {
         `script-src 'self' 'nonce-${nonce}' https://apis.google.com https://accounts.google.com`,
         'https://static.klaviyo.com/onsite/js/ https://static-tracking.klaviyo.com/onsite/js/',
       ].join(' '),
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://static.klaviyo.com/onsite/js/",
       "font-src 'self' data:",
       "img-src 'self' data: blob: https://images.unsplash.com https://*.googleusercontent.com",
       [
