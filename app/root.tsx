@@ -48,6 +48,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       if (!formId) return;
 
       try {
+        const chooser = document.querySelector('form[data-testid="klaviyo-form-SrB7e9"]')
+          ?.closest('[data-testid="modal-form-container"]');
+        chooser?.querySelector<HTMLButtonElement>('button[aria-label="Close dialog"]')?.click();
         (window._klOnsite ??= []).push(['openForm', formId]);
       } catch {
         return;
