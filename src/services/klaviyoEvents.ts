@@ -6,7 +6,7 @@ type EventName = 'Viewed Product' | 'Added to Cart' | 'Started Checkout';
 type TrackCommand = ['track', EventName, Record<string, unknown>];
 type KlaviyoCommand =
   | TrackCommand
-  | ['identify', { email: string }, (result: unknown) => void]
+  | ['identify', { email: string }, () => void]
   | ['openForm', string];
 
 declare global {
@@ -29,9 +29,8 @@ function track(name: EventName, properties: () => Record<string, unknown>, email
   if (!email) {
     enqueue(command);
   } else {
-    enqueue(['identify', { email }, (result) => {
-      if (result) enqueue(command);
-    }]);
+    // Klaviyo can finish identifying a shopper without returning a payload.
+    enqueue(['identify', { email }, () => enqueue(command)]);
   }
 }
 
