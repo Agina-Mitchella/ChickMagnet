@@ -3,25 +3,26 @@ import type { AppLoadContext, EntryContext } from 'react-router';
 
 const CANONICAL_ORIGIN = 'https://www.chickmagnet.xyz';
 
-function securityHeaders(nonce: string): Record<string, string> {
+function securityHeaders(nonce: string, enableSignupForms = false): Record<string, string> {
+  const klaviyoCdn = enableSignupForms ? ' https://static.klaviyo.com/onsite/js/' : '';
+  const klaviyoScripts = enableSignupForms ? ' https://static-tracking.klaviyo.com/onsite/js/' : '';
+  const klaviyoConnections = enableSignupForms
+    ? ' https://a.klaviyo.com https://fast.a.klaviyo.com https://static-forms.klaviyo.com https://api-js.datadome.co/js/'
+    : '';
+  const captchaFrames = enableSignupForms ? ' https://*.captcha-delivery.com' : '';
   return {
     'Content-Security-Policy': [
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
       "frame-ancestors 'none'",
-      [
-        `script-src 'self' 'nonce-${nonce}' https://apis.google.com https://accounts.google.com`,
-        'https://static.klaviyo.com/onsite/js/ https://static-tracking.klaviyo.com/onsite/js/',
-      ].join(' '),
-      "style-src 'self' 'unsafe-inline' https://static.klaviyo.com/onsite/js/",
+      `script-src 'self' 'nonce-${nonce}' https://apis.google.com https://accounts.google.com${klaviyoCdn}${klaviyoScripts}`,
+      `style-src 'self' 'unsafe-inline'${klaviyoCdn}`,
       "font-src 'self' data:",
       "img-src 'self' data: blob: https://images.unsplash.com https://*.googleusercontent.com",
-      [
-        "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com",
-        'https://a.klaviyo.com https://fast.a.klaviyo.com https://static-forms.klaviyo.com',
-      ].join(' '),
-      "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com",
+      `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com${klaviyoConnections}`,
+      ...(enableSignupForms ? ["worker-src 'self' blob:"] : []),
+      `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com${captchaFrames}`,
       "form-action 'self'",
       'upgrade-insecure-requests',
     ].join('; '),
@@ -34,8 +35,8 @@ function securityHeaders(nonce: string): Record<string, string> {
   };
 }
 
-function applyResponseHeaders(response: Response, nonce: string): Response {
-  for (const [key, value] of Object.entries(securityHeaders(nonce))) {
+function applyResponseHeaders(response: Response, nonce: string, enableSignupForms = false): Response {
+  for (const [key, value] of Object.entries(securityHeaders(nonce, enableSignupForms))) {
     response.headers.set(key, value);
   }
 
@@ -86,5 +87,7 @@ export default async function entryServer(
     { nonce },
   );
 
-  return applyResponseHeaders(response, nonce);
+  const enableSignupForms = requestUrl.origin === CANONICAL_ORIGIN
+    && response.headers.get('Content-Type')?.startsWith('text/html');
+  return applyResponseHeaders(response, nonce, enableSignupForms);
 }
