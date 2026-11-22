@@ -43,29 +43,59 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!enableKlaviyoForms) return;
 
+    let closeObserver: MutationObserver | undefined;
+
     function openWelcomeSignup(event?: HashChangeEvent) {
-      const formId = welcomeSignupForms.get(window.location.hash);
+      const selection = window.location.hash;
+      const formId = welcomeSignupForms.get(selection);
       if (!formId) return;
 
-      try {
-        const chooser = document.querySelector('form[data-testid="klaviyo-form-SrB7e9"]')
-          ?.closest('[data-testid="modal-form-container"]');
-        chooser?.querySelector<HTMLButtonElement>('button[aria-label="Close dialog"]')?.click();
-        (window._klOnsite ??= []).push(['openForm', formId]);
-      } catch {
+      const previousHash = event ? new URL(event.oldURL).hash : '';
+      const openSelectedForm = () => {
+        if (window.location.hash !== selection) return;
+        try {
+          (window._klOnsite ??= []).push(['openForm', formId]);
+        } catch {
+          return;
+        }
+
+        // Keep the shopper on the same page and restore any existing section link.
+        const url = new URL(window.location.href);
+        url.hash = welcomeSignupForms.has(previousHash) ? '' : previousHash;
+        window.history.replaceState(window.history.state, '', url);
+      };
+
+      closeObserver?.disconnect();
+      const picker = document.querySelector('form[data-testid="klaviyo-form-SrB7e9"]');
+      const close = picker?.closest('[data-testid="modal-form-container"]')
+        ?.querySelector<HTMLButtonElement>('button[aria-label="Close dialog"]');
+      if (!picker || !close || picker.getClientRects().length === 0) {
+        openSelectedForm();
         return;
       }
 
-      // Keep the shopper on the same page and restore any existing section link.
-      const previousHash = event ? new URL(event.oldURL).hash : '';
-      const url = new URL(window.location.href);
-      url.hash = welcomeSignupForms.has(previousHash) ? '' : previousHash;
-      window.history.replaceState(window.history.state, '', url);
+      // Klaviyo leaves the picker mounted until its closing animation finishes.
+      closeObserver = new MutationObserver(() => {
+        if (picker.getClientRects().length && getComputedStyle(picker).visibility !== 'hidden') return;
+        closeObserver?.disconnect();
+        closeObserver = undefined;
+        openSelectedForm();
+      });
+      closeObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'hidden', 'style'],
+      });
+      close.click();
     }
 
     window.addEventListener('hashchange', openWelcomeSignup);
     openWelcomeSignup();
-    return () => window.removeEventListener('hashchange', openWelcomeSignup);
+    return () => {
+      closeObserver?.disconnect();
+      window.removeEventListener('hashchange', openWelcomeSignup);
+    };
   }, [enableKlaviyoForms]);
 
   return (
