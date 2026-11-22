@@ -5,10 +5,16 @@ import {
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
+  useRouteLoaderData,
   useRouteError,
 } from 'react-router';
-import type { LinksFunction, MetaFunction } from 'react-router';
+import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import stylesheet from '../src/index.css?url';
+import { SITE_ORIGIN } from '../src/utils/productSeo';
+
+export function loader({ request }: LoaderFunctionArgs) {
+  return { enableKlaviyoForms: new URL(request.url).origin === SITE_ORIGIN };
+}
 
 export const links: LinksFunction = () => [
   { rel: 'icon', href: '/chickmagnet-favicon.png?v=3', type: 'image/png' },
@@ -25,6 +31,8 @@ export const meta: MetaFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const rootData = useRouteLoaderData<typeof loader>('root');
+
   return (
     <html lang="en-KE" suppressHydrationWarning>
       <head>
@@ -35,6 +43,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <link rel="stylesheet" href={stylesheet} />
         <Meta />
         <Links />
+        {rootData?.enableKlaviyoForms && (
+          <script async fetchPriority="low" src="https://static.klaviyo.com/onsite/js/Vk7zpM/klaviyo.js" />
+        )}
       </head>
       <body>
         {children}
