@@ -139,7 +139,7 @@ export default function AboutLore() {
               </div>
             </div>
             <a
-              href="mailto:logansteve@gmail.com"
+              href="mailto:logarnsteve@gmail.com"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-emerald-950 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
             >
               Report a problem
@@ -156,7 +156,7 @@ export default function AboutLore() {
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <a
-              href="mailto:logansteve@gmail.com"
+              href="mailto:logarnsteve@gmail.com"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3.5 text-sm font-black text-emerald-950 transition-colors hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900"
             >
               <Mail className="h-4 w-4" aria-hidden="true" />

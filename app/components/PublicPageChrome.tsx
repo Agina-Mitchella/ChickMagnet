@@ -49,7 +49,7 @@ export default function PublicPageChrome({ children }: { children: ReactNode }) 
             <h2 className="text-xs font-extrabold uppercase tracking-[0.14em] text-amber-300">Contact</h2>
             <div className="mt-4 flex flex-col items-start gap-3 text-sm text-emerald-100/75">
               <a href="tel:+254700356023">+254 700 356 023</a>
-              <a className="break-all" href="mailto:logansteve@gmail.com">logansteve@gmail.com</a>
+              <a className="break-all" href="mailto:logarnsteve@gmail.com">logarnsteve@gmail.com</a>
               <a href="/faqs">Frequently asked questions</a>
               <a href="/guides/chicken-prices-by-age">Chicken prices by age</a>
             </div>
