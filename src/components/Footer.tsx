@@ -50,11 +50,11 @@ export default function Footer({ buyerType, onNavigate, onSelectCategory }: Foot
               +254 700 356 023
             </a>
             <a
-              href="mailto:logansteve@gmail.com"
+              href="mailto:logarnsteve@gmail.com"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
             >
               <Mail className="h-4 w-4 text-amber-300" />
-              logansteve@gmail.com
+              logarnsteve@gmail.com
             </a>
           </div>
         </section>
@@ -110,8 +110,8 @@ export default function Footer({ buyerType, onNavigate, onSelectCategory }: Foot
             <a href="tel:254700356023" className="text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
               +254 700 356 023
             </a>
-            <a href="mailto:logansteve@gmail.com" className="break-all text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
-              logansteve@gmail.com
+            <a href="mailto:logarnsteve@gmail.com" className="break-all text-sm text-emerald-100/75 transition-colors hover:text-amber-300">
+              logarnsteve@gmail.com
             </a>
             <span className="text-sm leading-6 text-emerald-100/75">
               Kisii-Tanzania Highway, next to Fairmont International School, Suneka. Black gate.

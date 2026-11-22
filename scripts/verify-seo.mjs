@@ -35,7 +35,7 @@ expectHtmlPage(home, {
 assert.match(home.body, /href="\/products\/[^"]+"/i, 'Home page must expose crawlable product links.');
 assert.match(home.body, /href="\/guides\/chicken-prices-by-age"/i, 'Home page must link to the indexed price guide.');
 assert.match(home.body, /"@type":\["Organization","LocalBusiness"\]/, 'Home page must include organization data.');
-assert.match(home.body, /"email":"logansteve@gmail\.com"/, 'Organization data must expose a valid email address.');
+assert.match(home.body, /"email":"logarnsteve@gmail\.com"/, 'Organization data must expose a valid email address.');
 assert.doesNotMatch(home.body, /"email":"mailto:/, 'Schema email values must not use a mailto URI.');
 assert.match(home.body, /<meta[^>]+name="theme-color"[^>]+content="#fffdf9"/i);
 assert.match(home.body, /<meta[^>]+name="color-scheme"[^>]+content="light dark"/i);
