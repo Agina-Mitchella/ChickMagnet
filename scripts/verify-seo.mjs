@@ -166,6 +166,12 @@ for (const path of ['/missing-page-for-seo-test', '/api/test']) {
 const csp = home.response.headers.get('content-security-policy') || '';
 assert.match(csp, /script-src 'self' 'nonce-[^']+'/);
 assert.match(csp, /https:\/\/apis\.google\.com/);
+const imageSources = csp.split(';').find(directive => directive.trimStart().startsWith('img-src ')) || '';
+assert.equal(
+  imageSources.includes('https://cdn.klaviyomail.com/company/Vk7zpM/images/'),
+  new URL(baseUrl).origin === 'https://www.chickmagnet.xyz',
+  'Klaviyo artwork should be allowed only on the canonical storefront.',
+);
 assert.equal(home.response.headers.get('x-content-type-options'), 'nosniff');
 assert.equal(home.response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
 

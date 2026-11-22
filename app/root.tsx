@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   Links,
   Meta,
@@ -11,6 +12,11 @@ import {
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import stylesheet from '../src/index.css?url';
 import { SITE_ORIGIN } from '../src/utils/productSeo';
+
+const welcomeSignupForms = new Map([
+  ['#chickmagnet-retail-offer', 'XfZrcD'],
+  ['#chickmagnet-wholesale-offer', 'XpeVJU'],
+]);
 
 export function loader({ request }: LoaderFunctionArgs) {
   return { enableKlaviyoForms: new URL(request.url).origin === SITE_ORIGIN };
@@ -32,6 +38,32 @@ export const meta: MetaFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const rootData = useRouteLoaderData<typeof loader>('root');
+  const enableKlaviyoForms = rootData?.enableKlaviyoForms;
+
+  useEffect(() => {
+    if (!enableKlaviyoForms) return;
+
+    function openWelcomeSignup(event?: HashChangeEvent) {
+      const formId = welcomeSignupForms.get(window.location.hash);
+      if (!formId) return;
+
+      try {
+        (window._klOnsite ??= []).push(['openForm', formId]);
+      } catch {
+        return;
+      }
+
+      // Keep the shopper on the same page and restore any existing section link.
+      const previousHash = event ? new URL(event.oldURL).hash : '';
+      const url = new URL(window.location.href);
+      url.hash = welcomeSignupForms.has(previousHash) ? '' : previousHash;
+      window.history.replaceState(window.history.state, '', url);
+    }
+
+    window.addEventListener('hashchange', openWelcomeSignup);
+    openWelcomeSignup();
+    return () => window.removeEventListener('hashchange', openWelcomeSignup);
+  }, [enableKlaviyoForms]);
 
   return (
     <html lang="en-KE" suppressHydrationWarning>
@@ -43,7 +75,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <link rel="stylesheet" href={stylesheet} />
         <Meta />
         <Links />
-        {rootData?.enableKlaviyoForms && (
+        {enableKlaviyoForms && (
           <script async fetchPriority="low" src="https://static.klaviyo.com/onsite/js/Vk7zpM/klaviyo.js" />
         )}
       </head>

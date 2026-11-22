@@ -4,7 +4,10 @@ import { getAbsoluteUrl, getProductPath, SITE_ORIGIN } from '../utils/productSeo
 
 type EventName = 'Viewed Product' | 'Added to Cart' | 'Started Checkout';
 type TrackCommand = ['track', EventName, Record<string, unknown>];
-type KlaviyoCommand = TrackCommand | ['identify', { email: string }, (result: unknown) => void];
+type KlaviyoCommand =
+  | TrackCommand
+  | ['identify', { email: string }, (result: unknown) => void]
+  | ['openForm', string];
 
 declare global {
   interface Window {

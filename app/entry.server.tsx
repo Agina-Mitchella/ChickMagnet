@@ -6,6 +6,7 @@ const CANONICAL_ORIGIN = 'https://www.chickmagnet.xyz';
 function securityHeaders(nonce: string, enableSignupForms = false): Record<string, string> {
   const klaviyoCdn = enableSignupForms ? ' https://static.klaviyo.com/onsite/js/' : '';
   const klaviyoScripts = enableSignupForms ? ' https://static-tracking.klaviyo.com/onsite/js/' : '';
+  const klaviyoImages = enableSignupForms ? ' https://cdn.klaviyomail.com/company/Vk7zpM/images/' : '';
   const klaviyoConnections = enableSignupForms
     ? ' https://a.klaviyo.com https://fast.a.klaviyo.com https://static-forms.klaviyo.com https://api-js.datadome.co/js/'
     : '';
@@ -19,7 +20,7 @@ function securityHeaders(nonce: string, enableSignupForms = false): Record<strin
       `script-src 'self' 'nonce-${nonce}' https://apis.google.com https://accounts.google.com${klaviyoCdn}${klaviyoScripts}`,
       `style-src 'self' 'unsafe-inline'${klaviyoCdn}`,
       "font-src 'self' data:",
-      "img-src 'self' data: blob: https://images.unsplash.com https://*.googleusercontent.com",
+      `img-src 'self' data: blob: https://images.unsplash.com https://*.googleusercontent.com${klaviyoImages}`,
       `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com${klaviyoConnections}`,
       ...(enableSignupForms ? ["worker-src 'self' blob:"] : []),
       `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com${captchaFrames}`,
