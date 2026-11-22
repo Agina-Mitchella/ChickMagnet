@@ -283,6 +283,7 @@ export default function App({
       status: 'Payment confirmation pending',
       statusColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
       total: summary.grandTotal,
+      welcomeDiscount: summary.welcomeDiscount,
       batchId: '',
       fulfillment: summary.items?.[0]?.fulfillmentGroup === 'live-climate' ? 'Live Express Transport' : 'Express Delivery',
       eta: firstSlot,

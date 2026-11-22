@@ -85,6 +85,20 @@ service cloud.firestore {
         || value == 'rejected';
     }
 
+    function validRetailWelcomeDiscount(orderId) {
+      let order = request.resource.data;
+      let discount = order.welcomeDiscount;
+      return order.buyerType == 'retail'
+        && discount is map
+        && discount.keys().hasOnly(['code', 'subtotal'])
+        && discount.code == 'CHICK10'
+        && discount.subtotal is number
+        && discount.subtotal <= 100000000
+        && order.total < discount.subtotal
+        && order.total == int(discount.subtotal * 9.0 / 10.0 + 0.5)
+        && get(/databases/$(database)/documents/retail_welcome_orders/$(request.auth.uid)).data.orderId == orderId;
+    }
+
     function validOrderCreate(orderId) {
       return request.resource.data.keys().hasAll([
           'id', 'buyerId', 'buyerEmail', 'date', 'items', 'itemCount',
@@ -100,7 +114,7 @@ service cloud.firestore {
           'deliverySlots', 'buyerType', 'paymentMethod', 'paymentNumber',
           'paymentConfirmationStatus', 'pricingVerificationStatus', 'createdAt',
           'customerName', 'customerEmail', 'customerPhone', 'deliveryZone',
-          'deliveryAddress', 'isGuest'
+          'deliveryAddress', 'isGuest', 'welcomeDiscount'
         ])
         && request.resource.data.id == orderId
         && request.resource.data.buyerId == request.auth.uid
@@ -117,6 +131,7 @@ service cloud.firestore {
         && request.resource.data.total is number
         && request.resource.data.total >= 0
         && request.resource.data.total <= 100000000
+        && (!('welcomeDiscount' in request.resource.data) || validRetailWelcomeDiscount(orderId))
         && request.resource.data.batchId is string
         && request.resource.data.fulfillment is string
         && request.resource.data.eta is string
@@ -172,6 +187,15 @@ service cloud.firestore {
       allow create: if isAuthenticated() && validOrderCreate(orderId);
       allow update: if isAdmin() && validAdminOrderUpdate();
       allow delete: if false;
+    }
+
+    match /retail_welcome_orders/{buyerId} {
+      allow get: if isOwner(buyerId);
+      allow create: if isOwner(buyerId)
+        && request.resource.data.keys().hasOnly(['orderId', 'createdAt'])
+        && request.resource.data.orderId is string
+        && request.resource.data.orderId.matches('^CHX-[A-Z0-9]{5}-[0-9]{4}$')
+        && request.resource.data.createdAt == request.time;
     }
 
     match /products/{productId} {

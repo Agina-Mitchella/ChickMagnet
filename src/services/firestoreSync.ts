@@ -1,5 +1,6 @@
 import {
   collection, doc, setDoc, onSnapshot, query, where, updateDoc, serverTimestamp,
+  getDocsFromServer, limit, runTransaction,
   DocumentData, QuerySnapshot
 } from 'firebase/firestore';
 import { auth } from '../config/firebaseClient';
@@ -208,6 +209,29 @@ export function subscribeAdminOrders(onUpdate: (orders: any[]) => void) {
   });
 }
 
+export async function reserveRetailWelcomeOrder(orderId: string): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Start checkout again to apply your discount.');
+
+  const existingRetailOrders = await getDocsFromServer(query(
+    collection(db, 'orders'),
+    where('buyerId', '==', user.uid),
+    where('buyerType', '==', 'retail'),
+    limit(1),
+  ));
+  if (!existingRetailOrders.empty) {
+    throw new Error('This code is for your first retail order.');
+  }
+
+  const reservation = doc(db, 'retail_welcome_orders', user.uid);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(reservation);
+    if (existing.exists()) return String(existing.data().orderId);
+    transaction.set(reservation, { orderId, createdAt: serverTimestamp() });
+    return orderId;
+  });
+}
+
 export async function saveOrderToFirestore(order: any) {
   const firebaseUser = auth.currentUser;
   if (!firebaseUser) {
@@ -225,6 +249,7 @@ export async function saveOrderToFirestore(order: any) {
     status: 'Payment confirmation pending',
     statusColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
     total: Number(order.total || 0),
+    ...(order.welcomeDiscount && { welcomeDiscount: order.welcomeDiscount }),
     batchId: String(order.batchId || ''),
     fulfillment: String(order.fulfillment || ''),
     eta: String(order.eta || ''),

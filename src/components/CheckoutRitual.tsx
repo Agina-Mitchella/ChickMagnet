@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FirebaseError } from 'firebase/app';
 import { 
   ShieldCheck, 
   Truck, 
@@ -13,7 +14,9 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { CartItem, BuyerType, FulfillmentType, User } from '../types';
-import { findMinimumOrderViolations, getUnitPrice } from '../utils/orderRules';
+import {
+  findMinimumOrderViolations, getRetailWelcomeTotal, getUnitPrice, RETAIL_WELCOME_CODE,
+} from '../utils/orderRules';
 import mpesaLogo from '../assets/images/mpesa-logo.svg';
 
 interface CheckoutRitualProps {
@@ -105,11 +108,15 @@ export default function CheckoutRitual({
   const [address, setAddress] = useState('');
   const [deliveryDetailsError, setDeliveryDetailsError] = useState<string | null>(null);
 
-  const [orderId] = useState(() => {
+  const [newOrderId] = useState(() => {
     const timePart = Date.now().toString(36).slice(-5).toUpperCase();
     const randomPart = Math.floor(1000 + Math.random() * 9000);
     return `CHX-${timePart}-${randomPart}`;
   });
+  const [promoCode, setPromoCode] = useState('');
+  const [reservedOrderId, setReservedOrderId] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const [paymentNumberCopied, setPaymentNumberCopied] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -133,7 +140,10 @@ export default function CheckoutRitual({
   // Delivery depends on destination, order size and handling requirements.
   // It is quoted after the product order is reviewed, so checkout collects products only.
   const logisticsTotal = 0;
-  const grandTotal = subtotal;
+  const welcomeTotal = getRetailWelcomeTotal(subtotal);
+  const promoApplied = buyerType === 'retail' && reservedOrderId !== null && welcomeTotal < subtotal;
+  const orderId = promoApplied ? reservedOrderId : newOrderId;
+  const grandTotal = promoApplied ? welcomeTotal : subtotal;
   const hasWeightVariableItems = cartItems.some(i => 
     i.product.category === 'fresh-poultry' || i.product.unit?.includes('kg')
   );
@@ -143,6 +153,30 @@ export default function CheckoutRitual({
   const filteredLocations = KENYA_DELIVERY_LOCATIONS.filter(loc =>
     loc.toLowerCase().includes(deliveryZone.toLowerCase())
   );
+
+  const handleApplyPromo = async () => {
+    setPromoError(null);
+    if (promoApplied) {
+      setReservedOrderId(null);
+      return;
+    }
+    if (promoCode.trim().toUpperCase() !== RETAIL_WELCOME_CODE || welcomeTotal >= subtotal) {
+      setPromoError('Enter a valid retail discount code.');
+      return;
+    }
+
+    setIsApplyingPromo(true);
+    try {
+      const { reserveRetailWelcomeOrder } = await import('../services/firestoreSync');
+      setReservedOrderId(await reserveRetailWelcomeOrder(newOrderId));
+    } catch (error) {
+      setPromoError(error instanceof Error && !(error instanceof FirebaseError)
+        ? error.message
+        : 'The code could not be checked. Try again.');
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
 
   const handleContinueToPayment = () => {
     const phoneDigits = phone.replace(/\D/g, '');
@@ -185,6 +219,7 @@ export default function CheckoutRitual({
       subtotal,
       logisticsTotal,
       grandTotal,
+      ...(promoApplied && { welcomeDiscount: { code: RETAIL_WELCOME_CODE, subtotal } }),
       deliveryFeeStatus: 'quoted_after_order_review',
       paymentCovers: 'products_only',
       paymentMethod: 'M-Pesa Send Money',
@@ -426,12 +461,50 @@ export default function CheckoutRitual({
               })}
             </div>
 
+            {buyerType === 'retail' && (
+              <div className="space-y-2">
+                <label htmlFor="checkout-promo-code" className="block text-sm font-bold text-emerald-950">
+                  Discount code
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="checkout-promo-code"
+                    value={promoCode}
+                    onChange={(event) => setPromoCode(event.target.value)}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    maxLength={32}
+                    aria-invalid={Boolean(promoError)}
+                    aria-describedby={promoError ? 'checkout-promo-error' : undefined}
+                    disabled={promoApplied || isApplyingPromo}
+                    className="min-w-0 flex-1 rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-950"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyPromo}
+                    disabled={isApplyingPromo}
+                    className="rounded-xl border border-emerald-200 px-4 text-sm font-bold text-emerald-950 disabled:opacity-50"
+                  >
+                    {promoApplied ? 'Remove' : isApplyingPromo ? 'Checking…' : 'Apply'}
+                  </button>
+                </div>
+                {promoError && <p id="checkout-promo-error" role="alert" className="text-xs text-rose-700">{promoError}</p>}
+                {promoApplied && <p role="status" className="text-xs text-emerald-800">10% welcome discount applied.</p>}
+              </div>
+            )}
+
             {/* Order Total Overview */}
             <div className="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200 space-y-2 font-mono text-xs">
               <div className="flex justify-between text-emerald-900">
                 <span>Products total</span>
                 <span>Ksh {subtotal.toLocaleString()}</span>
               </div>
+              {promoApplied && (
+                <div className="flex justify-between text-emerald-900">
+                  <span>Welcome discount</span>
+                  <span>−Ksh {(subtotal - grandTotal).toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-emerald-900">
                 <span>Delivery</span>
                 <span>Quoted separately</span>
@@ -452,7 +525,7 @@ export default function CheckoutRitual({
             )}
 
             <button
-              disabled={hasMinimumOrderViolation}
+              disabled={hasMinimumOrderViolation || isApplyingPromo}
               onClick={handleContinueToPayment}
               className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
             >

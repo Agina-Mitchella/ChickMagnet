@@ -2,6 +2,11 @@ import type { BuyerType, CartItem, Product } from '../types';
 
 export const WHOLESALE_CHICKEN_MINIMUM = 10;
 export const WHOLESALE_EGG_MINIMUM = 5;
+export const RETAIL_WELCOME_CODE = 'CHICK10';
+
+export function getRetailWelcomeTotal(subtotal: number): number {
+  return Math.round(subtotal * 9 / 10);
+}
 
 const CHICKEN_CATEGORIES = ['live-birds', 'fresh-poultry', 'processed'];
 

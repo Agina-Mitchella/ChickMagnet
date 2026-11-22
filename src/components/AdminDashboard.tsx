@@ -821,6 +821,11 @@ export default function AdminDashboard({
 
                         <td className="p-3.5">
                           <div className="font-bold text-slate-900 font-mono">Ksh {Number(order.total || 0).toLocaleString()}</div>
+                          {order.welcomeDiscount?.code && (
+                            <div className="text-[10px] text-emerald-800">
+                              {order.welcomeDiscount.code} · products Ksh {Number(order.welcomeDiscount.subtotal).toLocaleString()} before discount
+                            </div>
+                          )}
                           <div className={`text-[10px] font-semibold ${
                             order.paymentConfirmationStatus === 'confirmed'
                               ? 'text-emerald-800'

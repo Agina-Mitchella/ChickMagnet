@@ -2,6 +2,38 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Table and Flock uses Klaviyo's native checkboxes to save multiple interests. */
+form[data-testid="klaviyo-form-SrB7e9"] img[alt="ChickMagnet"] {
+  background: #143b2b;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+form[data-testid="klaviyo-form-SrB7e9"] [role="group"]:has(> input[aria-label="Chicken or eggs for home"]) {
+  > label {
+    box-sizing: border-box;
+    min-height: 44px;
+    width: 100%;
+    margin-bottom: 6px;
+    border: 2px solid #e0b84c;
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: #ffdc68;
+    color: #143b2b;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  > input:checked + label {
+    border-color: #143b2b;
+  }
+
+  > input:focus-visible + label {
+    outline: 2px solid #143b2b;
+    outline-offset: 2px;
+  }
+}
+
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
